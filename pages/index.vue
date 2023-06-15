@@ -1,16 +1,16 @@
 <template>
   <div id="app">
-    <!-- 標題區 -->
+    <!-- Área do título -->
     <header>
       <b-navbar type="dark" fixed="top">
         <div class="text-center text-white mx-auto">yugioh card makers</div>
       </b-navbar>
     </header>
 
-    <!-- 主內容區 -->
+    <!-- Área de conteúdo principal -->
     <main class="container-fluid mt-5 mb-3 h-100 py-3 py-md-5 px-0 px-sm-5">
       <b-row class="h-100 justify-content-center align-content-center">
-        <!-- 卡片繪製區 -->
+        <!-- Área de desenho do cartão -->
         <b-col
           id="card-panel"
           cols="12"
@@ -49,8 +49,7 @@
             </div>
           </div>
         </b-col>
-
-        <!-- 卡片資料區 -->
+        <!-- Área de dados do cartão -->
         <b-col
           id="data-panel"
           cols="12"
@@ -60,9 +59,9 @@
         >
           <div class="panel-bg shadow p-3">
             <div class="card-body">
-              <!-- 語言、防偽、稀有、顏色 -->
+              <!-- Idioma, Antifalsificação, Raridade, Cor -->
               <b-row class="mb-3">
-                <!-- 語言 -->
+                <!-- Idioma -->
                 <b-col class="px-2">
                   <label>{{ ui[uiLang].ui_lang }}</label>
                   <b-form-select
@@ -72,9 +71,9 @@
                 </b-col>
               </b-row>
 
-              <!-- 語言、防偽、稀有、顏色 -->
+              <!-- Idioma, Autenticidade, Raridade, Cor -->
               <b-row class="mb-3">
-                <!-- 語言 -->
+                <!-- Idioma -->
                 <b-col cols="6" lg="3" class="px-2">
                   <label>{{ ui[uiLang].card_lang }}</label>
                   <b-form-select
@@ -82,7 +81,7 @@
                     :options="cardLangOpts"
                   ></b-form-select>
                 </b-col>
-                <!-- 防偽貼 -->
+                <!-- Etiqueta de autenticidade -->
                 <b-col cols="6" lg="3" class="px-2">
                   <div class="form-check px-0">
                     <label>{{ ui[uiLang].square_foil_stamp }}</label>
@@ -96,7 +95,7 @@
                     >
                   </div>
                 </b-col>
-                <!-- 防偽貼 -->
+                <!-- Etiqueta de autenticação -->
                 <b-col cols="6" lg="3" class="px-2">
                   <label>{{ ui[uiLang].rarity }}</label>
                   <b-form-select
@@ -104,7 +103,7 @@
                     :options="cardRareOpts"
                   ></b-form-select>
                 </b-col>
-                <!-- 卡名色 -->
+                <!-- Cor do nome do card -->
                 <b-col cols="6" lg="3" class="px-2">
                   <label>{{ ui[uiLang].title_color }}</label>
                   <b-form-input
@@ -114,7 +113,7 @@
                 </b-col>
               </b-row>
 
-              <!-- 卡片密碼 -->
+              <!-- Codigo do card -->
               <b-row class="my-3">
                 <b-col cols="6" lg="4" class="px-2">
                   <div class="form-check px-0">
@@ -143,7 +142,7 @@
                 </b-col>
               </b-row>
 
-              <!-- 卡片名稱 -->
+              <!-- Nome do card -->
               <b-row class="my-3">
                 <b-col class="px-2">
                   <label>{{ ui[uiLang].card_name }}</label>
@@ -151,7 +150,7 @@
                 </b-col>
               </b-row>
 
-              <!-- 卡圖 -->
+              <!-- Imagem do card -->
               <b-row class="my-3">
                 <b-col class="px-2">
                   <b-form-file
@@ -165,9 +164,9 @@
                 </b-col>
               </b-row>
 
-              <!-- 卡種、卡面、效果 -->
+              <!-- Tipo do card, Face do card, Efeito do card -->
               <b-row class="my-3">
-                <!-- 卡種 -->
+                <!-- Tipo de card -->
                 <b-col cols="6" lg="3" class="px-2">
                   <label>{{ ui[uiLang].card_type }}</label>
                   <b-form-select
@@ -176,7 +175,7 @@
                   ></b-form-select>
                 </b-col>
 
-                <!-- 卡面 -->
+                <!-- Face do card -->
                 <b-col cols="6" lg="3" class="px-2">
                   <label>{{ ui[uiLang].card_subtype }}</label>
                   <b-form-select
@@ -185,7 +184,7 @@
                   ></b-form-select>
                 </b-col>
 
-                <!-- 效果 -->
+                <!-- Efeito -->
                 <b-col
                   v-show="cardType === 'Monster'"
                   cols="6"
@@ -212,7 +211,7 @@
                 </b-col>
               </b-row>
 
-              <!-- 屬性、種族 -->
+              <!-- Atributo, Tipo -->
               <b-row v-show="cardType === 'Monster'" class="my-3">
                 <!-- 屬性 -->
                 <b-col cols="12" lg="6" class="px-2">
@@ -223,7 +222,7 @@
                   ></b-form-select>
                 </b-col>
 
-                <!-- 種族 -->
+                <!-- Tipo de Card -->
                 <b-col
                   v-show="cardType === 'Monster'"
                   cols="6"
@@ -243,7 +242,7 @@
                     >
                   </div>
                 </b-col>
-                <!-- 種族 - 種族選擇 -->
+                <!-- Tipo - Seleção de Tipo -->
                 <b-col
                   v-show="!cardCustomRaceEnabled"
                   cols="6"
@@ -256,7 +255,7 @@
                     :options="cardRaceOpts"
                   ></b-form-select>
                 </b-col>
-                <!-- 種族 - 自訂輸入 -->
+                <!-- Tipo - Entrada Personalizada -->
                 <b-col
                   v-show="cardCustomRaceEnabled"
                   cols="6"
@@ -273,9 +272,9 @@
                 </b-col>
               </b-row>
 
-              <!-- 靈擺、特殊召喚、等級 -->
+              <!-- Balanço de Pêndulo, Invocação Especial, Nível -->
               <b-row class="my-3">
-                <!-- 靈擺 -->
+                <!-- Balanço de Pêndulo -->
                 <b-col v-show="canPendulumEnabled" cols="6" lg="4" class="px-2">
                   <div class="form-check px-0">
                     <label>&emsp;</label>
@@ -288,7 +287,7 @@
                   </div>
                 </b-col>
 
-                <!-- 特殊召喚 -->
+                <!-- Invocação Especial -->
                 <b-col
                   v-show="cardType === 'Monster'"
                   cols="6"
@@ -306,7 +305,7 @@
                   </div>
                 </b-col>
 
-                <!-- 等級 -->
+                <!-- Nível -->
                 <b-col
                   v-show="cardType === 'Monster' && !isLinkMonster"
                   cols="12"
@@ -321,7 +320,7 @@
                 </b-col>
               </b-row>
 
-              <!-- 靈擺效果區 -->
+              <!-- Área de Efeito de Pêndulo -->
               <b-row v-show="Pendulum" class="my-3">
                 <b-col cols="12">
                   <h4 class="text-light text-center">
@@ -371,9 +370,9 @@
                 </b-col>
               </b-row>
 
-              <!-- 攻守區 -->
+              <!-- Área de Ataque/Defesa -->
               <b-row class="my-3">
-                <!-- 攻擊力 -->
+                <!-- Ataque -->
                 <b-col v-show="cardType === 'Monster'" cols="4" class="px-2">
                   <label>{{ ui[uiLang].attack }}</label>
                   <b-form-input
@@ -383,7 +382,7 @@
                   ></b-form-input>
                 </b-col>
 
-                <!-- 守備力 -->
+                <!-- Defesa -->
                 <b-col
                   v-show="cardType === 'Monster' && !isLinkMonster"
                   cols="4"
@@ -397,7 +396,7 @@
                   ></b-form-input>
                 </b-col>
 
-                <!-- 連結區 -->
+                <!-- Link -->
                 <b-col v-show="isLinkMonster" cols="4" class="px-2">
                   <label>{{ ui[uiLang].link }}</label>
                   <table>
@@ -418,14 +417,14 @@
                   </table>
                 </b-col>
 
-                <!-- 文字大小 -->
+                <!-- Tamanho do texto -->
                 <b-col cols="4" class="px-2">
                   <label>{{ ui[uiLang].text_size }}</label>
                   <b-form-input v-model="infoSize" type="number"></b-form-input>
                 </b-col>
               </b-row>
 
-              <!-- 卡片說明 -->
+              <!-- Descrição do cartão -->
               <b-row class="my-3">
                 <b-col class="px-2">
                   <label>{{ ui[uiLang].card_info_text }}</label>
@@ -436,7 +435,7 @@
                 </b-col>
               </b-row>
 
-              <!-- 按鈕區 -->
+              <!-- Área de botões -->
               <b-row class="my-3">
                 <b-col class="px-2">
                   <button
@@ -473,7 +472,7 @@
       </b-row>
     </main>
 
-    <!-- 頁尾區 -->
+    <!-- Área do rodapé -->
     <footer class="container-fluid mb-5 px-0 px-md-5">
       <b-row class="justify-content-center align-content-center">
         <b-col id="footer-panel" cols="12">
@@ -481,7 +480,18 @@
             Linziyou
             <a
               class="text-white text-decoration-none"
-              href="https://github.com/linziyou0601/yugioh-card-maker"
+              href="https://github.com/linziyou0601"
+              data-size="large"
+              aria-label="Star linziyou0601/yugioh-card-maker on GitHub"
+            >
+              <fa :icon="['fab', 'github']" /> GitHub
+            </a>
+          </div>
+          <div class="card-body text-center text-white">
+            Felipesantosdd
+            <a
+              class="text-white text-decoration-none"
+              href="https://github.com/felipesantosdd"
               data-size="large"
               aria-label="Star linziyou0601/yugioh-card-maker on GitHub"
             >
@@ -508,9 +518,9 @@ export default {
       adCollapsed: false,
       pageScrolling: 0,
 
-      uiLang: 'zh',
+      uiLang: 'pt',
       ui,
-      cardLang: 'zh',
+      cardLang: 'pt',
       cardMeta,
 
       holo: true,
@@ -696,7 +706,7 @@ export default {
       return Object.fromEntries(
         Object.keys(this.cardEffOpts)
           .filter((key) => {
-            // 去掉「none」、去掉和Eff2重複的（除了value===normal之外）
+            // Remova "none" e remova duplicatas com "Eff2" (exceto quando o valor for "normal")
             return key !== 'none' && (key === 'normal' || key !== this.cardEff2)
           })
           .map((key) => [key, this.cardEffOpts[key]])
@@ -706,7 +716,7 @@ export default {
       return Object.fromEntries(
         Object.keys(this.cardEffOpts)
           .filter((key) => {
-            // 去掉和Eff1重複的（除了value===normal之外）
+            // Remova duplicatas com "Eff1" (exceto quando o valor for "normal")）
             return key === 'normal' || key !== this.cardEff1
           })
           .map((key) => {
@@ -753,7 +763,7 @@ export default {
       this.drawCard()
     },
 
-    // 卡片繪製 - 繪製前準備
+    // Preparação antes da criação do cartão
     drawCard() {
       let cardImgUrl = this.cardImg ? URL.createObjectURL(this.cardImg) : null
       const templateLang = this.cardMeta[this.cardLang]._templateLang
@@ -782,10 +792,10 @@ export default {
             ? `images/pic/${this.cardSubtype}.webp`
             : `images/pic/${this.isXyzMonster ? 'Rank' : 'Level'}.webp`,
       }
-      this.drawCardLoadingImages(this.drawCardProcess) // 載入卡圖後，繪製卡片內容
+      this.drawCardLoadingImages(this.drawCardProcess) // Após carregar a imagem do cartão, desenhe o conteúdo do cartão.
     },
 
-    // 卡片繪製 - 載入卡圖
+    // Carregando a imagem do cartão.
     drawCardLoadingImages(callback) {
       const length = Object.keys(this.imgs).length
       let count = 0
@@ -800,7 +810,7 @@ export default {
       }
     },
 
-    // 卡片繪製 - 主要繪製流程
+    // Fluxo principal de desenho do cartão.
     drawCardProcess() {
       const canvas = this.$refs.yugiohcard
       const ctx = canvas.getContext('2d')
@@ -811,16 +821,16 @@ export default {
       const offset = langStr._offset
       const fontName = langStr._fontName
 
-      // 繪製底圖
+      // Desenhar o plano de fundo.
       this.drawCardImg(ctx)
 
-      // 卡片標題
+      // Desenhar o título do cartão.
       this.drawCardTitle(ctx, offset, fontName)
 
-      // 卡片資料
+      // Desenhar os dados do cartão.
       this.drawCardInfo(ctx, langStr, offset, fontName)
 
-      // 卡片密碼
+      // Desenhar o código do cartão.
       if (this.cardKey !== '') {
         ctx.fillStyle = this.isXyzMonster && !this.Pendulum ? '#FFF' : '#000'
         ctx.font = `22pt 'cardkey', 'MatrixBoldSmallCaps', ${fontName[2]}`
@@ -829,19 +839,19 @@ export default {
       }
       ctx.fillStyle = '#000'
 
-      // 防偽貼
+      // Desenhar o selo de autenticidade.
       if (this.holo) ctx.drawImage(this.imgs.holo, 928, 1371, 44, 46)
 
-      // 靈擺效果說明
+      // Descrição do efeito do Pêndulo.
       if (this.Pendulum) this.drawCardPendulumInfoText(ctx, offset, fontName)
 
-      // 卡片說明
+      // Descrição da carta.
       this.drawCardInfoText(ctx, offset, fontName)
 
       this.closeLoadingDialog()
     },
 
-    // 主要繪製流程 - 底圖
+    // Fluxo principal de desenho - Plano de fundo.
     drawCardImg(ctx) {
       let cX, cY, cW, cH
       if (this.Pendulum) {
@@ -866,7 +876,7 @@ export default {
       ctx.drawImage(this.imgs.attr, 840, 68, 90, 90)
     },
 
-    // 主要繪製流程 - 標題
+    // // Fluxo principal de desenho - Título.
     drawCardTitle(ctx, offset, fontName) {
       ctx.font = `${57 + offset.tS}pt ${fontName[0]}, ${fontName[3]}, ${
         fontName[4]
@@ -879,7 +889,7 @@ export default {
       ctx.shadowOffsetY = 0
     },
 
-    // 主要繪製流程 - 內容
+    // Fluxo principal de desenho - Conteúdo.
     drawCardInfo(ctx, langStr, offset, fontName) {
       const linkPosition = {
         Link: {
@@ -900,8 +910,8 @@ export default {
       }`
       ctx.fillStyle = '#000'
       if (this.cardType === 'Monster') {
-        // 怪獸卡
-        // 怪獸屬性文字
+        // Carta de Monstro
+        // Texto do Atributo do Monstro
         const cardSubtypeFilter = [
           'Normal',
           'Effect',
@@ -913,19 +923,19 @@ export default {
         const typeText =
           (this.cardCustomRaceEnabled
             ? this.cardCustomRace
-            : langStr.Race[this.cardRace]) + // 種族
-          (this.Special ? langStr.M_SPECIAL : '') + // 特殊召喚
+            : langStr.Race[this.cardRace]) + // Tipo
+          (this.Special ? langStr.M_SPECIAL : '') + // Invocação Especial
           (!cardSubtypeFilter.includes(this.cardSubtype)
             ? langStr.Subtype[this.cardSubtype]
-            : '') + // 卡面種類
-          langStr.Effect[this.cardEff1] + // 功能1(效果)
+            : '') + // Tipo de Face do Card
+          langStr.Effect[this.cardEff1] + // Função 1 (Efeito)
           (this.cardEff1 !== this.cardEff2
             ? langStr.Effect[this.cardEff2]
-            : '') + // 功能2(效果)
-          (this.Pendulum ? langStr.M_PENDULUM : '') + // 功能3(靈擺有無)
-          (this.isEffectMonster ? langStr.M_EFFECT : '') // 功能4(效果有無)
+            : '') + // Função 2 (Efeito)
+          (this.Pendulum ? langStr.M_PENDULUM : '') + // Função 3 (Pêndulo)
+          (this.isEffectMonster ? langStr.M_EFFECT : '') // Função 4 (Efeito)
 
-        // 怪獸屬性
+        // Atributo do Monstro
         ctx.fillText(
           `${langStr.QUOTE_L}${typeText}${langStr.QUOTE_R}`,
           63 + offset.oX,
@@ -933,7 +943,7 @@ export default {
           750
         )
 
-        // 怪獸ATK
+        // ATK do Monstro
         ctx.font = `33pt 'MatrixBoldSmallCaps', ${fontName[2]}`
         ctx.textAlign = 'right'
         if (this.cardATK.includes('∞')) {
@@ -941,7 +951,7 @@ export default {
         }
         ctx.fillText(this.cardATK, 719, 1353, 95)
 
-        // 怪獸DEF / LINK
+        // DEF do Monstro / LINK
         ctx.font = `33pt 'MatrixBoldSmallCaps', ${fontName[2]}`
         if (this.isLinkMonster) {
           this.cardDEF = String(
@@ -959,10 +969,10 @@ export default {
           95
         )
 
-        // 怪獸等級 / 階級 / 連結
+        // Nível / Classe / Ligação do Monstro
         ctx.textAlign = 'left'
         if (!this.isLinkMonster) {
-          // 非連結怪獸
+          // Monstro não Link
           for (let i = 1; i <= this.cardLevel; i++)
             ctx.drawImage(
               this.imgs.levelOrSubtype,
@@ -972,9 +982,9 @@ export default {
               58
             )
         } else {
-          // 連結怪獸
+          // Monstro de Link
           const linkStr = this.Pendulum ? 'LinkPendulum' : 'Link'
-          // 連結圖片
+          // Imagem de Link
           for (let i = 1; i <= 9; i++)
             if (i !== 5 && this.links[i].val)
               ctx.drawImage(
@@ -986,8 +996,8 @@ export default {
               )
         }
       } else {
-        // 魔罠卡
-        // 卡種
+        // Tipo de Carta Mágica
+        // Armadilha
         const typeText =
           (this.cardType === 'Spell' ? langStr.Spell : langStr.Trap) +
           (this.cardSubtype === 'Normal' ? '' : langStr.SEP)
@@ -996,7 +1006,7 @@ export default {
           `${langStr.QUOTE_L}${typeText}${langStr.QUOTE_R}`,
           920 + offset.sX1,
           222 + offset.sY1
-        ) // 魔罠卡
+        ) // Carta de Magia/Armadilha
         if (this.cardSubtype !== 'Normal')
           ctx.drawImage(
             this.imgs.levelOrSubtype,
@@ -1004,13 +1014,13 @@ export default {
             178 + offset.sY2,
             58,
             58
-          ) // 魔罠子類別
+          ) // Subtipo de Magia/Armadilha
       }
     },
 
-    // 填入靈擺效果說明
+    // Preencha a descrição do efeito de Pêndulo
     drawCardPendulumInfoText(ctx, offset, fontName) {
-      // 畫符號
+      // Draw symbols
       ctx.textAlign = 'center'
       ctx.font = "55pt 'MatrixBoldSmallCaps'"
       ctx.fillText(
@@ -1024,7 +1034,7 @@ export default {
         60
       )
       ctx.fillText(this.cardRED, 895, 1040, 60)
-      // 畫文字
+      // Escreva texto.
       const fontSize = Number(this.pendulumSize)
       ctx.textAlign = 'left'
       ctx.textBaseline = 'top'
@@ -1039,7 +1049,7 @@ export default {
       )
     },
 
-    // 填入卡片說明
+    // Preencha a descrição do cartão.
     drawCardInfoText(ctx, offset, fontName) {
       const fontSize = Number(this.infoSize)
       ctx.textAlign = 'left'
@@ -1055,7 +1065,7 @@ export default {
       )
     },
 
-    // 卡色
+    // Cor do cartão.
     rareColor(ctx) {
       let gradient
       switch (this.cardRare) {
@@ -1081,12 +1091,12 @@ export default {
       }
     },
 
-    // 文字區
+    // Área de texto.
     wrapText(ctx, text, x, y, maxWidth, lineHeight) {
-      let lineWidth = 0 - ctx.measureText(text[0]).width // 目前佔用行寬
-      const fieldWidth = maxWidth // 欄位寬度
-      let initHeight = y // 文字距離圖片頂部高度
-      let lastSubStrIndex = 0 // 每次擷取的子字串起始位置
+      let lineWidth = 0 - ctx.measureText(text[0]).width // Largura da linha atualmente ocupada.
+      const fieldWidth = maxWidth // Largura do campo.
+      let initHeight = y // Altura do texto em relação ao topo da imagem.
+      let lastSubStrIndex = 0 // Altura do texto em relação ao topo da imagem.
       for (let i = 0; i < text.length; i++) {
         lineWidth += ctx.measureText(text[i]).width
         if (lineWidth > fieldWidth || text.substring(i, i + 1) === '\n') {
@@ -1097,17 +1107,17 @@ export default {
           lastSubStrIndex = i
         }
         if (i === text.length - 1) {
-          // 若本行未超過，位已達最後一字，則直接填入
+          // Se a linha atual não exceder o comprimento máximo e já for a última palavra, preencha diretamente.
           ctx.fillText(text.substring(lastSubStrIndex, i + 1), x, initHeight)
         }
       }
     },
 
-    // 下載
+    // Baixar Card.
     download_img() {
       const canvas = this.$refs.yugiohcard
       if (canvas.msToBlob) {
-        // for IE
+        // para o Internet Explorer.
         const blob = canvas.msToBlob()
         window.navigator.msSaveBlob(blob, 'YuGiOh.png')
       } else {
@@ -1118,7 +1128,7 @@ export default {
       }
     },
 
-    // 載入預設
+    // Carregar configuração padrão.
     load_default_data() {
       const data = this.cardMeta[this.cardLang].Default
       this.holo = true
@@ -1130,19 +1140,19 @@ export default {
       this.cardImg = null
       this.cardType = 'Monster'
       this.cardSubtype = 'Normal'
-      this.cardAttr = 'LIGHT'
+      this.cardAttr = 'DARK'
       this.cardEff1 = 'normal'
       this.cardEff2 = 'none'
       this.cardCustomRaceEnabled = false
       this.cardCustomRace = ''
-      this.cardRace = 'dragon'
-      this.Pendulum = true
-      this.Special = true
-      this.cardLevel = '12'
+      this.cardRace = 'spellcaster'
+      this.Pendulum = false
+      this.Special = false
+      this.cardLevel = '7'
       this.cardBLUE = '12'
       this.cardRED = '12'
-      this.cardATK = '?'
-      this.cardDEF = '?'
+      this.cardATK = '2500'
+      this.cardDEF = '2100'
       for (let i = 1; i <= 9; i++) if (i !== 5) this.links[i].val = false
       this.cardInfo = data.info
       this.infoSize = data.size
@@ -1150,7 +1160,7 @@ export default {
       this.pendulumSize = data.pSize
     },
 
-    // 載入YGOPRO2資料
+    // Carregar dados do YGOPRO2.
     load_ygopro_data(key) {
       const data = ygoproData[key]
       if (!data) return false
@@ -1184,14 +1194,14 @@ export default {
       return true
     },
 
-    // 頁面捲動時
+    // Quando a página é rolada.
     onScroll() {
       const currentScrollPosition =
         window.pageYOffset || document.documentElement.scrollTop
       this.pageScrolling = currentScrollPosition
     },
 
-    // 3D效果 - 移動
+    // Efeito 3D - Movimento.
     move(e) {
       const THRESHOLD = 5
       const cardWrap = this.$refs['yugiohcard-wrap']
@@ -1207,7 +1217,7 @@ export default {
       cardWrap.style.transform = `perspective(${clientWidth}px) rotateX(${rotateY}deg) rotateY(${rotateX}deg) scale3d(1, 1, 1)`
     },
 
-    // 3D效果 - 離開
+    // Efeito 3D - Saindo.
     leave(e) {
       const cardWrap = this.$refs['yugiohcard-wrap']
       cardWrap.style.transform = `perspective(${e.currentTarget.clientWidth}px) rotateX(0deg) rotateY(0deg)`
@@ -1217,7 +1227,7 @@ export default {
 </script>
 
 <style>
-/* font converted using font-converter.net. thank you! */
+/* fonte convertida usando font-converter.net. Obrigado! */
 
 .preloadfont {
   font-family: YourFont;
@@ -1249,7 +1259,7 @@ body {
     '微軟正黑體';
 }
 
-/* -------------------- 區塊樣式 -------------------- */
+/* -------------------- Estilos de Bloco -------------------- */
 header {
   font-family: 'en', 'zh';
   font-size: 1.5rem;
@@ -1264,7 +1274,7 @@ nav {
   color: #fff;
 }
 
-/* -------------------- 卡片區樣式 -------------------- */
+/* -------------------- Estilos de Área de Cartão -------------------- */
 .padding-transition {
   transition: all 0.5s linear;
 }
@@ -1280,8 +1290,8 @@ nav {
   transition: transform 0.3s ease;
 }
 
-/* -------------------- 輸入區樣式 -------------------- */
-/* 輸入區底色 */
+/* -------------------- Estilos de Área de Entrada -------------------- */
+/* Cor de fundo da Área de Entrada */
 select,
 textarea,
 input,
@@ -1290,16 +1300,16 @@ input,
   color: #ccc !important;
   border: 0 !important;
 }
-/* 下拉選單icon */
+/* Ícone do menu suspenso */
 .custom-select {
   background-image: var(--chevron-down-svg-path);
 }
-/* 下拉區底色 */
+/* Cor de fundo do menu suspenso */
 select option {
   background: #666666;
   color: #fff;
 }
-/* Checkbox顏色 */
+/* Cor da caixa de seleção */
 .checkbox-wrap {
   width: 100%;
 }
@@ -1314,7 +1324,7 @@ select option {
   color: #fff !important;
   background-color: #17a2b8 !important;
 }
-/* 檔案上傳鈕 */
+/* Botão de upload de arquivo */
 .custom-file-label::after {
   content: '✚' !important;
   background-color: #787878 !important;

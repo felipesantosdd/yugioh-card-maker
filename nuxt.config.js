@@ -11,7 +11,7 @@ const gaTags = process.env.DEPLOY_ENV === 'GH_PAGES' ? [
       window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}
       gtag('js', new Date());
-    
+
       gtag('config', 'G-WWZYYWN8W7');
     `,
     type: 'text/javascript',
@@ -32,9 +32,9 @@ export default {
 
   // Global page headers: https://go.nuxtjs.dev/config-head
   head: {
-    title: '遊戲王 卡片製造機',
+    title: 'Yu-Gi-Oh!, Card Maker',
     htmlAttrs: {
-      lang: 'zh-tw'
+      lang: 'pt'
     },
     meta: [
       // { 'http-equiv': "refresh", content:"0; url=https://yugioh-card.linziyou.info" },
@@ -76,14 +76,14 @@ export default {
     'nuxt-font-loader',
   ],
 
-  
-  fontLoader : { 
+
+  fontLoader: {
     url: {
       local: 'fonts/font-face.css',
       google: 'https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@100;300;400;500;700;900&family=Noto+Sans+SC:wght@100;300;400;500;700;900&family=Noto+Sans+TC:wght@100;300;400;500;700;900&display=swap',
     },
-    prefetch : true,
-    preconnect : true,
+    prefetch: true,
+    preconnect: true,
     preload: {
       hid: 'my-font-preload',
     },
@@ -101,7 +101,7 @@ export default {
 
   fontawesome: {
     // icon 的標籤使用 <fa>，這邊不設定就會依照 plugin 裡的設定<font-awesome-icon>
-    component: 'fa', 
+    component: 'fa',
     imports: [
       {
         set: '@fortawesome/free-solid-svg-icons',
