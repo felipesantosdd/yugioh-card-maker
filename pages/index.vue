@@ -996,25 +996,48 @@ export default {
               )
         }
       } else {
-        // Tipo de Carta Mágica
-        // Armadilha
+        // Tipo de Carta Mágica / Armadilha
         const typeText =
           (this.cardType === 'Spell' ? langStr.Spell : langStr.Trap) +
           (this.cardSubtype === 'Normal' ? '' : langStr.SEP)
-        ctx.textAlign = 'right'
-        ctx.fillText(
-          `${langStr.QUOTE_L}${typeText}${langStr.QUOTE_R}`,
-          920 + offset.sX1,
-          222 + offset.sY1
-        ) // Carta de Magia/Armadilha
-        if (this.cardSubtype !== 'Normal')
+        const y = 222 + offset.sY1
+        const iconW = 58
+        const iconH = 58
+        const gap = 4
+
+        if (this.cardSubtype !== 'Normal') {
+          // Ícone dentro dos colchetes: [ CARTA DE MAGO (ícone) ]
+          ctx.textAlign = 'left'
+          const openB = langStr.QUOTE_L
+          const closeB = langStr.QUOTE_R
+          const wOpen = ctx.measureText(openB).width
+          const wText = ctx.measureText(typeText).width
+          const wClose = ctx.measureText(closeB).width
+          const totalW = wOpen + wText + gap + iconW + gap + wClose
+          const rightEdge = 920 + offset.sX1
+          let x = rightEdge - totalW
+
+          ctx.fillText(openB, x, y)
+          x += wOpen
+          ctx.fillText(typeText, x, y)
+          x += wText + gap
           ctx.drawImage(
             this.imgs.levelOrSubtype,
-            820 + offset.sX2,
-            178 + offset.sY2,
-            58,
-            58
-          ) // Subtipo de Magia/Armadilha
+            x,
+            y - iconH + 14,
+            iconW,
+            iconH
+          )
+          x += iconW + gap
+          ctx.fillText(closeB, x, y)
+        } else {
+          ctx.textAlign = 'right'
+          ctx.fillText(
+            `${langStr.QUOTE_L}${typeText}${langStr.QUOTE_R}`,
+            920 + offset.sX1,
+            y
+          )
+        }
       }
     },
 
