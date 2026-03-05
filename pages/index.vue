@@ -1,11 +1,6 @@
 <template>
   <div id="app">
     <!-- Área do título -->
-    <header>
-      <b-navbar type="dark" fixed="top">
-        <div class="text-center text-white mx-auto">yugioh card makers</div>
-      </b-navbar>
-    </header>
 
     <!-- Área de conteúdo principal -->
     <main class="container-fluid mt-5 mb-3 h-100 py-3 py-md-5 px-0 px-sm-5">
@@ -14,694 +9,921 @@
           <!-- Barra de progresso ao atualizar banco local -->
           <div v-if="syncLoading" class="panel-bg shadow p-3 mb-3">
             <label class="d-block mb-2">{{ ui[uiLang].db_sync_title }}</label>
-            <b-progress :value="syncProgress" :max="100" show-value animated></b-progress>
+            <b-progress
+              :value="syncProgress"
+              :max="100"
+              show-value
+              animated
+            ></b-progress>
             <small class="text-muted d-block mt-1">
               {{ syncProgressText }}
             </small>
           </div>
-          <div v-else-if="syncError" class="alert alert-warning py-2 mb-3 small">
+          <div
+            v-else-if="syncError"
+            class="alert alert-warning py-2 mb-3 small"
+          >
             {{ syncError }}
           </div>
           <!-- Busca por nome ou arquétipo -->
-      <b-row class="mb-3 justify-content-center">
-        <b-col cols="12" class="px-2 px-sm-5 search-panel-col">
-          <div class="panel-bg shadow p-3">
-            <label class="d-block mb-2">{{ ui[uiLang].search_cards }}</label>
-            <b-row class="align-items-end">
-              <b-col cols="12" md="auto" class="mb-2 mb-md-0">
-                <b-form-radio-group
-                  v-model="searchMode"
-                  buttons
-                  button-variant="outline-secondary"
-                  size="sm"
-                >
-                  <b-form-radio value="archetype">{{ ui[uiLang].search_by_archetype }}</b-form-radio>
-                  <b-form-radio value="name">{{ ui[uiLang].search_by_name }}</b-form-radio>
-                </b-form-radio-group>
-              </b-col>
-              <b-col v-if="searchMode === 'archetype'" cols="12" md="6" class="mb-2 mb-md-0 position-relative">
-                <b-form-input
-                  v-model="searchByArchetype"
-                  :placeholder="ui[uiLang].search_placeholder_archetype"
-                  autocomplete="off"
-                  @focus="showArchetypeDropdown = true"
-                  @keyup.enter="
-                    filteredArchetypes.length ? selectArchetype(filteredArchetypes[0]) : searchCards()
-                  "
-                  @input="showArchetypeDropdown = true"
-                  @blur="closeArchetypeDropdown"
-                />
-                <ul
-                  v-if="showArchetypeDropdown && searchByArchetype.length >= 1"
-                  class="list-group position-absolute shadow mt-1 w-100 archetype-dropdown"
-                  style="max-height: 220px; overflow-y: auto"
-                >
-                  <li
-                    v-for="(opt, idx) in filteredArchetypes.slice(0, 15)"
-                    :key="idx"
-                    class="list-group-item list-group-item-action py-2"
-                    @click="selectArchetype(opt)"
-                  >
-                    {{ opt.archetype_name }}
-                  </li>
-                </ul>
-              </b-col>
-              <b-col v-else cols="12" md="6" class="mb-2 mb-md-0 position-relative">
-                <b-form-input
-                  v-model="searchByName"
-                  :placeholder="ui[uiLang].search_placeholder_name"
-                  autocomplete="off"
-                  @focus="showNameDropdown = true"
-                  @keyup.enter="
-                    filteredCardsByName.length ? selectCardFromName(filteredCardsByName[0]) : searchCards()
-                  "
-                  @input="showNameDropdown = true"
-                  @blur="closeNameDropdown"
-                />
-                <ul
-                  v-if="showNameDropdown && searchByName.length >= 1"
-                  class="list-group position-absolute shadow mt-1 w-100 archetype-dropdown"
-                  style="max-height: 220px; overflow-y: auto"
-                >
-                  <li
-                    v-for="card in filteredCardsByName.slice(0, 15)"
-                    :key="card.id"
-                    class="list-group-item list-group-item-action py-2"
-                    @click="selectCardFromName(card)"
-                  >
-                    {{ card.name }}
-                  </li>
-                </ul>
-              </b-col>
-              <b-col cols="12" md="auto">
-                <b-button variant="primary" :disabled="searchLoading" @click="searchCards">
-                  {{ searchLoading ? ui[uiLang].search_loading : ui[uiLang].search_button }}
-                </b-button>
-              </b-col>
-            </b-row>
-          </div>
-        </b-col>
-      </b-row>
-
-      <b-row class="h-100 justify-content-center align-content-center">
-        <!-- Área de desenho do cartão -->
-        <b-col
-          id="card-panel"
-          cols="12"
-          md="6"
-          lg="4"
-          class="mt-3 mt-sm-5 mt-md-0"
-        >
-          <div
-            :class="{
-              'padding-transition': true,
-              'sticky-top': true,
-              'pt-5': pageScrolling > 10,
-            }"
-          >
-            <div
-              :class="{
-                'padding-transition': true,
-                'pt-5': pageScrolling > 10,
-              }"
-            >
+          <b-row class="mb-3 justify-content-center">
+            <b-col cols="12" class="px-2 px-sm-5 search-panel-col">
               <div class="panel-bg shadow p-3">
-                <div
-                  id="yugiohcard-wrap"
-                  ref="yugiohcard-wrap"
-                  class="card-body position-relative"
-                  @mousemove="move"
-                  @mouseleave="leave"
-                >
-                  <canvas
-                    id="yugiohcard"
-                    ref="yugiohcard"
-                    class="cardbg img-fluid"
-                  ></canvas>
-                  <div
-                    v-if="cardPhotoLoading"
-                    class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center rounded"
-                    style="background: rgba(0,0,0,0.6); pointer-events: none;"
+                <b-row class="align-items-end">
+                  <b-col cols="12" md="auto" class="mb-2 mb-md-0">
+                    <label class="d-block mb-2">{{
+                      ui[uiLang].search_cards
+                    }}</label>
+                    <b-form-radio-group
+                      v-model="searchMode"
+                      buttons
+                      button-variant="outline-secondary"
+                      size="sm"
+                    >
+                      <b-form-radio value="archetype">{{
+                        ui[uiLang].search_by_archetype
+                      }}</b-form-radio>
+                      <b-form-radio value="name">{{
+                        ui[uiLang].search_by_name
+                      }}</b-form-radio>
+                    </b-form-radio-group>
+                  </b-col>
+                  <b-col
+                    cols="12"
+                    md
+                    class="mb-2 mb-md-0 d-flex justify-content-end flex-wrap"
                   >
-                    <div class="text-center text-white">
-                      <b-spinner small type="grow"></b-spinner>
-                      <div class="small mt-2">Carregando imagem...</div>
+                    <div
+                      v-if="searchMode === 'archetype'"
+                      class="position-relative mr-1 flex-grow-1 flex-md-grow-0"
+                      style="min-width: 180px; max-width: 320px"
+                    >
+                      <b-form-input
+                        v-model="searchByArchetype"
+                        :placeholder="ui[uiLang].search_placeholder_archetype"
+                        autocomplete="off"
+                        @focus="showArchetypeDropdown = true"
+                        @keyup.enter="
+                          filteredArchetypes.length
+                            ? selectArchetype(filteredArchetypes[0])
+                            : searchCards()
+                        "
+                        @input="showArchetypeDropdown = true"
+                        @blur="closeArchetypeDropdown"
+                      />
+                      <ul
+                        v-if="
+                          showArchetypeDropdown && searchByArchetype.length >= 1
+                        "
+                        class="
+                          list-group
+                          position-absolute
+                          shadow
+                          mt-1
+                          w-100
+                          archetype-dropdown
+                        "
+                        style="max-height: 220px; overflow-y: auto"
+                      >
+                        <li
+                          v-for="(opt, idx) in filteredArchetypes.slice(0, 15)"
+                          :key="idx"
+                          class="list-group-item list-group-item-action py-2"
+                          @click="selectArchetype(opt)"
+                        >
+                          {{ opt.archetype_name }}
+                        </li>
+                      </ul>
+                    </div>
+                    <div
+                      v-else
+                      class="position-relative mr-1 flex-grow-1 flex-md-grow-0"
+                      style="min-width: 180px; max-width: 320px"
+                    >
+                      <b-form-input
+                        v-model="searchByName"
+                        :placeholder="ui[uiLang].search_placeholder_name"
+                        autocomplete="off"
+                        @focus="showNameDropdown = true"
+                        @keyup.enter="
+                          filteredCardsByName.length
+                            ? selectCardFromName(filteredCardsByName[0])
+                            : searchCards()
+                        "
+                        @input="showNameDropdown = true"
+                        @blur="closeNameDropdown"
+                      />
+                      <ul
+                        v-if="showNameDropdown && searchByName.length >= 1"
+                        class="
+                          list-group
+                          position-absolute
+                          shadow
+                          mt-1
+                          w-100
+                          archetype-dropdown
+                        "
+                        style="max-height: 220px; overflow-y: auto"
+                      >
+                        <li
+                          v-for="card in filteredCardsByName.slice(0, 15)"
+                          :key="card.id"
+                          class="list-group-item list-group-item-action py-2"
+                          @click="selectCardFromName(card)"
+                        >
+                          {{ card.name }}
+                        </li>
+                      </ul>
+                    </div>
+                    <b-button
+                      variant="primary"
+                      :disabled="searchLoading"
+                      @click="searchCards"
+                    >
+                      {{
+                        searchLoading
+                          ? ui[uiLang].search_loading
+                          : ui[uiLang].search_button
+                      }}
+                    </b-button>
+                  </b-col>
+                </b-row>
+              </div>
+            </b-col>
+          </b-row>
+
+          <b-row class="h-100 justify-content-center align-content-center">
+            <!-- Área de desenho do cartão -->
+            <b-col
+              id="card-panel"
+              cols="12"
+              md="6"
+              lg="4"
+              class="mt-3 mt-sm-5 mt-md-0"
+            >
+              <div
+                :class="{
+                  'padding-transition': true,
+                  'sticky-top': true,
+                  'pt-5': pageScrolling > 10,
+                }"
+              >
+                <div
+                  :class="{
+                    'padding-transition': true,
+                    'pt-5': pageScrolling > 10,
+                  }"
+                >
+                  <div class="panel-bg shadow p-3">
+                    <div
+                      id="yugiohcard-wrap"
+                      ref="yugiohcard-wrap"
+                      class="card-body position-relative"
+                      @mousemove="move"
+                      @mouseleave="leave"
+                    >
+                      <canvas
+                        id="yugiohcard"
+                        ref="yugiohcard"
+                        class="cardbg img-fluid"
+                      ></canvas>
+                      <div
+                        v-if="cardPhotoLoading"
+                        class="
+                          position-absolute
+                          top-0
+                          start-0
+                          w-100
+                          h-100
+                          d-flex
+                          align-items-center
+                          justify-content-center
+                          rounded
+                        "
+                        style="
+                          background: rgba(0, 0, 0, 0.6);
+                          pointer-events: none;
+                        "
+                      >
+                        <div class="text-center text-white">
+                          <b-spinner small type="grow"></b-spinner>
+                          <div class="small mt-2">Carregando imagem...</div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
-          </div>
-        </b-col>
-        <!-- Área de dados do cartão -->
-        <b-col
-          id="data-panel"
-          cols="12"
-          md="6"
-          lg="8"
-          class="mt-3 mt-sm-5 mt-md-0"
-        >
-          <div class="panel-bg shadow p-3">
-            <div class="card-body">
-              <!-- Autenticidade, Raridade, Cor -->
-              <b-row class="mb-3">
-                <!-- Etiqueta de autenticidade -->
-                <b-col cols="6" lg="3" class="px-2">
-                  <div class="form-check px-0">
-                    <label>{{ ui[uiLang].square_foil_stamp }}</label>
-                    <b-form-checkbox
-                      v-model="holo"
-                      :class="{ 'checkbox-wrap': true, active: holo }"
-                      button
-                      >{{
-                        holo ? ui[uiLang].on : ui[uiLang].off
-                      }}</b-form-checkbox
-                    >
-                  </div>
-                </b-col>
-                <!-- Etiqueta de autenticação -->
-                <b-col cols="6" lg="3" class="px-2">
-                  <label>{{ ui[uiLang].rarity }}</label>
-                  <b-form-select
-                    v-model="cardRare"
-                    :options="cardRareOpts"
-                  ></b-form-select>
-                </b-col>
-                <!-- Cor do nome do card -->
-                <b-col cols="6" lg="3" class="px-2">
-                  <label>{{ ui[uiLang].title_color }}</label>
-                  <b-form-input
-                    v-model="titleColor"
-                    type="color"
-                  ></b-form-input>
-                </b-col>
-              </b-row>
-
-              <!-- Codigo do card -->
-              <b-row class="my-3">
-                <b-col cols="6" lg="4" class="px-2">
-                  <div class="form-check px-0">
-                    <label>{{ ui[uiLang].card_secret }}</label>
-                    <b-form-checkbox
-                      v-model="cardLoadYgoProEnabled"
-                      :class="{
-                        'checkbox-wrap': true,
-                        active: cardLoadYgoProEnabled,
-                      }"
-                      button
-                      >{{ ui[uiLang].auto_fill_card_data }}</b-form-checkbox
-                    >
-                  </div>
-                </b-col>
-                <b-col cols="6" lg="8" class="px-2">
-                  <label
-                    ><small>{{ ui[uiLang].card_secret_note }}</small></label
-                  >
-                  <b-form-input
-                    v-model="cardKey"
-                    type="number"
-                    maxlength="8"
-                    :placeholder="ui[uiLang].plz_input_card_secret"
-                  />
-                  <small v-if="apiCardLoading" class="text-muted">{{
-                      ui[uiLang].search_loading
-                    }}</small>
-                  <small v-else-if="apiCardError" class="text-danger">{{
-                    apiCardError
-                  }}</small>
-                </b-col>
-              </b-row>
-
-              <!-- Nome do card -->
-              <b-row class="my-3">
-                <b-col class="px-2">
-                  <label>{{ ui[uiLang].card_name }}</label>
-                  <b-form-input v-model="cardTitle"></b-form-input>
-                </b-col>
-              </b-row>
-
-              <!-- Imagem do card -->
-              <b-row class="my-3">
-                <b-col class="px-2">
-                  <b-form-file
-                    v-model="cardImg"
-                    :state="Boolean(cardImg)"
-                    :placeholder="ui[uiLang].upload_image"
-                    browse="✚"
-                    accept="image/*"
-                    :drop-placeholder="ui[uiLang].drag_and_drop"
-                  ></b-form-file>
-                </b-col>
-              </b-row>
-
-              <!-- Tipo do card, Face do card, Efeito do card -->
-              <b-row class="my-3">
-                <!-- Tipo de card -->
-                <b-col cols="6" lg="3" class="px-2">
-                  <label>{{ ui[uiLang].card_type }}</label>
-                  <b-form-select
-                    v-model="cardType"
-                    :options="cardTypeOpts"
-                  ></b-form-select>
-                </b-col>
-
-                <!-- Face do card -->
-                <b-col cols="6" lg="3" class="px-2">
-                  <label>{{ ui[uiLang].card_subtype }}</label>
-                  <b-form-select
-                    v-model="cardSubtype"
-                    :options="cardSubtypeOpts[cardType]"
-                  ></b-form-select>
-                </b-col>
-
-                <!-- Efeito -->
-                <b-col
-                  v-show="cardType === 'Monster'"
-                  cols="6"
-                  lg="3"
-                  class="px-2"
-                >
-                  <label>{{ ui[uiLang].card_effect }}</label>
-                  <b-form-select
-                    v-model="cardEff1"
-                    :options="cardEff1Opts"
-                  ></b-form-select>
-                </b-col>
-                <b-col
-                  v-show="cardType === 'Monster'"
-                  cols="6"
-                  lg="3"
-                  class="px-2"
-                >
-                  <label>&emsp;</label>
-                  <b-form-select
-                    v-model="cardEff2"
-                    :options="cardEff2Opts"
-                  ></b-form-select>
-                </b-col>
-              </b-row>
-
-              <!-- Atributo, Tipo -->
-              <b-row v-show="cardType === 'Monster'" class="my-3">
-                <!-- 屬性 -->
-                <b-col cols="12" lg="6" class="px-2">
-                  <label>{{ ui[uiLang].card_attribute }}</label>
-                  <b-form-select
-                    v-model="cardAttr"
-                    :options="cardAttrOpts"
-                  ></b-form-select>
-                </b-col>
-
-                <!-- Tipo de Card -->
-                <b-col
-                  v-show="cardType === 'Monster'"
-                  cols="6"
-                  lg="3"
-                  class="px-2"
-                >
-                  <div class="form-check px-0">
-                    <label>{{ ui[uiLang].card_race_type }}</label>
-                    <b-form-checkbox
-                      v-model="cardCustomRaceEnabled"
-                      :class="{
-                        'checkbox-wrap': true,
-                        active: cardCustomRaceEnabled,
-                      }"
-                      button
-                      >{{ ui[uiLang].custom }}</b-form-checkbox
-                    >
-                  </div>
-                </b-col>
-                <!-- Tipo - Seleção de Tipo -->
-                <b-col
-                  v-show="!cardCustomRaceEnabled"
-                  cols="6"
-                  lg="3"
-                  class="px-2"
-                >
-                  <label>&emsp;</label>
-                  <b-form-select
-                    v-model="cardRace"
-                    :options="cardRaceOpts"
-                  ></b-form-select>
-                </b-col>
-                <!-- Tipo - Entrada Personalizada -->
-                <b-col
-                  v-show="cardCustomRaceEnabled"
-                  cols="6"
-                  lg="3"
-                  class="px-2"
-                >
-                  <label>&emsp;</label>
-                  <b-form-input
-                    v-model="cardCustomRace"
-                    type="text"
-                    maxlength="8"
-                    :placeholder="ui[uiLang].plz_input_race_type"
-                  />
-                </b-col>
-              </b-row>
-
-              <!-- Balanço de Pêndulo, Invocação Especial, Nível -->
-              <b-row class="my-3">
-                <!-- Balanço de Pêndulo -->
-                <b-col v-show="canPendulumEnabled" cols="6" lg="4" class="px-2">
-                  <div class="form-check px-0">
-                    <label>&emsp;</label>
-                    <b-form-checkbox
-                      v-model="Pendulum"
-                      :class="{ 'checkbox-wrap': true, active: Pendulum }"
-                      button
-                      >{{ ui[uiLang].pendulum }}</b-form-checkbox
-                    >
-                  </div>
-                </b-col>
-
-                <!-- Invocação Especial -->
-                <b-col
-                  v-show="cardType === 'Monster'"
-                  cols="6"
-                  lg="4"
-                  class="px-2"
-                >
-                  <div class="form-check px-0">
-                    <label>&emsp;</label>
-                    <b-form-checkbox
-                      v-model="Special"
-                      :class="{ 'checkbox-wrap': true, active: Special }"
-                      button
-                      >{{ ui[uiLang].special_summon }}</b-form-checkbox
-                    >
-                  </div>
-                </b-col>
-
-                <!-- Nível -->
-                <b-col
-                  v-show="cardType === 'Monster' && !isLinkMonster"
-                  cols="12"
-                  lg="4"
-                  class="px-2"
-                >
-                  <label>{{ ui[uiLang].lavel_and_rank }}</label>
-                  <b-form-select
-                    v-model="cardLevel"
-                    :options="cardLevelOpts"
-                  ></b-form-select>
-                </b-col>
-              </b-row>
-
-              <!-- Área de Efeito de Pêndulo -->
-              <b-row v-show="Pendulum" class="my-3">
-                <b-col cols="12">
-                  <h4 class="text-light text-center">
-                    {{ ui[uiLang].pendulum_area }}
-                  </h4>
-                </b-col>
-                <b-col cols="12">
+            </b-col>
+            <!-- Área de dados do cartão -->
+            <b-col
+              id="data-panel"
+              cols="12"
+              md="6"
+              lg="8"
+              class="mt-3 mt-sm-5 mt-md-0"
+            >
+              <div class="panel-bg shadow p-3">
+                <div class="card-body">
+                  <!-- Autenticidade, Raridade, Cor -->
                   <b-row class="mb-3">
-                    <b-col cols="4" class="px-2">
-                      <label>{{ ui[uiLang].pendulum_blue }}</label>
-                      <b-form-input
-                        v-model="cardBLUE"
-                        type="number"
-                        min="0"
-                        max="12"
-                      ></b-form-input>
+                    <!-- Etiqueta de autenticidade -->
+                    <b-col cols="6" lg="3" class="px-2">
+                      <div class="form-check px-0">
+                        <label>{{ ui[uiLang].square_foil_stamp }}</label>
+                        <b-form-checkbox
+                          v-model="holo"
+                          :class="{ 'checkbox-wrap': true, active: holo }"
+                          button
+                          >{{
+                            holo ? ui[uiLang].on : ui[uiLang].off
+                          }}</b-form-checkbox
+                        >
+                      </div>
                     </b-col>
-
-                    <b-col cols="4" class="px-2">
-                      <label>{{ ui[uiLang].pendulum_red }}</label>
-                      <b-form-input
-                        v-model="cardRED"
-                        type="number"
-                        min="0"
-                        max="12"
-                      ></b-form-input>
+                    <!-- Etiqueta de autenticação -->
+                    <b-col cols="6" lg="3" class="px-2">
+                      <label>{{ ui[uiLang].rarity }}</label>
+                      <b-form-select
+                        v-model="cardRare"
+                        :options="cardRareOpts"
+                      ></b-form-select>
                     </b-col>
-
-                    <b-col cols="4" class="px-2">
-                      <label>{{ ui[uiLang].text_size }}</label>
+                    <!-- Cor do nome do card -->
+                    <b-col cols="6" lg="3" class="px-2">
+                      <label>{{ ui[uiLang].title_color }}</label>
                       <b-form-input
-                        v-model="pendulumSize"
-                        type="number"
+                        v-model="titleColor"
+                        type="color"
                       ></b-form-input>
                     </b-col>
                   </b-row>
 
+                  <!-- Codigo do card -->
+                  <b-row class="my-3">
+                    <b-col cols="6" lg="4" class="px-2">
+                      <div class="form-check px-0">
+                        <label>{{ ui[uiLang].card_secret }}</label>
+                        <b-form-checkbox
+                          v-model="cardLoadYgoProEnabled"
+                          :class="{
+                            'checkbox-wrap': true,
+                            active: cardLoadYgoProEnabled,
+                          }"
+                          button
+                          >{{ ui[uiLang].auto_fill_card_data }}</b-form-checkbox
+                        >
+                      </div>
+                    </b-col>
+                    <b-col cols="6" lg="8" class="px-2">
+                      <label
+                        ><small>{{ ui[uiLang].card_secret_note }}</small></label
+                      >
+                      <b-form-input
+                        v-model="cardKey"
+                        type="number"
+                        maxlength="8"
+                        :placeholder="ui[uiLang].plz_input_card_secret"
+                      />
+                      <small v-if="apiCardLoading" class="text-muted">{{
+                        ui[uiLang].search_loading
+                      }}</small>
+                      <small v-else-if="apiCardError" class="text-danger">{{
+                        apiCardError
+                      }}</small>
+                    </b-col>
+                  </b-row>
+
+                  <!-- Nome do card -->
+                  <b-row class="my-3">
+                    <b-col class="px-2">
+                      <label>{{ ui[uiLang].card_name }}</label>
+                      <b-form-input v-model="cardTitle"></b-form-input>
+                    </b-col>
+                  </b-row>
+
+                  <!-- Imagem do card -->
+                  <b-row class="my-3">
+                    <b-col class="px-2">
+                      <b-form-file
+                        v-model="cardImg"
+                        :state="Boolean(cardImg)"
+                        :placeholder="ui[uiLang].upload_image"
+                        browse="✚"
+                        accept="image/*"
+                        :drop-placeholder="ui[uiLang].drag_and_drop"
+                      ></b-form-file>
+                    </b-col>
+                  </b-row>
+
+                  <!-- Tipo do card, Face do card, Efeito do card -->
+                  <b-row class="my-3">
+                    <!-- Tipo de card -->
+                    <b-col cols="6" lg="3" class="px-2">
+                      <label>{{ ui[uiLang].card_type }}</label>
+                      <b-form-select
+                        v-model="cardType"
+                        :options="cardTypeOpts"
+                      ></b-form-select>
+                    </b-col>
+
+                    <!-- Face do card -->
+                    <b-col cols="6" lg="3" class="px-2">
+                      <label>{{ ui[uiLang].card_subtype }}</label>
+                      <b-form-select
+                        v-model="cardSubtype"
+                        :options="cardSubtypeOpts[cardType]"
+                      ></b-form-select>
+                    </b-col>
+
+                    <!-- Efeito -->
+                    <b-col
+                      v-show="cardType === 'Monster'"
+                      cols="6"
+                      lg="3"
+                      class="px-2"
+                    >
+                      <label>{{ ui[uiLang].card_effect }}</label>
+                      <b-form-select
+                        v-model="cardEff1"
+                        :options="cardEff1Opts"
+                      ></b-form-select>
+                    </b-col>
+                    <b-col
+                      v-show="cardType === 'Monster'"
+                      cols="6"
+                      lg="3"
+                      class="px-2"
+                    >
+                      <label>&emsp;</label>
+                      <b-form-select
+                        v-model="cardEff2"
+                        :options="cardEff2Opts"
+                      ></b-form-select>
+                    </b-col>
+                  </b-row>
+
+                  <!-- Atributo, Tipo -->
+                  <b-row v-show="cardType === 'Monster'" class="my-3">
+                    <!-- 屬性 -->
+                    <b-col cols="12" lg="6" class="px-2">
+                      <label>{{ ui[uiLang].card_attribute }}</label>
+                      <b-form-select
+                        v-model="cardAttr"
+                        :options="cardAttrOpts"
+                      ></b-form-select>
+                    </b-col>
+
+                    <!-- Tipo de Card -->
+                    <b-col
+                      v-show="cardType === 'Monster'"
+                      cols="6"
+                      lg="3"
+                      class="px-2"
+                    >
+                      <div class="form-check px-0">
+                        <label>{{ ui[uiLang].card_race_type }}</label>
+                        <b-form-checkbox
+                          v-model="cardCustomRaceEnabled"
+                          :class="{
+                            'checkbox-wrap': true,
+                            active: cardCustomRaceEnabled,
+                          }"
+                          button
+                          >{{ ui[uiLang].custom }}</b-form-checkbox
+                        >
+                      </div>
+                    </b-col>
+                    <!-- Tipo - Seleção de Tipo -->
+                    <b-col
+                      v-show="!cardCustomRaceEnabled"
+                      cols="6"
+                      lg="3"
+                      class="px-2"
+                    >
+                      <label>&emsp;</label>
+                      <b-form-select
+                        v-model="cardRace"
+                        :options="cardRaceOpts"
+                      ></b-form-select>
+                    </b-col>
+                    <!-- Tipo - Entrada Personalizada -->
+                    <b-col
+                      v-show="cardCustomRaceEnabled"
+                      cols="6"
+                      lg="3"
+                      class="px-2"
+                    >
+                      <label>&emsp;</label>
+                      <b-form-input
+                        v-model="cardCustomRace"
+                        type="text"
+                        maxlength="8"
+                        :placeholder="ui[uiLang].plz_input_race_type"
+                      />
+                    </b-col>
+                  </b-row>
+
+                  <!-- Balanço de Pêndulo, Invocação Especial, Nível -->
+                  <b-row class="my-3">
+                    <!-- Balanço de Pêndulo -->
+                    <b-col
+                      v-show="canPendulumEnabled"
+                      cols="6"
+                      lg="4"
+                      class="px-2"
+                    >
+                      <div class="form-check px-0">
+                        <label>&emsp;</label>
+                        <b-form-checkbox
+                          v-model="Pendulum"
+                          :class="{ 'checkbox-wrap': true, active: Pendulum }"
+                          button
+                          >{{ ui[uiLang].pendulum }}</b-form-checkbox
+                        >
+                      </div>
+                    </b-col>
+
+                    <!-- Invocação Especial -->
+                    <b-col
+                      v-show="cardType === 'Monster'"
+                      cols="6"
+                      lg="4"
+                      class="px-2"
+                    >
+                      <div class="form-check px-0">
+                        <label>&emsp;</label>
+                        <b-form-checkbox
+                          v-model="Special"
+                          :class="{ 'checkbox-wrap': true, active: Special }"
+                          button
+                          >{{ ui[uiLang].special_summon }}</b-form-checkbox
+                        >
+                      </div>
+                    </b-col>
+
+                    <!-- Nível -->
+                    <b-col
+                      v-show="cardType === 'Monster' && !isLinkMonster"
+                      cols="12"
+                      lg="4"
+                      class="px-2"
+                    >
+                      <label>{{ ui[uiLang].lavel_and_rank }}</label>
+                      <b-form-select
+                        v-model="cardLevel"
+                        :options="cardLevelOpts"
+                      ></b-form-select>
+                    </b-col>
+                  </b-row>
+
+                  <!-- Área de Efeito de Pêndulo -->
+                  <b-row v-show="Pendulum" class="my-3">
+                    <b-col cols="12">
+                      <h4 class="text-light text-center">
+                        {{ ui[uiLang].pendulum_area }}
+                      </h4>
+                    </b-col>
+                    <b-col cols="12">
+                      <b-row class="mb-3">
+                        <b-col cols="4" class="px-2">
+                          <label>{{ ui[uiLang].pendulum_blue }}</label>
+                          <b-form-input
+                            v-model="cardBLUE"
+                            type="number"
+                            min="0"
+                            max="12"
+                          ></b-form-input>
+                        </b-col>
+
+                        <b-col cols="4" class="px-2">
+                          <label>{{ ui[uiLang].pendulum_red }}</label>
+                          <b-form-input
+                            v-model="cardRED"
+                            type="number"
+                            min="0"
+                            max="12"
+                          ></b-form-input>
+                        </b-col>
+
+                        <b-col cols="4" class="px-2">
+                          <label>{{ ui[uiLang].text_size }}</label>
+                          <b-form-input
+                            v-model="pendulumSize"
+                            type="number"
+                          ></b-form-input>
+                        </b-col>
+                      </b-row>
+
+                      <b-row class="my-3">
+                        <b-col class="px-2">
+                          <label>{{ ui[uiLang].card_info_text }}</label>
+                          <b-form-textarea
+                            v-model="cardPendulumInfo"
+                            rows="5"
+                          ></b-form-textarea>
+                        </b-col>
+                      </b-row>
+                    </b-col>
+                  </b-row>
+
+                  <!-- Área de Ataque/Defesa -->
+                  <b-row class="my-3">
+                    <!-- Ataque -->
+                    <b-col
+                      v-show="cardType === 'Monster'"
+                      cols="4"
+                      class="px-2"
+                    >
+                      <label>{{ ui[uiLang].attack }}</label>
+                      <b-form-input
+                        v-model="cardATK"
+                        type="text"
+                        maxlength="6"
+                      ></b-form-input>
+                    </b-col>
+
+                    <!-- Defesa -->
+                    <b-col
+                      v-show="cardType === 'Monster' && !isLinkMonster"
+                      cols="4"
+                      class="px-2"
+                    >
+                      <label>{{ ui[uiLang].defence }}</label>
+                      <b-form-input
+                        v-model="cardDEF"
+                        type="text"
+                        maxlength="6"
+                      ></b-form-input>
+                    </b-col>
+
+                    <!-- Link -->
+                    <b-col v-show="isLinkMonster" cols="4" class="px-2">
+                      <label>{{ ui[uiLang].link }}</label>
+                      <table>
+                        <tr v-for="row in [0, 1, 2]" :key="row">
+                          <td v-for="col in [1, 2, 3]" :key="col">
+                            <b-form-checkbox
+                              v-if="row * 3 + col !== 5"
+                              v-model="links[row * 3 + col].val"
+                              :class="{
+                                'checkbox-wrap': true,
+                                active: links[row * 3 + col].val,
+                              }"
+                              button
+                              >{{
+                                links[row * 3 + col].symbol
+                              }}</b-form-checkbox
+                            >
+                          </td>
+                        </tr>
+                      </table>
+                    </b-col>
+
+                    <!-- Tamanho do texto e posição (top) -->
+                    <b-col cols="2" class="px-2">
+                      <label>{{ ui[uiLang].text_size }}</label>
+                      <b-form-input
+                        v-model="infoSize"
+                        type="number"
+                      ></b-form-input>
+                    </b-col>
+                    <b-col cols="2" class="px-2">
+                      <label>{{ ui[uiLang].text_position }}</label>
+                      <b-form-input
+                        v-model.number="infoPosition"
+                        type="number"
+                        placeholder="0"
+                      ></b-form-input>
+                    </b-col>
+                  </b-row>
+
+                  <!-- Descrição do cartão -->
                   <b-row class="my-3">
                     <b-col class="px-2">
                       <label>{{ ui[uiLang].card_info_text }}</label>
                       <b-form-textarea
-                        v-model="cardPendulumInfo"
+                        v-model="cardInfo"
                         rows="5"
                       ></b-form-textarea>
                     </b-col>
                   </b-row>
-                </b-col>
-              </b-row>
 
-              <!-- Área de Ataque/Defesa -->
-              <b-row class="my-3">
-                <!-- Ataque -->
-                <b-col v-show="cardType === 'Monster'" cols="4" class="px-2">
-                  <label>{{ ui[uiLang].attack }}</label>
-                  <b-form-input
-                    v-model="cardATK"
-                    type="text"
-                    maxlength="6"
-                  ></b-form-input>
-                </b-col>
-
-                <!-- Defesa -->
-                <b-col
-                  v-show="cardType === 'Monster' && !isLinkMonster"
-                  cols="4"
-                  class="px-2"
-                >
-                  <label>{{ ui[uiLang].defence }}</label>
-                  <b-form-input
-                    v-model="cardDEF"
-                    type="text"
-                    maxlength="6"
-                  ></b-form-input>
-                </b-col>
-
-                <!-- Link -->
-                <b-col v-show="isLinkMonster" cols="4" class="px-2">
-                  <label>{{ ui[uiLang].link }}</label>
-                  <table>
-                    <tr v-for="row in [0, 1, 2]" :key="row">
-                      <td v-for="col in [1, 2, 3]" :key="col">
-                        <b-form-checkbox
-                          v-if="row * 3 + col !== 5"
-                          v-model="links[row * 3 + col].val"
-                          :class="{
-                            'checkbox-wrap': true,
-                            active: links[row * 3 + col].val,
-                          }"
-                          button
-                          >{{ links[row * 3 + col].symbol }}</b-form-checkbox
-                        >
-                      </td>
-                    </tr>
-                  </table>
-                </b-col>
-
-                <!-- Tamanho do texto -->
-                <b-col cols="4" class="px-2">
-                  <label>{{ ui[uiLang].text_size }}</label>
-                  <b-form-input v-model="infoSize" type="number"></b-form-input>
-                </b-col>
-              </b-row>
-
-              <!-- Descrição do cartão -->
-              <b-row class="my-3">
-                <b-col class="px-2">
-                  <label>{{ ui[uiLang].card_info_text }}</label>
-                  <b-form-textarea
-                    v-model="cardInfo"
-                    rows="5"
-                  ></b-form-textarea>
-                </b-col>
-              </b-row>
-
-              <!-- Área de botões -->
-              <b-row class="my-3">
-                <b-col class="px-2">
-                  <button
-                    type="button"
-                    class="my-2 btn btn-info"
-                    @click="doDrawCard"
-                  >
-                    {{ ui[uiLang].generate }}</button
-                  >&emsp;
-                  <button
-                    type="button"
-                    class="my-2 btn btn-success"
-                    @click="download_img"
-                  >
-                    {{ ui[uiLang].download }}
-                  </button>
-                  <b-button
-                    v-if="cardKey"
-                    class="my-2"
-                    variant="outline-primary"
-                    @click="addToCollectionCurrent"
-                  >
-                    {{ ui[uiLang].add_to_collection }}
-                  </b-button>
-                  <label style="color: #ccc"
-                    >&emsp;{{ ui[uiLang].auto_gen_note }}</label
-                  >
-                </b-col>
-                <b-col cols="6" class="px-2 text-right">
-                  <button
-                    type="button"
-                    class="my-2 btn btn-danger"
-                    @click="load_default_data"
-                  >
-                    {{ ui[uiLang].reset_to_default }}
-                  </button>
-                </b-col>
-              </b-row>
-            </div>
-          </div>
-
-          <!-- Resultados da busca (classificados: arquétipo > nome > descrição) -->
-          <div v-if="searchResults.length > 0" class="panel-bg shadow p-3 mt-3">
-            <label class="d-block mb-2">{{ ui[uiLang].search_results }}</label>
-            <template v-if="searchResultsByArchetype.length > 0">
-              <div class="small text-muted mb-1 mt-2">{{ getSearchSectionLabel('archetype') }}</div>
-              <div class="d-flex flex-wrap gap-2 mb-3" style="max-height: 280px; overflow-y: auto">
-                <div
-                  v-for="card in searchResultsByArchetype"
-                  :key="'arch-' + card.id"
-                  class="search-result-card border rounded p-1 bg-dark text-center position-relative"
-                  style="width: 100px; cursor: pointer"
-                  @click="applyCardFromSearch(card)"
-                >
-                  <img :src="getCardImageSrc(card)" :alt="card.name" class="img-fluid rounded" style="height: 90px; object-fit: contain" loading="lazy" @error="onCardImgError(card, $event)" />
-                  <small class="d-block text-white text-truncate mt-1">{{ card.name }}</small>
+                  <!-- Área de botões -->
+                  <b-row class="my-3">
+                    <b-col class="px-2">
+                      <button
+                        type="button"
+                        class="my-2 btn btn-info"
+                        @click="doDrawCard"
+                      >
+                        {{ ui[uiLang].generate }}</button
+                      >&emsp;
+                      <button
+                        type="button"
+                        class="my-2 btn btn-success"
+                        @click="download_img"
+                      >
+                        {{ ui[uiLang].download }}
+                      </button>
+                      <b-button
+                        v-if="
+                          cardKey &&
+                          !hasUnsavedLayoutChanges &&
+                          !isCurrentCardInCollection
+                        "
+                        class="my-2"
+                        variant="outline-primary"
+                        @click="addToCollectionCurrent"
+                      >
+                        {{ ui[uiLang].add_to_collection }}
+                      </b-button>
+                      <b-button
+                        v-if="hasUnsavedLayoutChanges"
+                        class="my-2"
+                        variant="success"
+                        @click="saveCollectionChanges"
+                      >
+                        {{ ui[uiLang].save_changes }}
+                      </b-button>
+                      <label style="color: #ccc"
+                        >&emsp;{{ ui[uiLang].auto_gen_note }}</label
+                      >
+                    </b-col>
+                    <b-col cols="6" class="px-2 text-right">
+                      <button
+                        type="button"
+                        class="my-2 btn btn-danger"
+                        @click="load_default_data"
+                      >
+                        {{ ui[uiLang].reset_to_default }}
+                      </button>
+                    </b-col>
+                  </b-row>
                 </div>
               </div>
-            </template>
-            <template v-if="searchResultsByName.length > 0">
-              <div class="small text-muted mb-1 mt-2">{{ getSearchSectionLabel('name') }}</div>
-              <div class="d-flex flex-wrap gap-2 mb-3" style="max-height: 280px; overflow-y: auto">
-                <div
-                  v-for="card in searchResultsByName"
-                  :key="'name-' + card.id"
-                  class="search-result-card border rounded p-1 bg-dark text-center position-relative"
-                  style="width: 100px; cursor: pointer"
-                  @click="applyCardFromSearch(card)"
-                >
-                  <img :src="getCardImageSrc(card)" :alt="card.name" class="img-fluid rounded" style="height: 90px; object-fit: contain" loading="lazy" @error="onCardImgError(card, $event)" />
-                  <small class="d-block text-white text-truncate mt-1">{{ card.name }}</small>
-                </div>
-              </div>
-            </template>
-            <template v-if="searchResultsByDesc.length > 0">
-              <div class="small text-muted mb-1 mt-2">{{ getSearchSectionLabel('desc') }}</div>
-              <div class="d-flex flex-wrap gap-2" style="max-height: 280px; overflow-y: auto">
-                <div
-                  v-for="card in searchResultsByDesc"
-                  :key="'desc-' + card.id"
-                  class="search-result-card border rounded p-1 bg-dark text-center position-relative"
-                  style="width: 100px; cursor: pointer"
-                  @click="applyCardFromSearch(card)"
-                >
-                  <img :src="getCardImageSrc(card)" :alt="card.name" class="img-fluid rounded" style="height: 90px; object-fit: contain" loading="lazy" @error="onCardImgError(card, $event)" />
-                  <small class="d-block text-white text-truncate mt-1">{{ card.name }}</small>
-                </div>
-              </div>
-            </template>
-          </div>
-          <div
-            v-else-if="searchTried && !searchLoading"
-            class="panel-bg shadow p-3 mt-3 text-muted text-center"
-          >
-            {{ ui[uiLang].search_no_results }}
-          </div>
 
-          <!-- Minha coleção -->
-          <div class="panel-bg shadow p-3 mt-3">
-            <label class="d-block mb-2">{{ ui[uiLang].my_collection }}</label>
-            <b-button
-              v-if="userCollection.length > 0"
-              class="mb-3"
-              variant="outline-info"
-              :disabled="batchDownloading"
-              @click="batchDownloadCollection"
-            >
-              {{ batchDownloading ? ui[uiLang].batch_downloading : ui[uiLang].batch_download }}
-            </b-button>
-            <div
-              v-if="userCollection.length > 0"
-              class="d-flex flex-wrap gap-2"
-              style="max-height: 240px; overflow-y: auto"
-            >
+              <!-- Resultados da busca (classificados: arquétipo > nome > descrição) -->
               <div
-                v-for="item in userCollection"
-                :key="item.id"
-                class="border rounded p-2 bg-dark text-center"
-                style="width: 90px"
+                v-if="searchResults.length > 0"
+                class="panel-bg shadow p-3 mt-3"
               >
-                <img
-                  v-if="getCollectionItemImageSrc(item)"
-                  :src="getCollectionItemImageSrc(item)"
-                  :alt="item.name"
-                  class="img-fluid rounded"
-                  style="height: 70px; object-fit: contain"
-                />
-                <div
-                  v-else
-                  class="rounded bg-secondary d-flex align-items-center justify-content-center text-white small"
-                  style="height: 70px"
-                >
-                  …
-                </div>
-                <small class="d-block text-white text-truncate mt-1">{{ item.name }}</small>
-                <b-button size="sm" variant="outline-danger" class="mt-1" @click="removeFromCollection(item.id)">
-                  ×
-                </b-button>
+                <label class="d-block mb-2">{{
+                  ui[uiLang].search_results
+                }}</label>
+                <template v-if="searchResultsByArchetype.length > 0">
+                  <div class="small text-muted mb-1 mt-2">
+                    {{ getSearchSectionLabel('archetype') }}
+                  </div>
+                  <div
+                    class="d-flex flex-wrap mb-3"
+                    style="max-height: 280px; overflow-y: auto; gap: 10px"
+                  >
+                    <div
+                      v-for="card in searchResultsByArchetype"
+                      :key="'arch-' + card.id"
+                      class="
+                        search-result-card
+                        rounded
+                        p-2
+                        text-center
+                        position-relative
+                      "
+                      :style="{
+                        width: '100px',
+                        cursor: 'pointer',
+                        backgroundColor: getSearchResultCardBg(card),
+                        border: '1px solid #312F49',
+                      }"
+                      @click="applyCardFromSearch(card)"
+                    >
+                      <img
+                        :src="getSearchResultImageSrc(card)"
+                        :alt="card.name"
+                        class="img-fluid rounded"
+                        style="
+                          height: 90px;
+                          object-fit: contain;
+                          display: block;
+                        "
+                        loading="lazy"
+                        @error="onSearchResultImgError(card, $event)"
+                      />
+                      <small
+                        :class="[
+                          'd-block text-truncate mt-1',
+                          getSearchResultTextClass(card),
+                        ]"
+                        >{{ card.name }}</small
+                      >
+                    </div>
+                  </div>
+                </template>
+                <template v-if="searchResultsByName.length > 0">
+                  <div class="small text-muted mb-1 mt-2">
+                    {{ getSearchSectionLabel('name') }}
+                  </div>
+                  <div
+                    class="d-flex flex-wrap mb-3"
+                    style="max-height: 280px; overflow-y: auto; gap: 10px"
+                  >
+                    <div
+                      v-for="card in searchResultsByName"
+                      :key="'name-' + card.id"
+                      class="
+                        search-result-card
+                        rounded
+                        p-2
+                        text-center
+                        position-relative
+                      "
+                      :style="{
+                        width: '100px',
+                        cursor: 'pointer',
+                        backgroundColor: getSearchResultCardBg(card),
+                        border: '1px solid #312F49',
+                      }"
+                      @click="applyCardFromSearch(card)"
+                    >
+                      <img
+                        :src="getSearchResultImageSrc(card)"
+                        :alt="card.name"
+                        class="img-fluid rounded"
+                        style="
+                          height: 90px;
+                          object-fit: contain;
+                          display: block;
+                        "
+                        loading="lazy"
+                        @error="onSearchResultImgError(card, $event)"
+                      />
+                      <small
+                        :class="[
+                          'd-block text-truncate mt-1',
+                          getSearchResultTextClass(card),
+                        ]"
+                        >{{ card.name }}</small
+                      >
+                    </div>
+                  </div>
+                </template>
+                <template v-if="searchResultsByDesc.length > 0">
+                  <div class="small text-muted mb-1 mt-2">
+                    {{ getSearchSectionLabel('desc') }}
+                  </div>
+                  <div
+                    class="d-flex flex-wrap"
+                    style="max-height: 280px; overflow-y: auto; gap: 10px"
+                  >
+                    <div
+                      v-for="card in searchResultsByDesc"
+                      :key="'desc-' + card.id"
+                      class="
+                        search-result-card
+                        rounded
+                        p-2
+                        text-center
+                        position-relative
+                      "
+                      :style="{
+                        width: '100px',
+                        cursor: 'pointer',
+                        backgroundColor: getSearchResultCardBg(card),
+                        border: '1px solid #312F49',
+                      }"
+                      @click="applyCardFromSearch(card)"
+                    >
+                      <img
+                        :src="getSearchResultImageSrc(card)"
+                        :alt="card.name"
+                        class="img-fluid rounded"
+                        style="
+                          height: 90px;
+                          object-fit: contain;
+                          display: block;
+                        "
+                        loading="lazy"
+                        @error="onSearchResultImgError(card, $event)"
+                      />
+                      <small
+                        :class="[
+                          'd-block text-truncate mt-1',
+                          getSearchResultTextClass(card),
+                        ]"
+                        >{{ card.name }}</small
+                      >
+                    </div>
+                  </div>
+                </template>
               </div>
-            </div>
-            <p v-else class="text-muted small mb-0">
-              {{ ui[uiLang].collection_empty }}
-            </p>
-          </div>
-        </b-col>
-      </b-row>
+              <div
+                v-else-if="searchTried && !searchLoading"
+                class="panel-bg shadow p-3 mt-3 text-muted text-center"
+              >
+                {{ ui[uiLang].search_no_results }}
+              </div>
 
-      <!-- Área do rodapé -->
-      <footer class="container-fluid mb-5 px-0 px-md-5">
-      <b-row class="justify-content-center align-content-center">
-        <b-col id="footer-panel" cols="12">
-          <div class="card-body text-center text-white">
-            Linziyou
-            <a
-              class="text-white text-decoration-none"
-              href="https://github.com/linziyou0601"
-              data-size="large"
-              aria-label="Ver projeto no GitHub"
-            >
-              <fa :icon="['fab', 'github']" /> GitHub
-            </a>
-          </div>
-          <div class="card-body text-center text-white">
-            Felipesantosdd
-            <a
-              class="text-white text-decoration-none"
-              href="https://github.com/felipesantosdd"
-              data-size="large"
-              aria-label="Ver projeto no GitHub"
-            >
-              <fa :icon="['fab', 'github']" /> GitHub
-            </a>
-          </div>
-        </b-col>
-      </b-row>
-    </footer>
+              <!-- Minha coleção -->
+              <div class="panel-bg shadow p-3 mt-3">
+                <label class="d-block mb-2">{{
+                  ui[uiLang].my_collection
+                }}</label>
+                <b-button
+                  v-if="userCollection.length > 0"
+                  class="mb-3"
+                  variant="outline-info"
+                  :disabled="batchDownloading"
+                  @click="batchDownloadCollection"
+                >
+                  {{
+                    batchDownloading
+                      ? ui[uiLang].batch_downloading
+                      : ui[uiLang].batch_download
+                  }}
+                </b-button>
+                <div
+                  v-if="userCollection.length > 0"
+                  class="d-flex flex-wrap gap-2"
+                  style="max-height: 240px; overflow-y: auto"
+                >
+                  <div
+                    v-for="item in userCollection"
+                    :key="item.id"
+                    class="border rounded p-2 bg-dark text-center"
+                    style="width: 90px; cursor: pointer"
+                    @click="loadCollectionItemForEdit(item)"
+                  >
+                    <img
+                      v-if="getCollectionItemImageSrc(item)"
+                      :src="getCollectionItemImageSrc(item)"
+                      :alt="item.name"
+                      class="img-fluid rounded"
+                      style="height: 70px; object-fit: contain"
+                    />
+                    <div
+                      v-else
+                      class="
+                        rounded
+                        bg-secondary
+                        d-flex
+                        align-items-center
+                        justify-content-center
+                        text-white
+                        small
+                      "
+                      style="height: 70px"
+                    >
+                      …
+                    </div>
+                    <small class="d-block text-white text-truncate mt-1">{{
+                      item.name
+                    }}</small>
+                    <b-button
+                      size="sm"
+                      variant="outline-danger"
+                      class="mt-1"
+                      @click.stop="removeFromCollection(item.id)"
+                    >
+                      ×
+                    </b-button>
+                  </div>
+                </div>
+                <p v-else class="text-muted small mb-0">
+                  {{ ui[uiLang].collection_empty }}
+                </p>
+              </div>
+            </b-col>
+          </b-row>
+
+          <!-- Área do rodapé -->
+          <footer class="container-fluid mb-5 px-0 px-md-5">
+            <b-row class="justify-content-center align-content-center">
+              <b-col id="footer-panel" cols="12">
+                <div class="card-body text-center text-white">
+                  Linziyou
+                  <a
+                    class="text-white text-decoration-none"
+                    href="https://github.com/linziyou0601"
+                    data-size="large"
+                    aria-label="Ver projeto no GitHub"
+                  >
+                    <fa :icon="['fab', 'github']" /> GitHub
+                  </a>
+                </div>
+                <div class="card-body text-center text-white">
+                  Felipesantosdd
+                  <a
+                    class="text-white text-decoration-none"
+                    href="https://github.com/felipesantosdd"
+                    data-size="large"
+                    aria-label="Ver projeto no GitHub"
+                  >
+                    <fa :icon="['fab', 'github']" /> GitHub
+                  </a>
+                </div>
+              </b-col>
+            </b-row>
+          </footer>
         </b-tab>
         <b-tab :title="ui[uiLang].tab_other_games">
           <div class="panel-bg shadow p-3 text-center text-muted py-5">
@@ -710,6 +932,28 @@
         </b-tab>
       </b-tabs>
     </main>
+
+    <b-modal
+      ref="unsavedChangesModal"
+      :title="ui[uiLang].unsaved_changes_title"
+      ok-title=""
+      cancel-title=""
+      hide-header-close
+      @hide="pendingLeaveAction = null"
+    >
+      <p class="mb-0">{{ ui[uiLang].unsaved_changes_message }}</p>
+      <template #modal-footer>
+        <b-button variant="success" @click="onUnsavedModalSave">
+          {{ ui[uiLang].unsaved_save }}
+        </b-button>
+        <b-button variant="outline-danger" @click="onUnsavedModalDiscard">
+          {{ ui[uiLang].unsaved_discard }}
+        </b-button>
+        <b-button variant="secondary" @click="onUnsavedModalCancel">
+          {{ ui[uiLang].unsaved_cancel }}
+        </b-button>
+      </template>
+    </b-modal>
 
     <LoadingDialog />
   </div>
@@ -806,6 +1050,7 @@ export default {
         9: { val: false, symbol: '◢' },
       },
       infoSize: '22',
+      infoPosition: 0,
       cardInfo: '',
 
       imgs: {},
@@ -824,9 +1069,15 @@ export default {
       userCollection: [],
       collectionImageUrls: {},
       batchDownloading: false,
+      loadedFromCollection: false,
 
       programmaticUpdate: false,
       autoSaveCollectionTimer: null,
+
+      editingCollectionId: null,
+      snapshotAtLoad: null,
+      initialSnapshotWhenNotFromCollection: null,
+      pendingLeaveAction: null,
     }
   },
   computed: {
@@ -842,7 +1093,9 @@ export default {
     },
     syncProgressText() {
       const t = this.ui[this.uiLang].db_sync_progress
-      return typeof t === 'string' ? t.replace('{{progress}}', this.syncProgress) : ''
+      return typeof t === 'string'
+        ? t.replace('{{progress}}', this.syncProgress)
+        : ''
     },
     filteredArchetypes() {
       if (!this.searchByArchetype.trim()) return this.archetypeOptions
@@ -870,6 +1123,18 @@ export default {
     currentSnapshotForAutoSave() {
       if (!this.cardKey) return null
       return { cardKey: this.cardKey, ...this.getCurrentCardSnapshot() }
+    },
+    hasUnsavedLayoutChanges() {
+      if (this.editingCollectionId == null || this.snapshotAtLoad == null)
+        return false
+      const current = this.getCurrentCardSnapshot()
+      return JSON.stringify(this.snapshotAtLoad) !== JSON.stringify(current)
+    },
+    isCurrentCardInCollection() {
+      if (!this.cardKey) return false
+      return this.userCollection.some(
+        (item) => String(item.cardKey) === String(this.cardKey)
+      )
     },
     cardTypeOpts() {
       return {
@@ -1025,6 +1290,7 @@ export default {
       if (this.apiCardFetchTimer) clearTimeout(this.apiCardFetchTimer)
       this.apiCardError = null
       const key = String(val).trim()
+      if (key.length >= 8) this.loadedFromCollection = false
       if (!this.cardLoadYgoProEnabled || key.length < 8) return
       if (this.localCardsMap[key]) return
       this.apiCardFetchTimer = setTimeout(() => {
@@ -1043,9 +1309,20 @@ export default {
       deep: true,
       handler() {
         if (!this.cardKey || this.programmaticUpdate || !this.$ygoDb) return
-        if (this.autoSaveCollectionTimer) clearTimeout(this.autoSaveCollectionTimer)
+        if (this.editingCollectionId != null) return
+        if (this.autoSaveCollectionTimer)
+          clearTimeout(this.autoSaveCollectionTimer)
         this.autoSaveCollectionTimer = setTimeout(() => {
           this.autoSaveCollectionTimer = null
+          if (
+            !this.isCurrentCardInCollection &&
+            this.initialSnapshotWhenNotFromCollection != null &&
+            JSON.stringify(this.getCurrentCardSnapshot()) !==
+              JSON.stringify(this.initialSnapshotWhenNotFromCollection)
+          ) {
+            this.addCurrentToCollectionAndStartEditing()
+            return
+          }
           this.addOrUpdateCurrentInCollection()
         }, 500)
       },
@@ -1065,6 +1342,40 @@ export default {
   methods: {
     ...mapMutations(['fireLoadingDialog', 'closeLoadingDialog']),
 
+    async loadCollectionItemForEdit(item) {
+      if (this.hasUnsavedLayoutChanges) {
+        this.pendingLeaveAction = { type: 'loadCollectionItem', item }
+        this.$refs.unsavedChangesModal.show()
+        return
+      }
+      await this.doLoadCollectionItemForEdit(item)
+    },
+
+    async doLoadCollectionItemForEdit(item) {
+      this.initialSnapshotWhenNotFromCollection = null
+      this.editingCollectionId = item.id
+      this.snapshotAtLoad = JSON.parse(JSON.stringify(item.snapshot))
+      this.loadFromSnapshot(item.snapshot)
+      this.cardKey = item.cardKey
+      this.cardLang = item.cardLang || 'pt'
+      const imgUrl = await this.getExportImageUrlForBatch(item.cardKey)
+      this.cardPhotoLoading = !!imgUrl
+      if (imgUrl) {
+        this.$nextTick(() => this.fireLoadingDialog())
+        await this.ensureCardImage(item.cardKey, imgUrl)
+        this.drawCard(this.apiCardImageUrls[item.cardKey] || imgUrl)
+      } else {
+        this.cardPhotoLoading = false
+        this.$nextTick(() => {
+          this.fireLoadingDialog()
+          this.drawCard()
+        })
+      }
+      this.$nextTick(() => {
+        this.loadedFromCollection = true
+      })
+    },
+
     doDrawCard() {
       this.fireLoadingDialog()
       this.drawCard()
@@ -1073,13 +1384,23 @@ export default {
     // Preparação antes da criação do cartão (só usa imagens locais; sem hotlink)
     // optionalPhotoUrl: quando passado (ex.: após ensureCardImage), usa direto para evitar timing/reatividade
     drawCard(optionalPhotoUrl) {
-      let cardImgUrl = optionalPhotoUrl ?? (this.cardImg ? URL.createObjectURL(this.cardImg) : null)
+      let cardImgUrl =
+        optionalPhotoUrl ??
+        (this.cardImg ? URL.createObjectURL(this.cardImg) : null)
       const templateLang = this.cardMetaLang._templateLang
-      if (cardImgUrl == null && this.cardLoadYgoProEnabled && !this._exportingCard) {
+      if (
+        cardImgUrl == null &&
+        this.cardLoadYgoProEnabled &&
+        !this._exportingCard &&
+        !this.loadedFromCollection
+      ) {
         const hasData = this.load_ygopro_data(this.cardKey)
         if (hasData) cardImgUrl = this.apiCardImageUrls[this.cardKey] || null
       }
-      if (this._exportingCard && cardImgUrl == null) cardImgUrl = this.apiCardImageUrls[this.cardKey] || 'images/default.jpg'
+      if (cardImgUrl == null && this.loadedFromCollection)
+        cardImgUrl = this.apiCardImageUrls[this.cardKey] || null
+      if (this._exportingCard && cardImgUrl == null)
+        cardImgUrl = this.apiCardImageUrls[this.cardKey] || 'images/default.jpg'
       this.imgs = {
         template: `images/card/${templateLang}/${this.cardTemplateText}.png`,
         holo: 'images/pic/holo.png',
@@ -1123,7 +1444,10 @@ export default {
       for (const key of keys) {
         const src = this.imgs[key]
         const image = new window.Image()
-        if (typeof src === 'string' && (src.startsWith('http') || src.startsWith('blob:'))) {
+        if (
+          typeof src === 'string' &&
+          (src.startsWith('http') || src.startsWith('blob:'))
+        ) {
           image.crossOrigin = 'anonymous'
         }
         this.imgs[key] = image
@@ -1424,6 +1748,7 @@ export default {
     // Preencha a descrição do cartão.
     drawCardInfoText(ctx, offset, fontName) {
       const fontSize = Number(this.infoSize)
+      const topOffset = Number(this.infoPosition) || 0
       ctx.textAlign = 'left'
       ctx.textBaseline = 'top'
       ctx.font = `${fontSize}pt ${fontName[2]}, ${fontName[3]}, ${fontName[4]}, ${fontName[5]}`
@@ -1431,7 +1756,7 @@ export default {
         ctx,
         this.cardInfo,
         75,
-        1095 + offset.oY + (this.cardType === 'Monster' ? 30 : 0),
+        1095 + offset.oY + (this.cardType === 'Monster' ? 30 : 0) + topOffset,
         825,
         fontSize + offset.lh
       )
@@ -1463,25 +1788,99 @@ export default {
       }
     },
 
-    // Área de texto.
+    /** Quebra a palavra após a última vogal que couber; se não couber, penúltima, etc. */
+    breakWordAfterVowel(ctx, word, maxWidth) {
+      const hyphen = '-'
+      const vogais = /[aeiouáéíóúâêôãõàèìòùäëïöü]/i
+      const indicesVogais = []
+      for (let i = 0; i < word.length; i++) {
+        if (vogais.test(word[i])) indicesVogais.push(i)
+      }
+      for (let k = indicesVogais.length - 1; k >= 0; k--) {
+        const i = indicesVogais[k]
+        const part1 = word.slice(0, i + 1) + hyphen
+        if (
+          i >= 1 &&
+          word.length - (i + 1) >= 1 &&
+          ctx.measureText(part1).width <= maxWidth
+        ) {
+          return { first: part1, rest: word.slice(i + 1) }
+        }
+      }
+      for (let i = word.length - 1; i >= 2; i--) {
+        const part1 = word.slice(0, i) + hyphen
+        if (ctx.measureText(part1).width <= maxWidth) {
+          return { first: part1, rest: word.slice(i) }
+        }
+      }
+      return null
+    },
+
+    // Área de texto: quebra entre palavras; se não couber, quebra após última vogal que couber.
     wrapText(ctx, text, x, y, maxWidth, lineHeight) {
-      let lineWidth = 0 - ctx.measureText(text[0]).width // Largura da linha atualmente ocupada.
-      const fieldWidth = maxWidth // Largura do campo.
-      let initHeight = y // Altura do texto em relação ao topo da imagem.
-      let lastSubStrIndex = 0 // Altura do texto em relação ao topo da imagem.
-      for (let i = 0; i < text.length; i++) {
-        lineWidth += ctx.measureText(text[i]).width
-        if (lineWidth > fieldWidth || text.substring(i, i + 1) === '\n') {
-          if (text.substring(i, i + 1) === '\n') i++
-          ctx.fillText(text.substring(lastSubStrIndex, i), x, initHeight)
-          initHeight += lineHeight
-          lineWidth = 0
-          lastSubStrIndex = i
+      const lines = []
+      const tokens = text.split(/(\s)/)
+      let currentLine = ''
+      let currentWidth = 0
+
+      const flushLine = () => {
+        if (currentLine) {
+          lines.push(currentLine)
+          currentLine = ''
+          currentWidth = 0
         }
-        if (i === text.length - 1) {
-          // Se a linha atual não exceder o comprimento máximo e já for a última palavra, preencha diretamente.
-          ctx.fillText(text.substring(lastSubStrIndex, i + 1), x, initHeight)
+      }
+
+      const processWord = (word) => {
+        const wordWidth = ctx.measureText(word).width
+        if (currentWidth + wordWidth <= maxWidth) {
+          currentLine += word
+          currentWidth += wordWidth
+          return
         }
+        flushLine()
+        const spaceLeft = maxWidth
+        if (wordWidth <= spaceLeft) {
+          currentLine = word
+          currentWidth = wordWidth
+          return
+        }
+        let rest = word
+        while (rest.length > 0) {
+          const br = this.breakWordAfterVowel(ctx, rest, spaceLeft)
+          if (br && br.rest.length > 0) {
+            lines.push(br.first)
+            rest = br.rest
+          } else {
+            if (rest.length > 0 && ctx.measureText(rest).width <= spaceLeft) {
+              currentLine = rest
+              currentWidth = ctx.measureText(rest).width
+            } else {
+              lines.push(rest)
+            }
+            rest = ''
+          }
+        }
+      }
+
+      for (const token of tokens) {
+        if (token === '\n') {
+          flushLine()
+        } else if (/\s/.test(token)) {
+          const w = ctx.measureText(token).width
+          if (currentWidth + w > maxWidth && currentLine) flushLine()
+          currentLine += token
+          currentWidth += w
+        } else {
+          processWord(token)
+        }
+      }
+      if (currentLine) lines.push(currentLine)
+
+      let initHeight = y
+      for (const line of lines) {
+        ctx.fillText(line, x, initHeight)
+        initHeight += lineHeight
       }
     },
 
@@ -1503,6 +1902,19 @@ export default {
 
     // Carregar configuração padrão.
     load_default_data() {
+      if (this.hasUnsavedLayoutChanges) {
+        this.pendingLeaveAction = { type: 'loadDefault' }
+        this.$refs.unsavedChangesModal.show()
+        return
+      }
+      this.doLoadDefaultData()
+    },
+
+    doLoadDefaultData() {
+      this.initialSnapshotWhenNotFromCollection = null
+      this.editingCollectionId = null
+      this.snapshotAtLoad = null
+      this.loadedFromCollection = false
       const data = this.cardMetaLang.Default
       this.holo = true
       this.cardRare = '0'
@@ -1529,6 +1941,7 @@ export default {
       for (let i = 1; i <= 9; i++) if (i !== 5) this.links[i].val = false
       this.cardInfo = data.info
       this.infoSize = data.size
+      this.infoPosition = 0
       this.cardPendulumInfo = data.pInfo
       this.pendulumSize = data.pSize
     },
@@ -1590,14 +2003,7 @@ export default {
         rare: '0',
         color: '#000000',
         title: card.name || '',
-        type: [
-          cardType,
-          cardSubtype,
-          eff1,
-          eff2,
-          pendulum,
-          special,
-        ],
+        type: [cardType, cardSubtype, eff1, eff2, pendulum, special],
         attribute: card.attribute || (cardType !== 'Monster' ? '' : 'DARK'),
         race: race || 'dragon',
         level: card.level != null ? String(card.level) : '0',
@@ -1608,8 +2014,8 @@ export default {
           card.def != null
             ? String(card.def)
             : cardType === 'Monster' && cardSubtype === 'Link'
-              ? '0'
-              : '0',
+            ? '0'
+            : '0',
         ...link,
         infoText: card.desc || '',
         size: 20,
@@ -1625,9 +2031,10 @@ export default {
       const data = this.localCardsMap[key]
       if (data) {
         const card = this.localCards.find((c) => String(c.id) === key)
-        const imgUrl = card && card.card_images && card.card_images[0]
-          ? this.getCanvasImageUrl(card.card_images[0])
-          : null
+        const imgUrl =
+          card && card.card_images && card.card_images[0]
+            ? this.getCanvasImageUrl(card.card_images[0])
+            : null
         this.load_ygopro_data(key)
         this.cardPhotoLoading = !!imgUrl
         if (imgUrl) this.ensureCardImage(key, imgUrl)
@@ -1659,7 +2066,9 @@ export default {
 
       try {
         if (IS_DEV) {
-          const url = `${CARD_ART_API_PATH}/${key}?url=${encodeURIComponent(imageUrl)}`
+          const url = `${CARD_ART_API_PATH}/${key}?url=${encodeURIComponent(
+            imageUrl
+          )}`
           setUrlAndDraw(url)
           return
         }
@@ -1710,7 +2119,8 @@ export default {
     getCanvasImageUrl(img) {
       if (!img) return null
       if (img.image_url_cropped) return img.image_url_cropped
-      if (img.image_url && img.image_url !== img.image_url_small) return img.image_url
+      if (img.image_url && img.image_url !== img.image_url_small)
+        return img.image_url
       return null
     },
 
@@ -1721,10 +2131,52 @@ export default {
       return url || 'images/default.jpg'
     },
 
+    /** Lista de resultados da busca: imagem cropped (arte do card). */
+    getSearchResultImageSrc(card) {
+      const img = card.card_images && card.card_images[0]
+      const url = img ? this.getCanvasImageUrl(img) : null
+      if (url) return url
+      return (
+        (img && (img.image_url_small || img.image_url)) || 'images/default.jpg'
+      )
+    },
+
+    /** Cor de fundo do card na lista de busca por tipo/subtipo. */
+    getSearchResultCardBg(card) {
+      const t = (card.type || '').toLowerCase()
+      if (t.includes('spell')) return '#008872'
+      if (t.includes('trap')) return '#9D1C6F'
+      if (t.includes('fusion')) return '#93539A'
+      if (t.includes('ritual')) return '#597DBC'
+      if (t.includes('synchro')) return '#E6E2E0'
+      if (t.includes('link')) return '#00477F'
+      if (t.includes('token')) return '#736967'
+      if (t.includes('xyz')) return '#2D2D2D'
+      if (
+        t.includes('effect') ||
+        (card.frameType || '').toLowerCase() === 'effect'
+      )
+        return '#B5663B'
+      if (t.includes('normal')) return '#BB8C40'
+      return '#555'
+    },
+
+    /** Texto claro em fundos escuros; escuro em Synchro. */
+    getSearchResultTextClass(card) {
+      const t = (card.type || '').toLowerCase()
+      if (t.includes('synchro')) return 'text-dark'
+      return 'text-white'
+    },
+
     onCardImgError(card, event) {
       const img = card.card_images && card.card_images[0]
       const url = img && (img.image_url_small || img.image_url)
       if (url && event.target) event.target.src = url
+    },
+
+    onSearchResultImgError(card, event) {
+      const fallback = this.getCardImageSrc(card)
+      if (event.target) event.target.src = fallback
     },
     async initYgoDb() {
       if (!this.$ygoDb) return
@@ -1733,8 +2185,11 @@ export default {
         this.localCards = Array.isArray(cards) ? cards : []
         this.lastSync = lastSync
         this.localDatabaseVersion = databaseVersion ?? null
-        const oldFormat = this.localCards.length > 0 && this.localCards.some((c) => c.lang == null)
-        if (oldFormat || this.$ygoDb.shouldSync(lastSync)) await this.syncYgoDb()
+        const oldFormat =
+          this.localCards.length > 0 &&
+          this.localCards.some((c) => c.lang == null)
+        if (oldFormat || this.$ygoDb.shouldSync(lastSync))
+          await this.syncYgoDb()
       } catch (e) {
         this.syncError = this.ui[this.uiLang].db_sync_error
       }
@@ -1752,9 +2207,10 @@ export default {
             ? String(verList[0].database_version)
             : null
         const hasNewVersion =
-          remoteVersion &&
-          remoteVersion !== this.localDatabaseVersion
-        const oldFormat = this.localCards.length > 0 && this.localCards.some((c) => c.lang == null)
+          remoteVersion && remoteVersion !== this.localDatabaseVersion
+        const oldFormat =
+          this.localCards.length > 0 &&
+          this.localCards.some((c) => c.lang == null)
         const mustRefetch = hasNewVersion || (remoteVersion && oldFormat)
         if (!mustRefetch) {
           if (remoteVersion && this.localDatabaseVersion === remoteVersion) {
@@ -1816,8 +2272,10 @@ export default {
             mapById[String(c.id)] = {
               ...c,
               lang: 'pt',
-              name_en: existing ? (existing.name_en || existing.name) : c.name,
-              desc_en: existing ? (existing.desc_en || existing.desc || '') : (c.desc || ''),
+              name_en: existing ? existing.name_en || existing.name : c.name,
+              desc_en: existing
+                ? existing.desc_en || existing.desc || ''
+                : c.desc || '',
             }
           })
         }
@@ -1861,8 +2319,14 @@ export default {
             reject(e)
           }
         }
-        xhr.onerror = () => { clearTimeout(timeoutId); reject(new Error('network')) }
-        xhr.onabort = () => { clearTimeout(timeoutId); reject(new Error('abort')) }
+        xhr.onerror = () => {
+          clearTimeout(timeoutId)
+          reject(new Error('network'))
+        }
+        xhr.onabort = () => {
+          clearTimeout(timeoutId)
+          reject(new Error('abort'))
+        }
         xhr.send()
       })
     },
@@ -1895,7 +2359,11 @@ export default {
     getSearchSectionLabel(sectionKey) {
       const key = 'search_section_' + sectionKey
       const raw = this.ui[this.uiLang] && this.ui[this.uiLang][key]
-      const fallbacks = { archetype: 'Arquétipo "__Q__"', name: 'Cartas com "__Q__" no nome', desc: 'Cartas que mencionam "__Q__" no texto' }
+      const fallbacks = {
+        archetype: 'Arquétipo "__Q__"',
+        name: 'Cartas com "__Q__" no nome',
+        desc: 'Cartas que mencionam "__Q__" no texto',
+      }
       const template = raw || fallbacks[sectionKey] || ''
       const q = this.searchQueryNormalized
       return template.replace(/\{\{q\}\}/gi, q).replace(/__Q__/g, q)
@@ -1908,7 +2376,9 @@ export default {
       const descEn = (card.desc_en || card.desc || '').toLowerCase()
       const isArchetype = arch === queryNorm
       const isName = nameEn.includes(queryNorm)
-      const isDesc = descEn.includes(queryNorm) || (card.desc_en || card.desc || '').includes(`"${queryNorm}"`)
+      const isDesc =
+        descEn.includes(queryNorm) ||
+        (card.desc_en || card.desc || '').includes(`"${queryNorm}"`)
       if (isArchetype) return 'archetype'
       if (isName) return 'name'
       if (isDesc) return 'desc'
@@ -1921,7 +2391,10 @@ export default {
       this.searchLoading = true
       this.showArchetypeDropdown = false
       this.showNameDropdown = false
-      const queryRaw = this.searchMode === 'name' ? this.searchByName.trim() : this.searchByArchetype.trim()
+      const queryRaw =
+        this.searchMode === 'name'
+          ? this.searchByName.trim()
+          : this.searchByArchetype.trim()
       if (!queryRaw) {
         this.searchLoading = false
         return
@@ -1945,12 +2418,27 @@ export default {
         const img = card.card_images && card.card_images[0]
         const imgUrl = img ? this.getCanvasImageUrl(img) : null
         if (imgUrl && !this.apiCardImageUrls[String(card.id)]) {
-          this.ensureCardImage(String(card.id), imgUrl, { forCurrentCard: false })
+          this.ensureCardImage(String(card.id), imgUrl, {
+            forCurrentCard: false,
+          })
         }
       }
     },
 
     applyCardFromSearch(card) {
+      if (this.hasUnsavedLayoutChanges) {
+        this.pendingLeaveAction = { type: 'applyCardFromSearch', card }
+        this.$refs.unsavedChangesModal.show()
+        return
+      }
+      this.doApplyCardFromSearch(card)
+    },
+
+    doApplyCardFromSearch(card) {
+      this.initialSnapshotWhenNotFromCollection = null
+      this.editingCollectionId = null
+      this.snapshotAtLoad = null
+      this.loadedFromCollection = false
       // eslint-disable-next-line no-console -- debug: inspecionar imagens do card
       console.log('Card selecionado:', card)
       const key = String(card.id)
@@ -1970,11 +2458,19 @@ export default {
           this.drawCard()
         })
       }
+      this.$nextTick(() => {
+        setTimeout(() => {
+          this.initialSnapshotWhenNotFromCollection = JSON.parse(
+            JSON.stringify(this.getCurrentCardSnapshot())
+          )
+        }, 800)
+      })
     },
 
     getCurrentCardSnapshot() {
       const link = {}
-      for (let i = 1; i <= 9; i++) if (i !== 5) link[`link${i}`] = this.links[i].val
+      for (let i = 1; i <= 9; i++)
+        if (i !== 5) link[`link${i}`] = this.links[i].val
       return {
         rare: this.cardRare,
         color: this.titleColor,
@@ -1997,6 +2493,7 @@ export default {
         ...link,
         infoText: this.cardInfo,
         size: Number(this.infoSize) || 20,
+        infoPosition: Number(this.infoPosition) || 0,
         pendulumText: this.cardPendulumInfo,
         pSize: Number(this.pendulumSize) || 22,
       }
@@ -2007,11 +2504,53 @@ export default {
       await this.addOrUpdateCurrentInCollection()
     },
 
+    async saveCollectionChanges() {
+      if (!this.$ygoDb || !this.cardKey) return
+      await this.addOrUpdateCurrentInCollection()
+      this.snapshotAtLoad = JSON.parse(
+        JSON.stringify(this.getCurrentCardSnapshot())
+      )
+    },
+
+    async onUnsavedModalSave() {
+      this.$refs.unsavedChangesModal.hide()
+      const action = this.pendingLeaveAction
+      this.pendingLeaveAction = null
+      if (!action) return
+      await this.saveCollectionChanges()
+      this.runPendingLeaveAction(action)
+    },
+
+    onUnsavedModalDiscard() {
+      this.$refs.unsavedChangesModal.hide()
+      const action = this.pendingLeaveAction
+      this.pendingLeaveAction = null
+      this.runPendingLeaveAction(action)
+    },
+
+    onUnsavedModalCancel() {
+      this.$refs.unsavedChangesModal.hide()
+      this.pendingLeaveAction = null
+    },
+
+    runPendingLeaveAction(action) {
+      if (!action) return
+      if (action.type === 'loadCollectionItem') {
+        this.doLoadCollectionItemForEdit(action.item)
+      } else if (action.type === 'loadDefault') {
+        this.doLoadDefaultData()
+      } else if (action.type === 'applyCardFromSearch') {
+        this.doApplyCardFromSearch(action.card)
+      }
+    },
+
     async addOrUpdateCurrentInCollection() {
       if (!this.$ygoDb || !this.cardKey) return
       const snapshot = this.getCurrentCardSnapshot()
       const name = this.cardTitle || 'Card'
-      const existing = this.userCollection.find((it) => it.cardKey === this.cardKey)
+      const existing = this.userCollection.find(
+        (it) => String(it.cardKey) === String(this.cardKey)
+      )
       if (existing) {
         await this.$ygoDb.updateInCollection(existing.id, {
           ...existing,
@@ -2032,6 +2571,22 @@ export default {
       await this.loadCollection()
     },
 
+    /** Adiciona o card atual à coleção e passa a editá-lo (alterações salvas nele). */
+    async addCurrentToCollectionAndStartEditing() {
+      if (!this.$ygoDb || !this.cardKey) return
+      await this.addOrUpdateCurrentInCollection()
+      const item = this.userCollection.find(
+        (it) => String(it.cardKey) === String(this.cardKey)
+      )
+      if (item) {
+        this.editingCollectionId = item.id
+        this.snapshotAtLoad = JSON.parse(
+          JSON.stringify(this.getCurrentCardSnapshot())
+        )
+      }
+      this.initialSnapshotWhenNotFromCollection = null
+    },
+
     async loadCollection() {
       if (!this.$ygoDb) return
       const items = await this.$ygoDb.getCollection()
@@ -2041,6 +2596,10 @@ export default {
 
     async removeFromCollection(id) {
       if (!this.$ygoDb) return
+      if (this.editingCollectionId === id) {
+        this.editingCollectionId = null
+        this.snapshotAtLoad = null
+      }
       await this.$ygoDb.removeFromCollection(id)
       await this.loadCollection()
       this.$delete(this.collectionImageUrls, id)
@@ -2090,7 +2649,10 @@ export default {
         for (let i = 0; i < this.userCollection.length; i++) {
           const entry = this.userCollection[i]
           const imgUrl = await this.getExportImageUrlForBatch(entry.cardKey)
-          if (imgUrl) await this.ensureCardImage(entry.cardKey, imgUrl, { forCurrentCard: false })
+          if (imgUrl)
+            await this.ensureCardImage(entry.cardKey, imgUrl, {
+              forCurrentCard: false,
+            })
           this.loadFromSnapshot(entry.snapshot)
           this.cardKey = entry.cardKey
           const url = this.apiCardImageUrls[entry.cardKey] || imgUrl
@@ -2103,7 +2665,10 @@ export default {
             const dataUrl = canvas.toDataURL('image/png')
             const a = document.createElement('a')
             a.href = dataUrl
-            a.download = `${(entry.name || 'card').replace(/[^a-zA-Z0-9\u00C0-\u024F\s-]/g, '')}_${entry.cardKey}.png`
+            a.download = `${(entry.name || 'card').replace(
+              /[^a-zA-Z0-9\u00C0-\u024F\s-]/g,
+              ''
+            )}_${entry.cardKey}.png`
             a.click()
           }
           await new Promise((resolve) => setTimeout(resolve, 300))
@@ -2164,6 +2729,8 @@ export default {
         if (i !== 5) this.links[i].val = data[`link${i}`]
       this.cardInfo = data.infoText
       this.infoSize = data.size
+      this.infoPosition =
+        data.infoPosition != null ? Number(data.infoPosition) : 0
       this.cardPendulumInfo = data.pendulumText
       this.pendulumSize = data.pSize
       setTimeout(() => {

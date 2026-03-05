@@ -120,6 +120,7 @@
     "pendulum_blue": "AZUL",
     "pendulum_red": "VERMELHO",
     "text_size": "Tamanho do Texto",
+    "text_position": "Posição (top)",
     "card_info_text": "Informações do Card",
     "attack": "Ataque",
     "defence": "Defesa",
@@ -133,6 +134,12 @@
     "my_collection": "Minha coleção",
     "collection_empty": "Nenhum card na coleção. Busque um card, clique nele para carregar no editor e use \"Adicionar à coleção\" ao lado de Baixar.",
     "batch_download": "Baixar em lote",
-    "batch_downloading": "Baixando…"
+    "batch_downloading": "Baixando…",
+    "save_changes": "Salvar alterações",
+    "unsaved_changes_title": "Alterações não salvas",
+    "unsaved_changes_message": "Há alterações não salvas neste card. Deseja salvar antes de sair?",
+    "unsaved_save": "Salvar",
+    "unsaved_discard": "Descartar",
+    "unsaved_cancel": "Cancelar"
   }
 }
