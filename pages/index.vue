@@ -9,6 +9,100 @@
 
     <!-- Área de conteúdo principal -->
     <main class="container-fluid mt-5 mb-3 h-100 py-3 py-md-5 px-0 px-sm-5">
+      <b-tabs v-model="activeTab" content-class="mt-3" class="px-2 px-sm-5">
+        <b-tab :title="ui[uiLang].tab_yugioh">
+          <!-- Barra de progresso ao atualizar banco local -->
+          <div v-if="syncLoading" class="panel-bg shadow p-3 mb-3">
+            <label class="d-block mb-2">{{ ui[uiLang].db_sync_title }}</label>
+            <b-progress :value="syncProgress" :max="100" show-value animated></b-progress>
+            <small class="text-muted d-block mt-1">
+              {{ syncProgressText }}
+            </small>
+          </div>
+          <div v-else-if="syncError" class="alert alert-warning py-2 mb-3 small">
+            {{ syncError }}
+          </div>
+          <!-- Busca por nome ou arquétipo -->
+      <b-row class="mb-3 justify-content-center">
+        <b-col cols="12" class="px-2 px-sm-5 search-panel-col">
+          <div class="panel-bg shadow p-3">
+            <label class="d-block mb-2">{{ ui[uiLang].search_cards }}</label>
+            <b-row class="align-items-end">
+              <b-col cols="12" md="auto" class="mb-2 mb-md-0">
+                <b-form-radio-group
+                  v-model="searchMode"
+                  buttons
+                  button-variant="outline-secondary"
+                  size="sm"
+                >
+                  <b-form-radio value="archetype">{{ ui[uiLang].search_by_archetype }}</b-form-radio>
+                  <b-form-radio value="name">{{ ui[uiLang].search_by_name }}</b-form-radio>
+                </b-form-radio-group>
+              </b-col>
+              <b-col v-if="searchMode === 'archetype'" cols="12" md="6" class="mb-2 mb-md-0 position-relative">
+                <b-form-input
+                  v-model="searchByArchetype"
+                  :placeholder="ui[uiLang].search_placeholder_archetype"
+                  autocomplete="off"
+                  @focus="showArchetypeDropdown = true"
+                  @keyup.enter="
+                    filteredArchetypes.length ? selectArchetype(filteredArchetypes[0]) : searchCards()
+                  "
+                  @input="showArchetypeDropdown = true"
+                  @blur="closeArchetypeDropdown"
+                />
+                <ul
+                  v-if="showArchetypeDropdown && searchByArchetype.length >= 1"
+                  class="list-group position-absolute shadow mt-1 w-100 archetype-dropdown"
+                  style="max-height: 220px; overflow-y: auto"
+                >
+                  <li
+                    v-for="(opt, idx) in filteredArchetypes.slice(0, 15)"
+                    :key="idx"
+                    class="list-group-item list-group-item-action py-2"
+                    @click="selectArchetype(opt)"
+                  >
+                    {{ opt.archetype_name }}
+                  </li>
+                </ul>
+              </b-col>
+              <b-col v-else cols="12" md="6" class="mb-2 mb-md-0 position-relative">
+                <b-form-input
+                  v-model="searchByName"
+                  :placeholder="ui[uiLang].search_placeholder_name"
+                  autocomplete="off"
+                  @focus="showNameDropdown = true"
+                  @keyup.enter="
+                    filteredCardsByName.length ? selectCardFromName(filteredCardsByName[0]) : searchCards()
+                  "
+                  @input="showNameDropdown = true"
+                  @blur="closeNameDropdown"
+                />
+                <ul
+                  v-if="showNameDropdown && searchByName.length >= 1"
+                  class="list-group position-absolute shadow mt-1 w-100 archetype-dropdown"
+                  style="max-height: 220px; overflow-y: auto"
+                >
+                  <li
+                    v-for="card in filteredCardsByName.slice(0, 15)"
+                    :key="card.id"
+                    class="list-group-item list-group-item-action py-2"
+                    @click="selectCardFromName(card)"
+                  >
+                    {{ card.name }}
+                  </li>
+                </ul>
+              </b-col>
+              <b-col cols="12" md="auto">
+                <b-button variant="primary" :disabled="searchLoading" @click="searchCards">
+                  {{ searchLoading ? ui[uiLang].search_loading : ui[uiLang].search_button }}
+                </b-button>
+              </b-col>
+            </b-row>
+          </div>
+        </b-col>
+      </b-row>
+
       <b-row class="h-100 justify-content-center align-content-center">
         <!-- Área de desenho do cartão -->
         <b-col
@@ -35,7 +129,7 @@
                 <div
                   id="yugiohcard-wrap"
                   ref="yugiohcard-wrap"
-                  class="card-body"
+                  class="card-body position-relative"
                   @mousemove="move"
                   @mouseleave="leave"
                 >
@@ -44,6 +138,16 @@
                     ref="yugiohcard"
                     class="cardbg img-fluid"
                   ></canvas>
+                  <div
+                    v-if="cardPhotoLoading"
+                    class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center rounded"
+                    style="background: rgba(0,0,0,0.6); pointer-events: none;"
+                  >
+                    <div class="text-center text-white">
+                      <b-spinner small type="grow"></b-spinner>
+                      <div class="small mt-2">Carregando imagem...</div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -59,28 +163,8 @@
         >
           <div class="panel-bg shadow p-3">
             <div class="card-body">
-              <!-- Idioma, Antifalsificação, Raridade, Cor -->
+              <!-- Autenticidade, Raridade, Cor -->
               <b-row class="mb-3">
-                <!-- Idioma -->
-                <b-col class="px-2">
-                  <label>{{ ui[uiLang].ui_lang }}</label>
-                  <b-form-select
-                    v-model="uiLang"
-                    :options="uiLangOpts"
-                  ></b-form-select>
-                </b-col>
-              </b-row>
-
-              <!-- Idioma, Autenticidade, Raridade, Cor -->
-              <b-row class="mb-3">
-                <!-- Idioma -->
-                <b-col cols="6" lg="3" class="px-2">
-                  <label>{{ ui[uiLang].card_lang }}</label>
-                  <b-form-select
-                    v-model="cardLang"
-                    :options="cardLangOpts"
-                  ></b-form-select>
-                </b-col>
                 <!-- Etiqueta de autenticidade -->
                 <b-col cols="6" lg="3" class="px-2">
                   <div class="form-check px-0">
@@ -139,6 +223,12 @@
                     maxlength="8"
                     :placeholder="ui[uiLang].plz_input_card_secret"
                   />
+                  <small v-if="apiCardLoading" class="text-muted">{{
+                      ui[uiLang].search_loading
+                    }}</small>
+                  <small v-else-if="apiCardError" class="text-danger">{{
+                    apiCardError
+                  }}</small>
                 </b-col>
               </b-row>
 
@@ -452,6 +542,14 @@
                   >
                     {{ ui[uiLang].download }}
                   </button>
+                  <b-button
+                    v-if="cardKey"
+                    class="my-2"
+                    variant="outline-primary"
+                    @click="addToCollectionCurrent"
+                  >
+                    {{ ui[uiLang].add_to_collection }}
+                  </b-button>
                   <label style="color: #ccc"
                     >&emsp;{{ ui[uiLang].auto_gen_note }}</label
                   >
@@ -468,12 +566,115 @@
               </b-row>
             </div>
           </div>
+
+          <!-- Resultados da busca (classificados: arquétipo > nome > descrição) -->
+          <div v-if="searchResults.length > 0" class="panel-bg shadow p-3 mt-3">
+            <label class="d-block mb-2">{{ ui[uiLang].search_results }}</label>
+            <template v-if="searchResultsByArchetype.length > 0">
+              <div class="small text-muted mb-1 mt-2">{{ getSearchSectionLabel('archetype') }}</div>
+              <div class="d-flex flex-wrap gap-2 mb-3" style="max-height: 280px; overflow-y: auto">
+                <div
+                  v-for="card in searchResultsByArchetype"
+                  :key="'arch-' + card.id"
+                  class="search-result-card border rounded p-1 bg-dark text-center position-relative"
+                  style="width: 100px; cursor: pointer"
+                  @click="applyCardFromSearch(card)"
+                >
+                  <img :src="getCardImageSrc(card)" :alt="card.name" class="img-fluid rounded" style="height: 90px; object-fit: contain" loading="lazy" @error="onCardImgError(card, $event)" />
+                  <small class="d-block text-white text-truncate mt-1">{{ card.name }}</small>
+                </div>
+              </div>
+            </template>
+            <template v-if="searchResultsByName.length > 0">
+              <div class="small text-muted mb-1 mt-2">{{ getSearchSectionLabel('name') }}</div>
+              <div class="d-flex flex-wrap gap-2 mb-3" style="max-height: 280px; overflow-y: auto">
+                <div
+                  v-for="card in searchResultsByName"
+                  :key="'name-' + card.id"
+                  class="search-result-card border rounded p-1 bg-dark text-center position-relative"
+                  style="width: 100px; cursor: pointer"
+                  @click="applyCardFromSearch(card)"
+                >
+                  <img :src="getCardImageSrc(card)" :alt="card.name" class="img-fluid rounded" style="height: 90px; object-fit: contain" loading="lazy" @error="onCardImgError(card, $event)" />
+                  <small class="d-block text-white text-truncate mt-1">{{ card.name }}</small>
+                </div>
+              </div>
+            </template>
+            <template v-if="searchResultsByDesc.length > 0">
+              <div class="small text-muted mb-1 mt-2">{{ getSearchSectionLabel('desc') }}</div>
+              <div class="d-flex flex-wrap gap-2" style="max-height: 280px; overflow-y: auto">
+                <div
+                  v-for="card in searchResultsByDesc"
+                  :key="'desc-' + card.id"
+                  class="search-result-card border rounded p-1 bg-dark text-center position-relative"
+                  style="width: 100px; cursor: pointer"
+                  @click="applyCardFromSearch(card)"
+                >
+                  <img :src="getCardImageSrc(card)" :alt="card.name" class="img-fluid rounded" style="height: 90px; object-fit: contain" loading="lazy" @error="onCardImgError(card, $event)" />
+                  <small class="d-block text-white text-truncate mt-1">{{ card.name }}</small>
+                </div>
+              </div>
+            </template>
+          </div>
+          <div
+            v-else-if="searchTried && !searchLoading"
+            class="panel-bg shadow p-3 mt-3 text-muted text-center"
+          >
+            {{ ui[uiLang].search_no_results }}
+          </div>
+
+          <!-- Minha coleção -->
+          <div class="panel-bg shadow p-3 mt-3">
+            <label class="d-block mb-2">{{ ui[uiLang].my_collection }}</label>
+            <b-button
+              v-if="userCollection.length > 0"
+              class="mb-3"
+              variant="outline-info"
+              :disabled="batchDownloading"
+              @click="batchDownloadCollection"
+            >
+              {{ batchDownloading ? ui[uiLang].batch_downloading : ui[uiLang].batch_download }}
+            </b-button>
+            <div
+              v-if="userCollection.length > 0"
+              class="d-flex flex-wrap gap-2"
+              style="max-height: 240px; overflow-y: auto"
+            >
+              <div
+                v-for="item in userCollection"
+                :key="item.id"
+                class="border rounded p-2 bg-dark text-center"
+                style="width: 90px"
+              >
+                <img
+                  v-if="getCollectionItemImageSrc(item)"
+                  :src="getCollectionItemImageSrc(item)"
+                  :alt="item.name"
+                  class="img-fluid rounded"
+                  style="height: 70px; object-fit: contain"
+                />
+                <div
+                  v-else
+                  class="rounded bg-secondary d-flex align-items-center justify-content-center text-white small"
+                  style="height: 70px"
+                >
+                  …
+                </div>
+                <small class="d-block text-white text-truncate mt-1">{{ item.name }}</small>
+                <b-button size="sm" variant="outline-danger" class="mt-1" @click="removeFromCollection(item.id)">
+                  ×
+                </b-button>
+              </div>
+            </div>
+            <p v-else class="text-muted small mb-0">
+              {{ ui[uiLang].collection_empty }}
+            </p>
+          </div>
         </b-col>
       </b-row>
-    </main>
 
-    <!-- Área do rodapé -->
-    <footer class="container-fluid mb-5 px-0 px-md-5">
+      <!-- Área do rodapé -->
+      <footer class="container-fluid mb-5 px-0 px-md-5">
       <b-row class="justify-content-center align-content-center">
         <b-col id="footer-panel" cols="12">
           <div class="card-body text-center text-white">
@@ -482,7 +683,7 @@
               class="text-white text-decoration-none"
               href="https://github.com/linziyou0601"
               data-size="large"
-              aria-label="Star linziyou0601/yugioh-card-maker on GitHub"
+              aria-label="Ver projeto no GitHub"
             >
               <fa :icon="['fab', 'github']" /> GitHub
             </a>
@@ -493,7 +694,7 @@
               class="text-white text-decoration-none"
               href="https://github.com/felipesantosdd"
               data-size="large"
-              aria-label="Star linziyou0601/yugioh-card-maker on GitHub"
+              aria-label="Ver projeto no GitHub"
             >
               <fa :icon="['fab', 'github']" /> GitHub
             </a>
@@ -501,6 +702,14 @@
         </b-col>
       </b-row>
     </footer>
+        </b-tab>
+        <b-tab :title="ui[uiLang].tab_other_games">
+          <div class="panel-bg shadow p-3 text-center text-muted py-5">
+            Em breve: outros jogos.
+          </div>
+        </b-tab>
+      </b-tabs>
+    </main>
 
     <LoadingDialog />
   </div>
@@ -510,11 +719,38 @@
 import { mapMutations } from 'vuex'
 import ui from '../static/lang.ui.json'
 import cardMeta from '../static/lang.card_meta.json'
-import ygoproData from '../static/ygo/card_data.json'
+import archetypesList from '../static/archetypes.json'
+
+const YGOPRODECK_API = 'https://db.ygoprodeck.com/api/v7/cardinfo.php'
+const YGOPRODECK_CHECK_VER = 'https://db.ygoprodeck.com/api/v7/checkDBVer.php'
+const SYNC_TIMEOUT_MS = 60000
+// Pasta de artes: em dev usamos /api/card-art (servidor salva em static/ygo/pics); em prod tentamos /ygo/pics e depois API
+const CARD_ARTS_PATH = '/ygo/pics'
+const CARD_ART_API_PATH = '/api/card-art'
+const IS_DEV = process.env.NODE_ENV === 'development'
+const LINK_MARKER_TO_INDEX = {
+  'Top-Left': 1,
+  Top: 2,
+  'Top-Right': 3,
+  Left: 4,
+  Right: 6,
+  'Bottom-Left': 7,
+  Bottom: 8,
+  'Bottom-Right': 9,
+}
 
 export default {
   data() {
     return {
+      activeTab: 0,
+      localCards: [],
+      lastSync: null,
+      localDatabaseVersion: null,
+      syncLoading: false,
+      syncProgress: 0,
+      syncError: null,
+      cardPhotoLoading: false,
+
       adCollapsed: false,
       pageScrolling: 0,
 
@@ -533,6 +769,11 @@ export default {
       titleColor: '#000000',
       cardLoadYgoProEnabled: true,
       cardKey: '',
+      apiCardCache: {},
+      apiCardImageUrls: {},
+      apiCardLoading: false,
+      apiCardError: null,
+      apiCardFetchTimer: null,
       cardTitle: '',
       cardImg: null,
       cardType: 'Monster',
@@ -568,21 +809,67 @@ export default {
       cardInfo: '',
 
       imgs: {},
+
+      searchMode: 'archetype',
+      searchByName: '',
+      searchByArchetype: '',
+      archetypeOptions: archetypesList,
+      showArchetypeDropdown: false,
+      showNameDropdown: false,
+      searchResults: [],
+      searchQueryNormalized: '',
+      searchLoading: false,
+      searchTried: false,
+
+      userCollection: [],
+      collectionImageUrls: {},
+      batchDownloading: false,
+
+      programmaticUpdate: false,
+      autoSaveCollectionTimer: null,
     }
   },
   computed: {
-    uiLangOpts() {
-      return Object.fromEntries(
-        Object.keys(this.ui).map((key) => [key, this.ui[key].name || key])
+    localCardsMap() {
+      const map = {}
+      for (const card of this.localCards) {
+        map[String(card.id)] = this.map_ygoprodeck_to_internal(card)
+      }
+      return map
+    },
+    cardMetaLang() {
+      return this.cardMeta[this.cardLang] || this.cardMeta.pt
+    },
+    syncProgressText() {
+      const t = this.ui[this.uiLang].db_sync_progress
+      return typeof t === 'string' ? t.replace('{{progress}}', this.syncProgress) : ''
+    },
+    filteredArchetypes() {
+      if (!this.searchByArchetype.trim()) return this.archetypeOptions
+      const q = this.searchByArchetype.toLowerCase().trim()
+      return this.archetypeOptions.filter((a) =>
+        a.archetype_name.toLowerCase().includes(q)
       )
     },
-    cardLangOpts() {
-      return Object.fromEntries(
-        Object.keys(this.cardMeta).map((key) => [
-          key,
-          this.cardMeta[key].name || key,
-        ])
+    filteredCardsByName() {
+      if (!this.searchByName.trim()) return []
+      const q = this.normalizeSearchQuery(this.searchByName)
+      return this.localCards.filter((c) =>
+        (c.name_en || c.name || '').toLowerCase().includes(q)
       )
+    },
+    searchResultsByArchetype() {
+      return this.searchResults.filter((c) => c.matchType === 'archetype')
+    },
+    searchResultsByName() {
+      return this.searchResults.filter((c) => c.matchType === 'name')
+    },
+    searchResultsByDesc() {
+      return this.searchResults.filter((c) => c.matchType === 'desc')
+    },
+    currentSnapshotForAutoSave() {
+      if (!this.cardKey) return null
+      return { cardKey: this.cardKey, ...this.getCurrentCardSnapshot() }
     },
     cardTypeOpts() {
       return {
@@ -731,11 +1018,18 @@ export default {
     },
   },
   watch: {
-    uiLang() {
-      if (this.cardLangOpts[this.uiLang]) this.cardLang = this.uiLang
-    },
     cardLang() {
       if (this.cardKey === '') this.load_default_data()
+    },
+    cardKey(val) {
+      if (this.apiCardFetchTimer) clearTimeout(this.apiCardFetchTimer)
+      this.apiCardError = null
+      const key = String(val).trim()
+      if (!this.cardLoadYgoProEnabled || key.length < 8) return
+      if (this.localCardsMap[key]) return
+      this.apiCardFetchTimer = setTimeout(() => {
+        this.fetchCardFromApi(key)
+      }, 500)
     },
     cardType() {
       this.cardSubtype = 'Normal'
@@ -745,12 +1039,25 @@ export default {
       if (['Slifer', 'Ra', 'Obelisk', 'LDragon'].includes(this.cardSubtype))
         this.Pendulum = false
     },
+    currentSnapshotForAutoSave: {
+      deep: true,
+      handler() {
+        if (!this.cardKey || this.programmaticUpdate || !this.$ygoDb) return
+        if (this.autoSaveCollectionTimer) clearTimeout(this.autoSaveCollectionTimer)
+        this.autoSaveCollectionTimer = setTimeout(() => {
+          this.autoSaveCollectionTimer = null
+          this.addOrUpdateCurrentInCollection()
+        }, 500)
+      },
+    },
   },
   mounted() {
     window.addEventListener('scroll', this.onScroll)
     this.fireLoadingDialog()
     this.load_default_data()
     setInterval(this.drawCard, 1500)
+    this.initYgoDb()
+    if (this.$ygoDb) this.loadCollection()
   },
   beforeDestroy() {
     window.removeEventListener('scroll', this.onScroll)
@@ -763,14 +1070,16 @@ export default {
       this.drawCard()
     },
 
-    // Preparação antes da criação do cartão
-    drawCard() {
-      let cardImgUrl = this.cardImg ? URL.createObjectURL(this.cardImg) : null
-      const templateLang = this.cardMeta[this.cardLang]._templateLang
-      if (this.cardLoadYgoProEnabled) {
+    // Preparação antes da criação do cartão (só usa imagens locais; sem hotlink)
+    // optionalPhotoUrl: quando passado (ex.: após ensureCardImage), usa direto para evitar timing/reatividade
+    drawCard(optionalPhotoUrl) {
+      let cardImgUrl = optionalPhotoUrl ?? (this.cardImg ? URL.createObjectURL(this.cardImg) : null)
+      const templateLang = this.cardMetaLang._templateLang
+      if (cardImgUrl == null && this.cardLoadYgoProEnabled && !this._exportingCard) {
         const hasData = this.load_ygopro_data(this.cardKey)
-        if (hasData) cardImgUrl = `ygo/pics/${this.cardKey}.jpg`
+        if (hasData) cardImgUrl = this.apiCardImageUrls[this.cardKey] || null
       }
+      if (this._exportingCard && cardImgUrl == null) cardImgUrl = this.apiCardImageUrls[this.cardKey] || 'images/default.jpg'
       this.imgs = {
         template: `images/card/${templateLang}/${this.cardTemplateText}.png`,
         holo: 'images/pic/holo.png',
@@ -786,26 +1095,62 @@ export default {
           this.cardType === 'Monster'
             ? `images/attr/${templateLang}/${this.cardAttr}.webp`
             : `images/attr/${templateLang}/${this.cardType}.webp`,
-        photo: cardImgUrl || 'images/default.jpg',
+        photo: cardImgUrl || 'images/default.jpg', // placeholder até imagem local estar pronta
         levelOrSubtype:
           this.cardType !== 'Monster' && this.cardSubtype !== 'Normal'
             ? `images/pic/${this.cardSubtype}.webp`
             : `images/pic/${this.isXyzMonster ? 'Rank' : 'Level'}.webp`,
       }
-      this.drawCardLoadingImages(this.drawCardProcess) // Após carregar a imagem do cartão, desenhe o conteúdo do cartão.
+      this.drawCardLoadingImages(() => {
+        this.drawCardProcess()
+        if (this._drawCardOnDrawn) {
+          const fn = this._drawCardOnDrawn
+          this._drawCardOnDrawn = null
+          fn()
+        }
+      })
     },
 
-    // Carregando a imagem do cartão.
+    // Carregando a imagem do cartão. Só chama o callback quando todas as imagens
+    // (incluindo a foto da carta) terminarem de carregar — a carta só é exibida quando a request da imagem concluir.
     drawCardLoadingImages(callback) {
-      const length = Object.keys(this.imgs).length
+      const keys = Object.keys(this.imgs)
       let count = 0
-      for (const key in this.imgs) {
+      const maybeDone = () => {
+        count += 1
+        if (count >= keys.length) setTimeout(callback, 100)
+      }
+      for (const key of keys) {
+        const src = this.imgs[key]
         const image = new window.Image()
-        image.src = this.imgs[key]
+        if (typeof src === 'string' && (src.startsWith('http') || src.startsWith('blob:'))) {
+          image.crossOrigin = 'anonymous'
+        }
         this.imgs[key] = image
-        this.imgs[key].onload = function () {
-          count += 1
-          if (count >= length) setTimeout(callback, 200)
+        if (key === 'photo') {
+          let photoDone = false
+          const photoMaybeDone = () => {
+            if (photoDone) return
+            photoDone = true
+            maybeDone()
+          }
+          image.onload = () => {
+            photoMaybeDone()
+          }
+          image.onerror = () => {
+            const def = new window.Image()
+            def.onload = () => {
+              this.imgs.photo = def
+              photoMaybeDone()
+            }
+            def.onerror = photoMaybeDone
+            def.src = 'images/default.jpg'
+          }
+          image.src = src
+        } else {
+          image.onload = maybeDone
+          image.onerror = maybeDone
+          image.src = src
         }
       }
     },
@@ -817,7 +1162,7 @@ export default {
       canvas.width = 1000
       canvas.height = 1450
 
-      const langStr = this.cardMeta[this.cardLang]
+      const langStr = this.cardMetaLang
       const offset = langStr._offset
       const fontName = langStr._fontName
 
@@ -867,11 +1212,15 @@ export default {
       }
 
       const photo = this.imgs.photo
-      const iW = (photo.width / photo.height) * cH
-      const iH = (photo.height / photo.width) * cW
-      if (photo.width <= photo.height * (this.Pendulum ? 1.33 : 1))
-        ctx.drawImage(photo, cX, cY - (iH - cH) / 2, cW, iH)
-      else ctx.drawImage(photo, cX - (iW - cW) / 2, cY, iW, cH)
+      const pw = photo.naturalWidth || photo.width || 0
+      const ph = photo.naturalHeight || photo.height || 0
+      if (pw > 0 && ph > 0) {
+        const iW = (pw / ph) * cH
+        const iH = (ph / pw) * cW
+        if (pw <= ph * (this.Pendulum ? 1.33 : 1))
+          ctx.drawImage(photo, cX, cY - (iH - cH) / 2, cW, iH)
+        else ctx.drawImage(photo, cX - (iW - cW) / 2, cY, iW, cH)
+      }
       ctx.drawImage(this.imgs.template, 0, 0, 1000, 1450)
       ctx.drawImage(this.imgs.attr, 840, 68, 90, 90)
     },
@@ -1144,7 +1493,7 @@ export default {
         const blob = canvas.msToBlob()
         window.navigator.msSaveBlob(blob, 'YuGiOh.png')
       } else {
-        const data = this.cardMeta[this.cardLang].Default
+        const data = this.cardMetaLang.Default
         const a = document.createElement('a')
         a.href = canvas.toDataURL('image/jpeg')
         a.download = `${data.title}.jpg`
@@ -1154,7 +1503,7 @@ export default {
 
     // Carregar configuração padrão.
     load_default_data() {
-      const data = this.cardMeta[this.cardLang].Default
+      const data = this.cardMetaLang.Default
       this.holo = true
       this.cardRare = '0'
       this.titleColor = '#000000'
@@ -1184,15 +1533,617 @@ export default {
       this.pendulumSize = data.pSize
     },
 
-    // Carregar dados do YGOPRO2.
+    // Mapeia resposta da API YGOPRODeck para o formato interno do app.
+    map_ygoprodeck_to_internal(card) {
+      const typeStr = (card.type || '').toLowerCase()
+      const frameType = (card.frameType || '').toLowerCase()
+      const typeline = card.typeline || []
+      let cardType = 'Monster'
+      let cardSubtype = 'Normal'
+      const eff1 = 'normal'
+      const eff2 = 'none'
+      let pendulum = false
+      const special = false
+
+      if (typeStr.includes('spell')) {
+        cardType = 'Spell'
+        const r = (card.race || 'Normal').toLowerCase()
+        cardSubtype =
+          r === 'quick-play' ? 'Quick' : r.charAt(0).toUpperCase() + r.slice(1)
+      } else if (typeStr.includes('trap')) {
+        cardType = 'Trap'
+        const r = (card.race || 'Normal').toLowerCase()
+        cardSubtype = r.charAt(0).toUpperCase() + r.slice(1)
+      } else {
+        if (typeStr.includes('fusion')) cardSubtype = 'Fusion'
+        else if (typeStr.includes('ritual')) cardSubtype = 'Ritual'
+        else if (typeStr.includes('synchro')) cardSubtype = 'Synchro'
+        else if (typeStr.includes('xyz')) cardSubtype = 'Xyz'
+        else if (typeStr.includes('link')) cardSubtype = 'Link'
+        else if (typeStr.includes('token')) cardSubtype = 'Token'
+        else if (frameType === 'effect' || typeline.includes('Effect'))
+          cardSubtype = 'Effect'
+        else cardSubtype = 'Normal'
+        pendulum =
+          typeStr.includes('pendulum') ||
+          Boolean(card.scale != null || card.scales)
+      }
+
+      const race = (card.race || '')
+        .toLowerCase()
+        .replace(/\s+/g, '_')
+        .replace(/-/g, '_')
+      const linkmarkers = card.linkmarkers || []
+      const link = {}
+      for (let i = 1; i <= 9; i++) link[`link${i}`] = false
+      for (const m of linkmarkers) {
+        const idx = LINK_MARKER_TO_INDEX[m]
+        if (idx) link[`link${idx}`] = true
+      }
+
+      const scale = card.scale != null ? Number(card.scale) : 1
+      const scales = card.scales
+      const blue = Array.isArray(scales) ? scales[0] : scale
+      const red = Array.isArray(scales) ? scales[1] : scale
+
+      return {
+        rare: '0',
+        color: '#000000',
+        title: card.name || '',
+        type: [
+          cardType,
+          cardSubtype,
+          eff1,
+          eff2,
+          pendulum,
+          special,
+        ],
+        attribute: card.attribute || (cardType !== 'Monster' ? '' : 'DARK'),
+        race: race || 'dragon',
+        level: card.level != null ? String(card.level) : '0',
+        blue: blue != null ? blue : 1,
+        red: red != null ? red : 1,
+        atk: card.atk != null ? String(card.atk) : '0',
+        def:
+          card.def != null
+            ? String(card.def)
+            : cardType === 'Monster' && cardSubtype === 'Link'
+              ? '0'
+              : '0',
+        ...link,
+        infoText: card.desc || '',
+        size: 20,
+        pendulumText: card.pendulum_desc || '',
+        pSize: 22,
+      }
+    },
+
+    fetchCardFromApi(key) {
+      if (this.apiCardCache[key]) return
+      this.apiCardLoading = true
+      this.apiCardError = null
+      const data = this.localCardsMap[key]
+      if (data) {
+        const card = this.localCards.find((c) => String(c.id) === key)
+        const imgUrl = card && card.card_images && card.card_images[0]
+          ? this.getCanvasImageUrl(card.card_images[0])
+          : null
+        this.load_ygopro_data(key)
+        this.cardPhotoLoading = !!imgUrl
+        if (imgUrl) this.ensureCardImage(key, imgUrl)
+      } else {
+        this.apiCardError = 'Carta não encontrada no banco local.'
+      }
+      this.apiCardLoading = false
+    },
+    /**
+     * 1) Tenta pasta local (static/ygo/pics ou API em dev que salva lá).
+     * 2) Se não tiver, usa o link da API e salva para próximas consultas (pasta em dev, IndexedDB em prod).
+     */
+    async ensureCardImage(id, imageUrl, { forCurrentCard = true } = {}) {
+      if (!imageUrl) return
+      const key = String(id)
+      let scheduledDraw = false
+
+      const setUrlAndDraw = (url) => {
+        this.$set(this.apiCardImageUrls, key, url)
+        if (forCurrentCard) {
+          scheduledDraw = true
+          this.cardPhotoLoading = false
+          this.$nextTick(() => {
+            this.fireLoadingDialog()
+            this.drawCard(url)
+          })
+        }
+      }
+
+      try {
+        if (IS_DEV) {
+          const url = `${CARD_ART_API_PATH}/${key}?url=${encodeURIComponent(imageUrl)}`
+          setUrlAndDraw(url)
+          return
+        }
+
+        const localPath = `${CARD_ARTS_PATH}/${key}.webp`
+        const localRes = await fetch(localPath, { method: 'HEAD' })
+        if (localRes.ok) {
+          setUrlAndDraw(localPath)
+          return
+        }
+
+        if (this.$ygoDb) {
+          let blob = await this.$ygoDb.getCardImage(key)
+          if (!blob) {
+            const res = await fetch(imageUrl)
+            if (!res.ok) throw new Error(res.statusText)
+            blob = await res.blob()
+            await this.$ygoDb.saveCardImage(key, blob)
+          }
+          const url = URL.createObjectURL(blob)
+          setUrlAndDraw(url)
+          return
+        }
+
+        setUrlAndDraw(imageUrl)
+      } catch (e) {
+        this.$set(this.apiCardImageUrls, key, imageUrl)
+        if (forCurrentCard) {
+          scheduledDraw = true
+          this.cardPhotoLoading = false
+          this.$nextTick(() => {
+            this.fireLoadingDialog()
+            this.drawCard(imageUrl)
+          })
+        }
+      } finally {
+        if (forCurrentCard && !scheduledDraw) {
+          this.cardPhotoLoading = false
+          this.$nextTick(() => {
+            this.fireLoadingDialog()
+            this.drawCard()
+          })
+        }
+      }
+    },
+
+    /** URL para o canvas: só image_url_cropped ou image_url (nunca image_url_small). */
+    getCanvasImageUrl(img) {
+      if (!img) return null
+      if (img.image_url_cropped) return img.image_url_cropped
+      if (img.image_url && img.image_url !== img.image_url_small) return img.image_url
+      return null
+    },
+
+    /** Lista de resultados: usa image_url_small (miniatura). */
+    getCardImageSrc(card) {
+      const img = card.card_images && card.card_images[0]
+      const url = img && (img.image_url_small || img.image_url)
+      return url || 'images/default.jpg'
+    },
+
+    onCardImgError(card, event) {
+      const img = card.card_images && card.card_images[0]
+      const url = img && (img.image_url_small || img.image_url)
+      if (url && event.target) event.target.src = url
+    },
+    async initYgoDb() {
+      if (!this.$ygoDb) return
+      try {
+        const { cards, lastSync, databaseVersion } = await this.$ygoDb.getDB()
+        this.localCards = Array.isArray(cards) ? cards : []
+        this.lastSync = lastSync
+        this.localDatabaseVersion = databaseVersion ?? null
+        const oldFormat = this.localCards.length > 0 && this.localCards.some((c) => c.lang == null)
+        if (oldFormat || this.$ygoDb.shouldSync(lastSync)) await this.syncYgoDb()
+      } catch (e) {
+        this.syncError = this.ui[this.uiLang].db_sync_error
+      }
+    },
+
+    async syncYgoDb() {
+      this.syncLoading = true
+      this.syncProgress = 0
+      this.syncError = null
+      try {
+        const res = await fetch(YGOPRODECK_CHECK_VER)
+        const verList = await res.json()
+        const remoteVersion =
+          Array.isArray(verList) && verList[0] && verList[0].database_version
+            ? String(verList[0].database_version)
+            : null
+        const hasNewVersion =
+          remoteVersion &&
+          remoteVersion !== this.localDatabaseVersion
+        const oldFormat = this.localCards.length > 0 && this.localCards.some((c) => c.lang == null)
+        const mustRefetch = hasNewVersion || (remoteVersion && oldFormat)
+        if (!mustRefetch) {
+          if (remoteVersion && this.localDatabaseVersion === remoteVersion) {
+            await this.$ygoDb.saveDB(this.localCards, this.localDatabaseVersion)
+            const { lastSync } = await this.$ygoDb.getDB()
+            this.lastSync = lastSync
+          }
+          this.syncLoading = false
+          return
+        }
+        await this.downloadAndSaveCards(remoteVersion)
+      } catch (e) {
+        this.syncError = this.ui[this.uiLang].db_sync_error
+      } finally {
+        this.syncLoading = false
+      }
+    },
+    /**
+     * Download e população do banco local:
+     * 1) Limpa IndexedDB (cards + imagens).
+     * 2) Busca TODOS os cards em inglês (API sem parâmetro = default EN).
+     * 3) Busca TODOS os cards em PT (API ?language=pt).
+     * 4) Mescla por id: PT substitui EN (fica 1 card por id, em PT quando existir).
+     * 5) Salva no IndexedDB e atualiza this.localCards.
+     * Nota: a API não aceita language=en; inglês é obtido sem parâmetro.
+     */
+    async downloadAndSaveCards(remoteVersion) {
+      if (!this.$ygoDb) return
+      this.syncProgress = 5
+      await this.$ygoDb.clearDB()
+      await this.$ygoDb.clearCardImages()
+      this.syncProgress = 10
+
+      const mapById = {}
+      try {
+        const enUrl = YGOPRODECK_API
+        const enData = await this.fetchCardListFromApi(enUrl)
+        if (Array.isArray(enData) && enData.length > 0) {
+          enData.forEach((c) => {
+            mapById[String(c.id)] = {
+              ...c,
+              lang: 'en',
+              name_en: c.name,
+              desc_en: c.desc || '',
+            }
+          })
+        }
+      } catch (err) {
+        this.syncError = this.ui[this.uiLang].db_sync_error
+      }
+      this.syncProgress = 50
+
+      try {
+        const ptUrl = `${YGOPRODECK_API}?language=pt`
+        const ptData = await this.fetchCardListFromApi(ptUrl)
+        if (Array.isArray(ptData) && ptData.length > 0) {
+          ptData.forEach((c) => {
+            const existing = mapById[String(c.id)]
+            mapById[String(c.id)] = {
+              ...c,
+              lang: 'pt',
+              name_en: existing ? (existing.name_en || existing.name) : c.name,
+              desc_en: existing ? (existing.desc_en || existing.desc || '') : (c.desc || ''),
+            }
+          })
+        }
+      } catch (err) {
+        this.syncError = this.ui[this.uiLang].db_sync_error
+      }
+      this.syncProgress = 90
+
+      const mergedCards = Object.values(mapById)
+      if (mergedCards.length > 0) {
+        await this.$ygoDb.saveDB(mergedCards, remoteVersion)
+        const { cards, lastSync, databaseVersion } = await this.$ygoDb.getDB()
+        this.localCards = cards || []
+        this.lastSync = lastSync
+        this.localDatabaseVersion = databaseVersion
+      }
+      this.syncProgress = 100
+      this.syncLoading = false
+    },
+
+    fetchCardListFromApi(url) {
+      return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest()
+        const timeoutId = setTimeout(() => {
+          xhr.abort()
+          reject(new Error('timeout'))
+        }, SYNC_TIMEOUT_MS)
+        xhr.open('GET', url)
+        xhr.timeout = SYNC_TIMEOUT_MS
+        xhr.onprogress = (e) => {
+          if (e.lengthComputable && e.total > 0) {
+            this.syncProgress = Math.min(this.syncProgress + 2, 90)
+          }
+        }
+        xhr.onload = () => {
+          clearTimeout(timeoutId)
+          try {
+            const json = JSON.parse(xhr.responseText)
+            resolve(Array.isArray(json.data) ? json.data : [])
+          } catch (e) {
+            reject(e)
+          }
+        }
+        xhr.onerror = () => { clearTimeout(timeoutId); reject(new Error('network')) }
+        xhr.onabort = () => { clearTimeout(timeoutId); reject(new Error('abort')) }
+        xhr.send()
+      })
+    },
+    closeArchetypeDropdown() {
+      setTimeout(() => {
+        this.showArchetypeDropdown = false
+      }, 200)
+    },
+    selectArchetype(opt) {
+      this.searchByArchetype = opt.archetype_name
+      this.showArchetypeDropdown = false
+      this.searchCards()
+    },
+
+    closeNameDropdown() {
+      setTimeout(() => {
+        this.showNameDropdown = false
+      }, 200)
+    },
+    selectCardFromName(card) {
+      this.searchByName = card.name
+      this.showNameDropdown = false
+      this.searchCards()
+    },
+
+    normalizeSearchQuery(q) {
+      return (q || '').toLowerCase().replace(/\s+/g, ' ').trim()
+    },
+
+    getSearchSectionLabel(sectionKey) {
+      const key = 'search_section_' + sectionKey
+      const raw = this.ui[this.uiLang] && this.ui[this.uiLang][key]
+      const fallbacks = { archetype: 'Arquétipo "__Q__"', name: 'Cartas com "__Q__" no nome', desc: 'Cartas que mencionam "__Q__" no texto' }
+      const template = raw || fallbacks[sectionKey] || ''
+      const q = this.searchQueryNormalized
+      return template.replace(/\{\{q\}\}/gi, q).replace(/__Q__/g, q)
+    },
+
+    getCardMatchType(card, queryNorm) {
+      if (!queryNorm) return 'none'
+      const arch = (card.archetype || '').toLowerCase()
+      const nameEn = (card.name_en || card.name || '').toLowerCase()
+      const descEn = (card.desc_en || card.desc || '').toLowerCase()
+      const isArchetype = arch === queryNorm
+      const isName = nameEn.includes(queryNorm)
+      const isDesc = descEn.includes(queryNorm) || (card.desc_en || card.desc || '').includes(`"${queryNorm}"`)
+      if (isArchetype) return 'archetype'
+      if (isName) return 'name'
+      if (isDesc) return 'desc'
+      return 'none'
+    },
+
+    searchCards() {
+      this.searchTried = true
+      this.searchResults = []
+      this.searchLoading = true
+      this.showArchetypeDropdown = false
+      this.showNameDropdown = false
+      const queryRaw = this.searchMode === 'name' ? this.searchByName.trim() : this.searchByArchetype.trim()
+      if (!queryRaw) {
+        this.searchLoading = false
+        return
+      }
+      const queryNorm = this.normalizeSearchQuery(queryRaw)
+      const matchPriority = { archetype: 0, name: 1, desc: 2 }
+      const withType = this.localCards
+        .map((c) => ({ ...c, matchType: this.getCardMatchType(c, queryNorm) }))
+        .filter((c) => c.matchType !== 'none')
+        .sort((a, b) => matchPriority[a.matchType] - matchPriority[b.matchType])
+      this.searchResults = withType.slice(0, 200)
+      this.searchQueryNormalized = queryNorm
+      this.searchLoading = false
+      this.preloadSearchResultImages()
+    },
+
+    preloadSearchResultImages() {
+      if (!this.$ygoDb || !this.searchResults.length) return
+      const limit = 20
+      for (const card of this.searchResults.slice(0, limit)) {
+        const img = card.card_images && card.card_images[0]
+        const imgUrl = img ? this.getCanvasImageUrl(img) : null
+        if (imgUrl && !this.apiCardImageUrls[String(card.id)]) {
+          this.ensureCardImage(String(card.id), imgUrl, { forCurrentCard: false })
+        }
+      }
+    },
+
+    applyCardFromSearch(card) {
+      // eslint-disable-next-line no-console -- debug: inspecionar imagens do card
+      console.log('Card selecionado:', card)
+      const key = String(card.id)
+      const img = card.card_images && card.card_images[0]
+      const imgUrl = img ? this.getCanvasImageUrl(img) : null
+      this.cardKey = key
+      this.cardLang = card.lang || 'pt'
+      this.load_ygopro_data(key)
+      this.cardPhotoLoading = !!imgUrl
+      if (imgUrl) {
+        this.$nextTick(() => this.fireLoadingDialog())
+        this.ensureCardImage(key, imgUrl) // chama drawCard no finally quando a imagem estiver pronta
+      } else {
+        this.cardPhotoLoading = false
+        this.$nextTick(() => {
+          this.fireLoadingDialog()
+          this.drawCard()
+        })
+      }
+    },
+
+    getCurrentCardSnapshot() {
+      const link = {}
+      for (let i = 1; i <= 9; i++) if (i !== 5) link[`link${i}`] = this.links[i].val
+      return {
+        rare: this.cardRare,
+        color: this.titleColor,
+        title: this.cardTitle,
+        type: [
+          this.cardType,
+          this.cardSubtype,
+          this.cardEff1,
+          this.cardEff2,
+          this.Pendulum,
+          this.Special,
+        ],
+        attribute: this.cardAttr,
+        race: this.cardRace,
+        level: this.cardLevel,
+        blue: this.cardBLUE,
+        red: this.cardRED,
+        atk: this.cardATK,
+        def: this.cardDEF,
+        ...link,
+        infoText: this.cardInfo,
+        size: Number(this.infoSize) || 20,
+        pendulumText: this.cardPendulumInfo,
+        pSize: Number(this.pendulumSize) || 22,
+      }
+    },
+
+    async addToCollectionCurrent() {
+      if (!this.$ygoDb || !this.cardKey) return
+      await this.addOrUpdateCurrentInCollection()
+    },
+
+    async addOrUpdateCurrentInCollection() {
+      if (!this.$ygoDb || !this.cardKey) return
+      const snapshot = this.getCurrentCardSnapshot()
+      const name = this.cardTitle || 'Card'
+      const existing = this.userCollection.find((it) => it.cardKey === this.cardKey)
+      if (existing) {
+        await this.$ygoDb.updateInCollection(existing.id, {
+          ...existing,
+          name,
+          cardLang: this.cardLang,
+          snapshot,
+          updatedAt: Date.now(),
+        })
+      } else {
+        await this.$ygoDb.addToCollection({
+          name,
+          cardKey: this.cardKey,
+          cardLang: this.cardLang,
+          snapshot,
+          updatedAt: Date.now(),
+        })
+      }
+      await this.loadCollection()
+    },
+
+    async loadCollection() {
+      if (!this.$ygoDb) return
+      const items = await this.$ygoDb.getCollection()
+      this.userCollection = items || []
+      items.forEach((item) => this.ensureCollectionImageUrl(item))
+    },
+
+    async removeFromCollection(id) {
+      if (!this.$ygoDb) return
+      await this.$ygoDb.removeFromCollection(id)
+      await this.loadCollection()
+      this.$delete(this.collectionImageUrls, id)
+    },
+
+    getCollectionItemImageSrc(item) {
+      const key = item.cardKey
+      return this.collectionImageUrls[key] || this.apiCardImageUrls[key] || null
+    },
+
+    async ensureCollectionImageUrl(item) {
+      const key = item.cardKey
+      if (this.collectionImageUrls[key]) return this.collectionImageUrls[key]
+      if (this.apiCardImageUrls[key]) {
+        this.$set(this.collectionImageUrls, key, this.apiCardImageUrls[key])
+        return this.apiCardImageUrls[key]
+      }
+      const blob = await this.$ygoDb.getCardImage(key)
+      if (blob) {
+        const url = URL.createObjectURL(blob)
+        this.$set(this.collectionImageUrls, key, url)
+        return url
+      }
+      const card = this.localCards.find((c) => String(c.id) === key)
+      const img = card?.card_images?.[0]
+      const imgUrl = img ? this.getCanvasImageUrl(img) : null
+      if (imgUrl) {
+        await this.ensureCardImage(key, imgUrl, { forCurrentCard: false })
+        if (this.apiCardImageUrls[key]) {
+          this.$set(this.collectionImageUrls, key, this.apiCardImageUrls[key])
+          return this.apiCardImageUrls[key]
+        }
+      }
+      return null
+    },
+
+    async batchDownloadCollection() {
+      if (!this.userCollection.length) return
+      this.batchDownloading = true
+      const saveState = {
+        snapshot: this.getCurrentCardSnapshot(),
+        cardKey: this.cardKey,
+        cardLang: this.cardLang,
+      }
+      this._exportingCard = true
+      try {
+        for (let i = 0; i < this.userCollection.length; i++) {
+          const entry = this.userCollection[i]
+          const imgUrl = await this.getExportImageUrlForBatch(entry.cardKey)
+          if (imgUrl) await this.ensureCardImage(entry.cardKey, imgUrl, { forCurrentCard: false })
+          this.loadFromSnapshot(entry.snapshot)
+          this.cardKey = entry.cardKey
+          const url = this.apiCardImageUrls[entry.cardKey] || imgUrl
+          await new Promise((resolve) => {
+            this._drawCardOnDrawn = resolve
+            this.drawCard(url)
+          })
+          const canvas = this.$refs.yugiohcard
+          if (canvas) {
+            const dataUrl = canvas.toDataURL('image/png')
+            const a = document.createElement('a')
+            a.href = dataUrl
+            a.download = `${(entry.name || 'card').replace(/[^a-zA-Z0-9\u00C0-\u024F\s-]/g, '')}_${entry.cardKey}.png`
+            a.click()
+          }
+          await new Promise((resolve) => setTimeout(resolve, 300))
+        }
+      } finally {
+        this._exportingCard = false
+        this.batchDownloading = false
+        this.loadFromSnapshot(saveState.snapshot)
+        this.cardKey = saveState.cardKey
+        this.cardLang = saveState.cardLang
+        this.drawCard()
+      }
+    },
+
+    async getExportImageUrlForBatch(cardKey) {
+      if (this.$ygoDb) {
+        const blob = await this.$ygoDb.getCardImage(cardKey)
+        if (blob) return URL.createObjectURL(blob)
+      }
+      const card = this.localCards.find((c) => String(c.id) === cardKey)
+      const img = card?.card_images?.[0]
+      return img ? this.getCanvasImageUrl(img) : null
+    },
+
+    // Carregar dados do YGOPRO2 (local) ou da API YGOPRODeck (cache).
     load_ygopro_data(key) {
-      const data = ygoproData[key]
+      const data = this.localCardsMap[key] || this.apiCardCache[key]
       if (!data) return false
-      this.cardLang = 'zh'
+      const card = this.localCards.find((c) => String(c.id) === key)
+      this.cardLang = (card && card.lang) || 'pt'
+      this.loadFromSnapshot(data)
+      return true
+    },
+
+    loadFromSnapshot(data) {
+      this.programmaticUpdate = true
       this.cardRare = data.rare
       this.titleColor = data.color
       this.cardTitle = data.title
-      this.cardImg = null //
+      this.cardImg = null
       this.cardType = data.type[0]
       this.cardSubtype = data.type[1]
       if (data.attribute !== 'Trap' && data.attribute !== 'Spell')
@@ -1215,7 +2166,9 @@ export default {
       this.infoSize = data.size
       this.cardPendulumInfo = data.pendulumText
       this.pendulumSize = data.pSize
-      return true
+      setTimeout(() => {
+        this.programmaticUpdate = false
+      }, 650)
     },
 
     // Quando a página é rolada.
@@ -1296,6 +2249,15 @@ nav {
   background-color: #5555556a;
   border-radius: 1rem;
   color: #fff;
+}
+
+/* Painel de busca acima do canvas para o dropdown de arquétipo aparecer */
+.search-panel-col {
+  position: relative;
+  z-index: 1050;
+}
+.archetype-dropdown {
+  z-index: 1060;
 }
 
 /* -------------------- Estilos de Área de Cartão -------------------- */

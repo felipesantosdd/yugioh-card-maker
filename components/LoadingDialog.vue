@@ -1,6 +1,6 @@
 <template>
   <div>
-    <!-- Modal主題 -->
+    <!-- Modal de carregamento -->
     <b-modal
       v-model="show"
       hide-header
@@ -11,13 +11,13 @@
       <b-row>
         <b-col class="text-center py-3">
           <div class="text-center mt-3 mb-1">
-            <b-spinner small type="grow" label="Small Spinning"></b-spinner>&nbsp;
-            <b-spinner small variant="primary" type="grow" label="Small Spinning"></b-spinner>&nbsp;
-            <b-spinner small variant="success" type="grow" label="Small Spinning"></b-spinner>&nbsp;
-            <b-spinner small variant="danger" type="grow" label="Small Spinning"></b-spinner>&nbsp;
-            <b-spinner small variant="warning" type="grow" label="Small Spinning"></b-spinner>
+            <b-spinner small type="grow" label="Carregando"></b-spinner>&nbsp;
+            <b-spinner small variant="primary" type="grow" label="Carregando"></b-spinner>&nbsp;
+            <b-spinner small variant="success" type="grow" label="Carregando"></b-spinner>&nbsp;
+            <b-spinner small variant="danger" type="grow" label="Carregando"></b-spinner>&nbsp;
+            <b-spinner small variant="warning" type="grow" label="Carregando"></b-spinner>
           </div>
-          <div class="dialog-content mt-3 mb-1">請稍候<br><small>（初次載入字型會耗時較久）</small></div>
+          <div class="dialog-content mt-3 mb-1">Aguarde...<br><small>(o carregamento inicial das fontes pode demorar)</small></div>
         </b-col>
       </b-row>
     </b-modal>

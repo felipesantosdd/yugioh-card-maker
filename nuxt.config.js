@@ -32,21 +32,20 @@ export default {
 
   // Global page headers: https://go.nuxtjs.dev/config-head
   head: {
-    title: 'Yu-Gi-Oh!, Card Maker',
+    title: 'Criador de Cartas Yu-Gi-Oh!',
     htmlAttrs: {
-      lang: 'pt'
+      lang: 'pt-BR'
     },
     meta: [
-      // { 'http-equiv': "refresh", content:"0; url=https://yugioh-card.linziyou.info" },
       { charset: 'utf-8' },
       { name: 'viewport', content: 'width=device-width, initial-scale=1' },
-      { hid: 'description', name: 'description', content: '遊戲王卡製造機，讓你製作個人化的卡片和梗圖！！' },
+      { hid: 'description', name: 'description', content: 'Crie cartas Yu-Gi-Oh! personalizadas e memes em formato de card.' },
       { name: 'format-detection', content: 'telephone=no' },
       { hid: 'og:type', name: 'og:type', content: 'website' },
-      { hid: 'og:title', name: 'og:title', content: '遊戲王 卡片製造機' },
-      { hid: 'og:description', name: 'og:description', content: '遊戲王卡製造機，讓你製作個人化的卡片和梗圖！！' },
-      { hid: 'og:site_name', name: 'og:site_name', content: '遊戲王 卡片製造機' },
-      { hid: 'keywords', name: 'keywords', content: '遊戲王,遊戲王卡,卡片,梗圖,製作,梗圖自製,DIY,產生器' },
+      { hid: 'og:title', name: 'og:title', content: 'Criador de Cartas Yu-Gi-Oh!' },
+      { hid: 'og:description', name: 'og:description', content: 'Crie cartas Yu-Gi-Oh! personalizadas e memes em formato de card.' },
+      { hid: 'og:site_name', name: 'og:site_name', content: 'Criador de Cartas Yu-Gi-Oh!' },
+      { hid: 'keywords', name: 'keywords', content: 'Yu-Gi-Oh, cartas, card maker, criar cartas, DIY, meme, personalizado' },
     ],
     link: [
       { rel: 'icon', type: 'image/x-icon', href: 'favicon.ico' }
@@ -61,9 +60,10 @@ export default {
   ],
 
   // Plugins to run before rendering page: https://go.nuxtjs.dev/config-plugins
-  plugins: [{
-    src: '~/plugins/font-awesome'
-  }],
+  plugins: [
+    { src: '~/plugins/font-awesome' },
+    { src: '~/plugins/ygo-db.client.js', mode: 'client' },
+  ],
 
   // Auto import components: https://go.nuxtjs.dev/config-components
   components: true,
@@ -100,7 +100,6 @@ export default {
   ],
 
   fontawesome: {
-    // icon 的標籤使用 <fa>，這邊不設定就會依照 plugin 裡的設定<font-awesome-icon>
     component: 'fa',
     imports: [
       {
@@ -120,6 +119,9 @@ export default {
 
   // Axios module configuration: https://go.nuxtjs.dev/config-axios
   axios: {},
+
+  // Em dev: API para servir/salvar artes em static/ygo/pics (GET /api/card-art/:id?url=...)
+  serverMiddleware: ['~/server/api/card-art.js'],
 
   // Build Configuration: https://go.nuxtjs.dev/config-build
   build: {

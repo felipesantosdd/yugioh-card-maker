@@ -1,0 +1,34 @@
+{
+  "cardDistanceMm": 1.25,
+  "cardSize": {
+    "name": "japanese",
+    "widthMm": 59,
+    "heightMm": 86,
+    "description": "Yu-Gi-Oh! (59×86 mm)"
+  },
+  "paperSizes": {
+    "letter": {
+      "widthMm": 279.4,
+      "heightMm": 215.9,
+      "orientation": "landscape",
+      "rows": 2,
+      "cols": 4,
+      "cardsPerPage": 8,
+      "registrationLengthMm": 10.08
+    },
+    "a4": {
+      "widthMm": 297,
+      "heightMm": 210,
+      "orientation": "portrait",
+      "rows": 3,
+      "cols": 3,
+      "cardsPerPage": 9,
+      "registrationLengthMm": 6.94
+    }
+  },
+  "registration": {
+    "insetMm": 10,
+    "thicknessMm": 1,
+    "lengthMm": 5
+  }
+}
