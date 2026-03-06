@@ -1,0 +1,51 @@
+const { contextBridge, ipcRenderer } = require('electron')
+
+contextBridge.exposeInMainWorld('ygoDb', {
+  // Cards (base)
+  getDB: () => ipcRenderer.invoke('ygoDb:getDB'),
+  saveCards: (cards, databaseVersion) => ipcRenderer.invoke('ygoDb:saveCards', cards, databaseVersion),
+  saveCardsEN: (enCards) => ipcRenderer.invoke('ygoDb:saveCardsEN', enCards),
+  mergeCardsPT: (ptCards) => ipcRenderer.invoke('ygoDb:mergeCardsPT', ptCards),
+  updateCardTranslation: (cardId, namePt, descPt) => ipcRenderer.invoke('ygoDb:updateCardTranslation', cardId, namePt, descPt),
+  shouldSync: (lastSync) => ipcRenderer.invoke('ygoDb:shouldSync', lastSync),
+  updateSyncMeta: (key, value) => ipcRenderer.invoke('ygoDb:updateSyncMeta', key, value),
+  clearCards: () => ipcRenderer.invoke('ygoDb:clearCards'),
+  clearCardImages: () => ipcRenderer.invoke('ygoDb:clearCardImages'),
+
+  // Card images
+  getCardImage: async (id) => {
+    const base64 = await ipcRenderer.invoke('ygoDb:getCardImage', id)
+    if (!base64) return null
+    const binary = atob(base64)
+    const bytes = new Uint8Array(binary.length)
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
+    return new Blob([bytes], { type: 'image/webp' })
+  },
+
+  saveCardImage: async (id, blob) => {
+    if (!(blob instanceof Blob)) return
+    const arrayBuf = await blob.arrayBuffer()
+    const bytes = new Uint8Array(arrayBuf)
+    let binary = ''
+    for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i])
+    const base64 = btoa(binary)
+    return ipcRenderer.invoke('ygoDb:saveCardImage', id, base64)
+  },
+
+  // Decks
+  getDecks: (game) => ipcRenderer.invoke('ygoDb:getDecks', game),
+  createDeck: (name, game) => ipcRenderer.invoke('ygoDb:createDeck', name, game),
+  updateDeck: (id, name) => ipcRenderer.invoke('ygoDb:updateDeck', id, name),
+  deleteDeck: (id) => ipcRenderer.invoke('ygoDb:deleteDeck', id),
+
+  // Deck cards
+  getDeckCards: (deckId) => ipcRenderer.invoke('ygoDb:getDeckCards', deckId),
+  addCardToDeck: (deckId, cardId, cardData) => ipcRenderer.invoke('ygoDb:addCardToDeck', deckId, cardId, cardData),
+  updateDeckCard: (id, cardData) => ipcRenderer.invoke('ygoDb:updateDeckCard', id, cardData),
+  removeDeckCard: (id) => ipcRenderer.invoke('ygoDb:removeDeckCard', id),
+})
+
+contextBridge.exposeInMainWorld('cardArt', {
+  get: (id, imageUrl) => ipcRenderer.invoke('cardArt:get', id, imageUrl),
+  exists: (id) => ipcRenderer.invoke('cardArt:exists', id),
+})

@@ -224,6 +224,35 @@
               class="mt-3 mt-sm-5 mt-md-0"
             >
               <div class="panel-bg shadow p-3">
+                <!-- Banner de campos bloqueados -->
+                <div v-if="isFieldsLocked" class="alert alert-info py-2 mb-3 small d-flex align-items-center justify-content-between">
+                  <span>
+                    <fa :icon="['fas', 'lock']" class="mr-1" />
+                    {{ ui[uiLang].fields_locked || 'Card do banco de dados (somente leitura). Adicione a um deck para editar.' }}
+                  </span>
+                  <span>
+                    <b-button
+                      v-if="baseCardNeedsTranslation"
+                      size="sm"
+                      variant="warning"
+                      class="mr-2"
+                      @click="openTranslationModal"
+                    >
+                      <fa :icon="['fas', 'language']" class="mr-1" />
+                      {{ ui[uiLang].translate || 'Traduzir' }}
+                    </b-button>
+                    <b-button
+                      v-if="selectedDeckId && cardKey"
+                      size="sm"
+                      variant="primary"
+                      @click="addToDeckCurrent"
+                    >
+                      <fa :icon="['fas', 'plus']" class="mr-1" />
+                      {{ ui[uiLang].add_to_deck || 'Adicionar ao Deck' }}
+                    </b-button>
+                  </span>
+                </div>
+                <fieldset :disabled="isFieldsLocked">
                 <div class="card-body">
                   <!-- Autenticidade, Raridade, Cor -->
                   <b-row class="mb-3">
@@ -629,20 +658,21 @@
                       <b-button
                         v-if="
                           cardKey &&
-                          !hasUnsavedLayoutChanges &&
-                          !isCurrentCardInCollection
+                          selectedDeckId &&
+                          !isCurrentCardInDeck &&
+                          loadedFromDeck
                         "
                         class="my-2"
                         variant="outline-primary"
-                        @click="addToCollectionCurrent"
+                        @click="addToDeckCurrent"
                       >
-                        {{ ui[uiLang].add_to_collection }}
+                        {{ ui[uiLang].add_to_deck || 'Adicionar ao Deck' }}
                       </b-button>
                       <b-button
                         v-if="hasUnsavedLayoutChanges"
                         class="my-2"
                         variant="success"
-                        @click="saveCollectionChanges"
+                        @click="saveDeckCardChanges"
                       >
                         {{ ui[uiLang].save_changes }}
                       </b-button>
@@ -661,6 +691,7 @@
                     </b-col>
                   </b-row>
                 </div>
+                </fieldset>
               </div>
 
               <!-- Resultados da busca (classificados: arquétipo > nome > descrição) -->
@@ -823,74 +854,89 @@
                 {{ ui[uiLang].search_no_results }}
               </div>
 
-              <!-- Minha coleção -->
+              <!-- Meus Decks -->
               <div class="panel-bg shadow p-3 mt-3">
-                <label class="d-block mb-2">{{
-                  ui[uiLang].my_collection
-                }}</label>
-                <b-button
-                  v-if="userCollection.length > 0"
-                  class="mb-3"
-                  variant="outline-info"
-                  :disabled="batchDownloading"
-                  @click="batchDownloadCollection"
-                >
-                  {{
-                    batchDownloading
-                      ? ui[uiLang].batch_downloading
-                      : ui[uiLang].batch_download
-                  }}
-                </b-button>
-                <div
-                  v-if="userCollection.length > 0"
-                  class="d-flex flex-wrap gap-2"
-                  style="max-height: 240px; overflow-y: auto"
-                >
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                  <label class="mb-0">{{ ui[uiLang].my_decks || 'Meus Decks' }}</label>
+                  <b-button size="sm" variant="outline-success" @click="showNewDeckModal = true">
+                    <fa :icon="['fas', 'plus']" /> {{ ui[uiLang].new_deck || 'Novo Deck' }}
+                  </b-button>
+                </div>
+
+                <!-- Lista de decks -->
+                <div v-if="userDecks.length > 0" class="mb-3">
                   <div
-                    v-for="item in userCollection"
-                    :key="item.id"
-                    class="border rounded p-2 bg-dark text-center"
-                    style="width: 90px; cursor: pointer"
-                    @click="loadCollectionItemForEdit(item)"
+                    v-for="deck in userDecks"
+                    :key="deck.id"
+                    class="d-flex align-items-center justify-content-between border rounded p-2 mb-1"
+                    :class="selectedDeckId === deck.id ? 'border-primary bg-dark' : 'bg-dark'"
+                    style="cursor: pointer"
+                    @click="selectDeck(deck)"
                   >
-                    <img
-                      v-if="getCollectionItemImageSrc(item)"
-                      :src="getCollectionItemImageSrc(item)"
-                      :alt="item.name"
-                      class="img-fluid rounded"
-                      style="height: 70px; object-fit: contain"
-                    />
-                    <div
-                      v-else
-                      class="
-                        rounded
-                        bg-secondary
-                        d-flex
-                        align-items-center
-                        justify-content-center
-                        text-white
-                        small
-                      "
-                      style="height: 70px"
-                    >
-                      …
-                    </div>
-                    <small class="d-block text-white text-truncate mt-1">{{
-                      item.name
-                    }}</small>
-                    <b-button
-                      size="sm"
-                      variant="outline-danger"
-                      class="mt-1"
-                      @click.stop="removeFromCollection(item.id)"
-                    >
-                      ×
+                    <span class="text-white small">
+                      <fa :icon="['fas', 'folder']" class="mr-1" :class="selectedDeckId === deck.id ? 'text-primary' : 'text-muted'" />
+                      {{ deck.name }}
+                    </span>
+                    <b-button size="sm" variant="outline-danger" @click.stop="deleteDeck(deck.id)">
+                      <fa :icon="['fas', 'trash']" />
                     </b-button>
                   </div>
                 </div>
-                <p v-else class="text-muted small mb-0">
-                  {{ ui[uiLang].collection_empty }}
-                </p>
+                <p v-else class="text-muted small mb-2">{{ ui[uiLang].no_decks || 'Nenhum deck criado.' }}</p>
+
+                <!-- Cards do deck selecionado -->
+                <div v-if="selectedDeck">
+                  <div class="d-flex align-items-center justify-content-between mb-2">
+                    <label class="mb-0 text-light small">
+                      <fa :icon="['fas', 'folder-open']" class="mr-1" />
+                      {{ selectedDeck.name }} ({{ selectedDeckCards.length }})
+                    </label>
+                    <b-button
+                      v-if="selectedDeckCards.length > 0"
+                      size="sm"
+                      variant="outline-info"
+                      :disabled="batchDownloading"
+                      @click="batchDownloadDeck"
+                    >
+                      {{ batchDownloading ? (ui[uiLang].batch_downloading || 'Baixando...') : (ui[uiLang].batch_download || 'Baixar Todos') }}
+                    </b-button>
+                  </div>
+                  <div
+                    v-if="selectedDeckCards.length > 0"
+                    class="d-flex flex-wrap gap-2"
+                    style="max-height: 240px; overflow-y: auto"
+                  >
+                    <div
+                      v-for="item in selectedDeckCards"
+                      :key="item.id"
+                      class="border rounded p-2 bg-dark text-center"
+                      :class="editingDeckCardId === item.id ? 'border-primary' : ''"
+                      style="width: 90px; cursor: pointer"
+                      @click="loadDeckCardForEdit(item)"
+                    >
+                      <img
+                        v-if="getDeckCardImageSrc(item)"
+                        :src="getDeckCardImageSrc(item)"
+                        :alt="item.name"
+                        class="img-fluid rounded"
+                        style="height: 70px; object-fit: contain"
+                      />
+                      <div
+                        v-else
+                        class="rounded bg-secondary d-flex align-items-center justify-content-center text-white small"
+                        style="height: 70px"
+                      >…</div>
+                      <small class="d-block text-white text-truncate mt-1">{{ item.name }}</small>
+                      <b-button
+                        size="sm"
+                        variant="outline-danger"
+                        class="mt-1"
+                        @click.stop="removeDeckCard(item.id)"
+                      >×</b-button>
+                    </div>
+                  </div>
+                  <p v-else class="text-muted small mb-0">{{ ui[uiLang].deck_empty || 'Deck vazio. Busque um card e adicione.' }}</p>
+                </div>
               </div>
             </b-col>
           </b-row>
@@ -955,23 +1001,66 @@
       </template>
     </b-modal>
 
+    <!-- Modal: Novo Deck -->
+    <b-modal
+      v-model="showNewDeckModal"
+      :title="ui[uiLang].new_deck_title || 'Novo Deck'"
+      ok-title=""
+      cancel-title=""
+      hide-footer
+      centered
+    >
+      <b-form @submit.prevent="createDeck">
+        <b-form-group :label="ui[uiLang].deck_name || 'Nome do deck'">
+          <b-form-input v-model="newDeckName" :placeholder="ui[uiLang].deck_name_placeholder || 'Ex: Dragões Azuis'" required />
+        </b-form-group>
+        <div class="text-right mt-3">
+          <b-button variant="secondary" class="mr-2" @click="showNewDeckModal = false">{{ ui[uiLang].cancel || 'Cancelar' }}</b-button>
+          <b-button type="submit" variant="primary" :disabled="!newDeckName.trim()">{{ ui[uiLang].create || 'Criar' }}</b-button>
+        </div>
+      </b-form>
+    </b-modal>
+
+    <!-- Modal: Tradução PT-BR -->
+    <b-modal
+      v-model="showTranslationModal"
+      :title="ui[uiLang].translate_title || 'Traduzir Card para PT-BR'"
+      ok-title=""
+      cancel-title=""
+      hide-footer
+      centered
+      size="lg"
+    >
+      <b-form @submit.prevent="saveTranslation">
+        <b-form-group :label="ui[uiLang].card_name_pt || 'Nome em Português'">
+          <b-form-input v-model="translationName" :placeholder="ui[uiLang].card_name_pt_placeholder || 'Nome traduzido'" />
+        </b-form-group>
+        <b-form-group :label="ui[uiLang].card_desc_pt || 'Descrição em Português'">
+          <b-form-textarea v-model="translationDesc" rows="6" :placeholder="ui[uiLang].card_desc_pt_placeholder || 'Efeito/descrição traduzida'" />
+        </b-form-group>
+        <div class="text-muted small mb-3">
+          {{ ui[uiLang].translate_note || 'Esta tradução será salva no banco local. Quando uma tradução oficial for disponibilizada pela API, ela substituirá a sua.' }}
+        </div>
+        <div class="text-right">
+          <b-button variant="secondary" class="mr-2" @click="showTranslationModal = false">{{ ui[uiLang].cancel || 'Cancelar' }}</b-button>
+          <b-button type="submit" variant="success">{{ ui[uiLang].save || 'Salvar' }}</b-button>
+        </div>
+      </b-form>
+    </b-modal>
+
     <LoadingDialog />
   </div>
 </template>
 
 <script>
 import { mapMutations } from 'vuex'
-import ui from '../static/lang.ui.json'
-import cardMeta from '../static/lang.card_meta.json'
-import archetypesList from '../static/archetypes.json'
+import ui from '../../../static/lang.ui.json'
+import cardMeta from '../../../static/lang.card_meta.json'
+import archetypesList from '../../../static/archetypes.json'
 
 const YGOPRODECK_API = 'https://db.ygoprodeck.com/api/v7/cardinfo.php'
 const YGOPRODECK_CHECK_VER = 'https://db.ygoprodeck.com/api/v7/checkDBVer.php'
 const SYNC_TIMEOUT_MS = 60000
-// Pasta de artes: em dev usamos /api/card-art (servidor salva em static/ygo/pics); em prod tentamos /ygo/pics e depois API
-const CARD_ARTS_PATH = '/ygo/pics'
-const CARD_ART_API_PATH = '/api/card-art'
-const IS_DEV = process.env.NODE_ENV === 'development'
 const LINK_MARKER_TO_INDEX = {
   'Top-Left': 1,
   Top: 2,
@@ -1066,15 +1155,26 @@ export default {
       searchLoading: false,
       searchTried: false,
 
-      userCollection: [],
-      collectionImageUrls: {},
+      userDecks: [],
+      selectedDeckId: null,
+      selectedDeckCards: [],
+      deckCardImageUrls: {},
       batchDownloading: false,
-      loadedFromCollection: false,
+      loadedFromDeck: false,
+      editingDeckCardId: null,
+      viewingBaseCard: false,
+
+      showTranslationModal: false,
+      translationName: '',
+      translationDesc: '',
+      translatingCardId: null,
+
+      showNewDeckModal: false,
+      newDeckName: '',
 
       programmaticUpdate: false,
-      autoSaveCollectionTimer: null,
+      autoSaveTimer: null,
 
-      editingCollectionId: null,
       snapshotAtLoad: null,
       initialSnapshotWhenNotFromCollection: null,
       pendingLeaveAction: null,
@@ -1124,17 +1224,32 @@ export default {
       if (!this.cardKey) return null
       return { cardKey: this.cardKey, ...this.getCurrentCardSnapshot() }
     },
+    isFieldsLocked() {
+      return this.viewingBaseCard && !this.loadedFromDeck
+    },
+    currentBaseCard() {
+      if (!this.cardKey) return null
+      return this.localCards.find((c) => String(c.id) === String(this.cardKey)) || null
+    },
+    baseCardNeedsTranslation() {
+      if (!this.currentBaseCard) return false
+      return !this.currentBaseCard.name_pt || this.currentBaseCard.name_pt === ''
+    },
     hasUnsavedLayoutChanges() {
-      if (this.editingCollectionId == null || this.snapshotAtLoad == null)
+      if (this.editingDeckCardId == null || this.snapshotAtLoad == null)
         return false
       const current = this.getCurrentCardSnapshot()
       return JSON.stringify(this.snapshotAtLoad) !== JSON.stringify(current)
     },
-    isCurrentCardInCollection() {
-      if (!this.cardKey) return false
-      return this.userCollection.some(
+    isCurrentCardInDeck() {
+      if (!this.cardKey || !this.selectedDeckId) return false
+      return this.selectedDeckCards.some(
         (item) => String(item.cardKey) === String(this.cardKey)
       )
+    },
+    selectedDeck() {
+      if (!this.selectedDeckId) return null
+      return this.userDecks.find((d) => d.id === this.selectedDeckId) || null
     },
     cardTypeOpts() {
       return {
@@ -1290,7 +1405,7 @@ export default {
       if (this.apiCardFetchTimer) clearTimeout(this.apiCardFetchTimer)
       this.apiCardError = null
       const key = String(val).trim()
-      if (key.length >= 8) this.loadedFromCollection = false
+      if (key.length >= 8) this.loadedFromDeck = false
       if (!this.cardLoadYgoProEnabled || key.length < 8) return
       if (this.localCardsMap[key]) return
       this.apiCardFetchTimer = setTimeout(() => {
@@ -1309,21 +1424,11 @@ export default {
       deep: true,
       handler() {
         if (!this.cardKey || this.programmaticUpdate || !this.$ygoDb) return
-        if (this.editingCollectionId != null) return
-        if (this.autoSaveCollectionTimer)
-          clearTimeout(this.autoSaveCollectionTimer)
-        this.autoSaveCollectionTimer = setTimeout(() => {
-          this.autoSaveCollectionTimer = null
-          if (
-            !this.isCurrentCardInCollection &&
-            this.initialSnapshotWhenNotFromCollection != null &&
-            JSON.stringify(this.getCurrentCardSnapshot()) !==
-              JSON.stringify(this.initialSnapshotWhenNotFromCollection)
-          ) {
-            this.addCurrentToCollectionAndStartEditing()
-            return
-          }
-          this.addOrUpdateCurrentInCollection()
+        if (!this.loadedFromDeck || !this.editingDeckCardId) return
+        if (this.autoSaveTimer) clearTimeout(this.autoSaveTimer)
+        this.autoSaveTimer = setTimeout(() => {
+          this.autoSaveTimer = null
+          this.autoSaveDeckCard()
         }, 500)
       },
     },
@@ -1334,7 +1439,7 @@ export default {
     this.load_default_data()
     setInterval(this.drawCard, 1500)
     this.initYgoDb()
-    if (this.$ygoDb) this.loadCollection()
+    if (this.$ygoDb) this.loadDecks()
   },
   beforeDestroy() {
     window.removeEventListener('scroll', this.onScroll)
@@ -1342,18 +1447,19 @@ export default {
   methods: {
     ...mapMutations(['fireLoadingDialog', 'closeLoadingDialog']),
 
-    async loadCollectionItemForEdit(item) {
+    async loadDeckCardForEdit(item) {
       if (this.hasUnsavedLayoutChanges) {
-        this.pendingLeaveAction = { type: 'loadCollectionItem', item }
+        this.pendingLeaveAction = { type: 'loadDeckCard', item }
         this.$refs.unsavedChangesModal.show()
         return
       }
-      await this.doLoadCollectionItemForEdit(item)
+      await this.doLoadDeckCardForEdit(item)
     },
 
-    async doLoadCollectionItemForEdit(item) {
+    async doLoadDeckCardForEdit(item) {
       this.initialSnapshotWhenNotFromCollection = null
-      this.editingCollectionId = item.id
+      this.editingDeckCardId = item.id
+      this.viewingBaseCard = false
       this.snapshotAtLoad = JSON.parse(JSON.stringify(item.snapshot))
       this.loadFromSnapshot(item.snapshot)
       this.cardKey = item.cardKey
@@ -1372,7 +1478,7 @@ export default {
         })
       }
       this.$nextTick(() => {
-        this.loadedFromCollection = true
+        this.loadedFromDeck = true
       })
     },
 
@@ -1392,12 +1498,12 @@ export default {
         cardImgUrl == null &&
         this.cardLoadYgoProEnabled &&
         !this._exportingCard &&
-        !this.loadedFromCollection
+        !this.loadedFromDeck
       ) {
         const hasData = this.load_ygopro_data(this.cardKey)
         if (hasData) cardImgUrl = this.apiCardImageUrls[this.cardKey] || null
       }
-      if (cardImgUrl == null && this.loadedFromCollection)
+      if (cardImgUrl == null && this.loadedFromDeck)
         cardImgUrl = this.apiCardImageUrls[this.cardKey] || null
       if (this._exportingCard && cardImgUrl == null)
         cardImgUrl = this.apiCardImageUrls[this.cardKey] || 'images/default.jpg'
@@ -1731,35 +1837,70 @@ export default {
       )
       ctx.fillText(this.cardRED, 895, 1040, 60)
       // Escreva texto.
-      const fontSize = Number(this.pendulumSize)
+      const baseFontSize = Number(this.pendulumSize)
+      const xStart = 160
+      const yStart = 920 + offset.oY
+      const maxW = 660
+      const yLimit = 1070
+
       ctx.textAlign = 'left'
       ctx.textBaseline = 'top'
+
+      let fontSize = baseFontSize
+      const minFontSize = 12
+      let lines
+
+      while (fontSize >= minFontSize) {
+        const lh = fontSize + offset.lh
+        ctx.font = `${fontSize}pt ${fontName[2]}, ${fontName[3]}, ${fontName[4]}, ${fontName[5]}`
+        lines = this.computeWrappedLines(ctx, this.cardPendulumInfo, maxW)
+        const totalHeight = lines.length * lh
+        if (yStart + totalHeight <= yLimit) break
+        fontSize -= 1
+      }
+
+      const lh = fontSize + offset.lh
       ctx.font = `${fontSize}pt ${fontName[2]}, ${fontName[3]}, ${fontName[4]}, ${fontName[5]}`
-      this.wrapText(
-        ctx,
-        this.cardPendulumInfo,
-        160,
-        920 + offset.oY,
-        660,
-        fontSize + offset.lh
-      )
+      let drawY = yStart
+      for (const line of lines) {
+        if (drawY + lh > yLimit + lh) break
+        ctx.fillText(line, xStart, drawY)
+        drawY += lh
+      }
     },
 
-    // Preencha a descrição do cartão.
     drawCardInfoText(ctx, offset, fontName) {
-      const fontSize = Number(this.infoSize)
+      const baseFontSize = Number(this.infoSize)
       const topOffset = Number(this.infoPosition) || 0
+      const xStart = 75
+      const yStart = 1095 + offset.oY + (this.cardType === 'Monster' ? 30 : 0) + topOffset
+      const maxW = 825
+      const yLimit = this.cardType === 'Monster' ? 1330 : 1390
+
       ctx.textAlign = 'left'
       ctx.textBaseline = 'top'
+
+      let fontSize = baseFontSize
+      const minFontSize = 12
+      let lines
+
+      while (fontSize >= minFontSize) {
+        const lh = fontSize + offset.lh
+        ctx.font = `${fontSize}pt ${fontName[2]}, ${fontName[3]}, ${fontName[4]}, ${fontName[5]}`
+        lines = this.computeWrappedLines(ctx, this.cardInfo, maxW)
+        const totalHeight = lines.length * lh
+        if (yStart + totalHeight <= yLimit) break
+        fontSize -= 1
+      }
+
+      const lh = fontSize + offset.lh
       ctx.font = `${fontSize}pt ${fontName[2]}, ${fontName[3]}, ${fontName[4]}, ${fontName[5]}`
-      this.wrapText(
-        ctx,
-        this.cardInfo,
-        75,
-        1095 + offset.oY + (this.cardType === 'Monster' ? 30 : 0) + topOffset,
-        825,
-        fontSize + offset.lh
-      )
+      let drawY = yStart
+      for (const line of lines) {
+        if (drawY + lh > yLimit + lh) break
+        ctx.fillText(line, xStart, drawY)
+        drawY += lh
+      }
     },
 
     // Cor do cartão.
@@ -1788,23 +1929,70 @@ export default {
       }
     },
 
-    /** Quebra a palavra após a última vogal que couber; se não couber, penúltima, etc. */
-    breakWordAfterVowel(ctx, word, maxWidth) {
-      const hyphen = '-'
-      const vogais = /[aeiouáéíóúâêôãõàèìòùäëïöü]/i
-      const indicesVogais = []
-      for (let i = 0; i < word.length; i++) {
-        if (vogais.test(word[i])) indicesVogais.push(i)
+    findSyllableBreaks(word) {
+      const vowels = /[aeiouáéíóúâêôãõàèìòùäëïöüy]/i
+      const isVowel = (ch) => vowels.test(ch)
+      const insepClusters = [
+        'bl','br','cl','cr','dr','fl','fr','gl','gr',
+        'pl','pr','tl','tr','vr','ch','lh','nh','qu','gu',
+      ]
+      const breaks = []
+      const len = word.length
+      if (len <= 3) return breaks
+
+      let i = 0
+      while (i < len) {
+        if (isVowel(word[i])) {
+          let j = i + 1
+          while (j < len && isVowel(word[j])) {
+            const pair = (word[j - 1] + word[j]).toLowerCase()
+            const diphthongs = ['ai','ei','oi','ui','au','eu','ou','ão','õe','ãe','oe','ae']
+            if (diphthongs.includes(pair)) {
+              j++
+            } else {
+              if (j >= 2 && j < len - 1) breaks.push(j)
+              break
+            }
+          }
+          if (j >= len) break
+          if (!isVowel(word[j])) {
+            let consCount = 0
+            let k = j
+            while (k < len && !isVowel(word[k])) { consCount++; k++ }
+            if (k >= len) break
+            if (consCount === 1) {
+              if (j >= 2) breaks.push(j)
+            } else if (consCount >= 2) {
+              const cluster = (word[k - 1] + word[k]).toLowerCase()
+              const prevCluster = consCount >= 2 ? (word[j] + word[j + 1]).toLowerCase() : ''
+              if (insepClusters.includes(cluster) && consCount === 2) {
+                if (j >= 2) breaks.push(j)
+              } else if (insepClusters.includes(prevCluster)) {
+                if (j + 2 < len && j >= 1) breaks.push(j + 2)
+              } else {
+                if (j + 1 < len && j >= 1) breaks.push(j + 1)
+              }
+            }
+          }
+          i = j > i ? j : i + 1
+        } else {
+          i++
+        }
       }
-      for (let k = indicesVogais.length - 1; k >= 0; k--) {
-        const i = indicesVogais[k]
-        const part1 = word.slice(0, i + 1) + hyphen
-        if (
-          i >= 1 &&
-          word.length - (i + 1) >= 1 &&
-          ctx.measureText(part1).width <= maxWidth
-        ) {
-          return { first: part1, rest: word.slice(i + 1) }
+      const unique = [...new Set(breaks)].filter((b) => b >= 2 && b <= len - 2).sort((a, b) => a - b)
+      return unique
+    },
+
+    breakWordAtSyllable(ctx, word, maxWidth) {
+      const hyphen = '-'
+      const breaks = this.findSyllableBreaks(word)
+      if (breaks.length > 0) {
+        for (let k = breaks.length - 1; k >= 0; k--) {
+          const pos = breaks[k]
+          const part1 = word.slice(0, pos) + hyphen
+          if (ctx.measureText(part1).width <= maxWidth) {
+            return { first: part1, rest: word.slice(pos) }
+          }
         }
       }
       for (let i = word.length - 1; i >= 2; i--) {
@@ -1816,67 +2004,70 @@ export default {
       return null
     },
 
-    // Área de texto: quebra entre palavras; se não couber, quebra após última vogal que couber.
-    wrapText(ctx, text, x, y, maxWidth, lineHeight) {
+    computeWrappedLines(ctx, text, maxWidth) {
       const lines = []
-      const tokens = text.split(/(\s)/)
-      let currentLine = ''
-      let currentWidth = 0
+      const paragraphs = text.split('\n')
 
-      const flushLine = () => {
-        if (currentLine) {
-          lines.push(currentLine)
-          currentLine = ''
-          currentWidth = 0
-        }
-      }
+      for (const para of paragraphs) {
+        if (!para.trim()) { lines.push(''); continue }
+        const tokens = para.split(/(\s+)/)
+        let currentLine = ''
+        let currentWidth = 0
 
-      const processWord = (word) => {
-        const wordWidth = ctx.measureText(word).width
-        if (currentWidth + wordWidth <= maxWidth) {
-          currentLine += word
-          currentWidth += wordWidth
-          return
-        }
-        flushLine()
-        const spaceLeft = maxWidth
-        if (wordWidth <= spaceLeft) {
-          currentLine = word
-          currentWidth = wordWidth
-          return
-        }
-        let rest = word
-        while (rest.length > 0) {
-          const br = this.breakWordAfterVowel(ctx, rest, spaceLeft)
-          if (br && br.rest.length > 0) {
-            lines.push(br.first)
-            rest = br.rest
-          } else {
-            if (rest.length > 0 && ctx.measureText(rest).width <= spaceLeft) {
-              currentLine = rest
-              currentWidth = ctx.measureText(rest).width
-            } else {
-              lines.push(rest)
-            }
-            rest = ''
+        const flushLine = () => {
+          if (currentLine) {
+            lines.push(currentLine.trimEnd())
+            currentLine = ''
+            currentWidth = 0
           }
         }
-      }
 
-      for (const token of tokens) {
-        if (token === '\n') {
-          flushLine()
-        } else if (/\s/.test(token)) {
-          const w = ctx.measureText(token).width
-          if (currentWidth + w > maxWidth && currentLine) flushLine()
-          currentLine += token
-          currentWidth += w
-        } else {
-          processWord(token)
+        for (const token of tokens) {
+          if (/^\s+$/.test(token)) {
+            if (!currentLine) continue
+            const w = ctx.measureText(' ').width
+            if (currentWidth + w > maxWidth) { flushLine(); continue }
+            currentLine += ' '
+            currentWidth += w
+            continue
+          }
+          const wordWidth = ctx.measureText(token).width
+          if (currentWidth + wordWidth <= maxWidth) {
+            currentLine += token
+            currentWidth += wordWidth
+            continue
+          }
+          if (currentLine.trim()) flushLine()
+          if (wordWidth <= maxWidth) {
+            currentLine = token
+            currentWidth = wordWidth
+            continue
+          }
+          let rest = token
+          while (rest.length > 0) {
+            const remainW = ctx.measureText(rest).width
+            if (remainW <= maxWidth) {
+              currentLine = rest
+              currentWidth = remainW
+              break
+            }
+            const br = this.breakWordAtSyllable(ctx, rest, maxWidth)
+            if (br && br.rest.length > 0) {
+              lines.push(br.first)
+              rest = br.rest
+            } else {
+              lines.push(rest)
+              rest = ''
+            }
+          }
         }
+        if (currentLine.trim()) lines.push(currentLine.trimEnd())
       }
-      if (currentLine) lines.push(currentLine)
+      return lines
+    },
 
+    wrapText(ctx, text, x, y, maxWidth, lineHeight) {
+      const lines = this.computeWrappedLines(ctx, text, maxWidth)
       let initHeight = y
       for (const line of lines) {
         ctx.fillText(line, x, initHeight)
@@ -1912,9 +2103,10 @@ export default {
 
     doLoadDefaultData() {
       this.initialSnapshotWhenNotFromCollection = null
-      this.editingCollectionId = null
+      this.editingDeckCardId = null
       this.snapshotAtLoad = null
-      this.loadedFromCollection = false
+      this.loadedFromDeck = false
+      this.viewingBaseCard = false
       const data = this.cardMetaLang.Default
       this.holo = true
       this.cardRare = '0'
@@ -2043,10 +2235,6 @@ export default {
       }
       this.apiCardLoading = false
     },
-    /**
-     * 1) Tenta pasta local (static/ygo/pics ou API em dev que salva lá).
-     * 2) Se não tiver, usa o link da API e salva para próximas consultas (pasta em dev, IndexedDB em prod).
-     */
     async ensureCardImage(id, imageUrl, { forCurrentCard = true } = {}) {
       if (!imageUrl) return
       const key = String(id)
@@ -2065,21 +2253,6 @@ export default {
       }
 
       try {
-        if (IS_DEV) {
-          const url = `${CARD_ART_API_PATH}/${key}?url=${encodeURIComponent(
-            imageUrl
-          )}`
-          setUrlAndDraw(url)
-          return
-        }
-
-        const localPath = `${CARD_ARTS_PATH}/${key}.webp`
-        const localRes = await fetch(localPath, { method: 'HEAD' })
-        if (localRes.ok) {
-          setUrlAndDraw(localPath)
-          return
-        }
-
         if (this.$ygoDb) {
           let blob = await this.$ygoDb.getCardImage(key)
           if (!blob) {
@@ -2188,7 +2361,7 @@ export default {
         const oldFormat =
           this.localCards.length > 0 &&
           this.localCards.some((c) => c.lang == null)
-        if (oldFormat || this.$ygoDb.shouldSync(lastSync))
+        if (oldFormat || await this.$ygoDb.shouldSync(lastSync))
           await this.syncYgoDb()
       } catch (e) {
         this.syncError = this.ui[this.uiLang].db_sync_error
@@ -2214,9 +2387,9 @@ export default {
         const mustRefetch = hasNewVersion || (remoteVersion && oldFormat)
         if (!mustRefetch) {
           if (remoteVersion && this.localDatabaseVersion === remoteVersion) {
-            await this.$ygoDb.saveDB(this.localCards, this.localDatabaseVersion)
-            const { lastSync } = await this.$ygoDb.getDB()
-            this.lastSync = lastSync
+            await this.$ygoDb.updateSyncMeta('lastSync', Date.now())
+            await this.$ygoDb.updateSyncMeta('databaseVersion', remoteVersion)
+            this.lastSync = Date.now()
           }
           this.syncLoading = false
           return
@@ -2228,35 +2401,17 @@ export default {
         this.syncLoading = false
       }
     },
-    /**
-     * Download e população do banco local:
-     * 1) Limpa IndexedDB (cards + imagens).
-     * 2) Busca TODOS os cards em inglês (API sem parâmetro = default EN).
-     * 3) Busca TODOS os cards em PT (API ?language=pt).
-     * 4) Mescla por id: PT substitui EN (fica 1 card por id, em PT quando existir).
-     * 5) Salva no IndexedDB e atualiza this.localCards.
-     * Nota: a API não aceita language=en; inglês é obtido sem parâmetro.
-     */
     async downloadAndSaveCards(remoteVersion) {
       if (!this.$ygoDb) return
       this.syncProgress = 5
-      await this.$ygoDb.clearDB()
+      await this.$ygoDb.clearCards()
       await this.$ygoDb.clearCardImages()
       this.syncProgress = 10
 
-      const mapById = {}
       try {
-        const enUrl = YGOPRODECK_API
-        const enData = await this.fetchCardListFromApi(enUrl)
+        const enData = await this.fetchCardListFromApi(YGOPRODECK_API)
         if (Array.isArray(enData) && enData.length > 0) {
-          enData.forEach((c) => {
-            mapById[String(c.id)] = {
-              ...c,
-              lang: 'en',
-              name_en: c.name,
-              desc_en: c.desc || '',
-            }
-          })
+          await this.$ygoDb.saveCardsEN(enData)
         }
       } catch (err) {
         this.syncError = this.ui[this.uiLang].db_sync_error
@@ -2267,31 +2422,20 @@ export default {
         const ptUrl = `${YGOPRODECK_API}?language=pt`
         const ptData = await this.fetchCardListFromApi(ptUrl)
         if (Array.isArray(ptData) && ptData.length > 0) {
-          ptData.forEach((c) => {
-            const existing = mapById[String(c.id)]
-            mapById[String(c.id)] = {
-              ...c,
-              lang: 'pt',
-              name_en: existing ? existing.name_en || existing.name : c.name,
-              desc_en: existing
-                ? existing.desc_en || existing.desc || ''
-                : c.desc || '',
-            }
-          })
+          await this.$ygoDb.mergeCardsPT(ptData)
         }
       } catch (err) {
         this.syncError = this.ui[this.uiLang].db_sync_error
       }
       this.syncProgress = 90
 
-      const mergedCards = Object.values(mapById)
-      if (mergedCards.length > 0) {
-        await this.$ygoDb.saveDB(mergedCards, remoteVersion)
-        const { cards, lastSync, databaseVersion } = await this.$ygoDb.getDB()
-        this.localCards = cards || []
-        this.lastSync = lastSync
-        this.localDatabaseVersion = databaseVersion
-      }
+      await this.$ygoDb.updateSyncMeta('lastSync', Date.now())
+      await this.$ygoDb.updateSyncMeta('databaseVersion', remoteVersion)
+
+      const { cards, lastSync, databaseVersion } = await this.$ygoDb.getDB()
+      this.localCards = cards || []
+      this.lastSync = lastSync
+      this.localDatabaseVersion = databaseVersion
       this.syncProgress = 100
       this.syncLoading = false
     },
@@ -2436,9 +2580,10 @@ export default {
 
     doApplyCardFromSearch(card) {
       this.initialSnapshotWhenNotFromCollection = null
-      this.editingCollectionId = null
+      this.editingDeckCardId = null
       this.snapshotAtLoad = null
-      this.loadedFromCollection = false
+      this.loadedFromDeck = false
+      this.viewingBaseCard = true
       // eslint-disable-next-line no-console -- debug: inspecionar imagens do card
       console.log('Card selecionado:', card)
       const key = String(card.id)
@@ -2499,17 +2644,40 @@ export default {
       }
     },
 
-    async addToCollectionCurrent() {
-      if (!this.$ygoDb || !this.cardKey) return
-      await this.addOrUpdateCurrentInCollection()
+    async addToDeckCurrent() {
+      if (!this.$ygoDb || !this.cardKey || !this.selectedDeckId) return
+      const snapshot = this.getCurrentCardSnapshot()
+      const name = this.cardTitle || 'Card'
+      const id = await this.$ygoDb.addCardToDeck(this.selectedDeckId, Number(this.cardKey) || null, {
+        name,
+        cardKey: this.cardKey,
+        cardLang: this.cardLang,
+        snapshot,
+      })
+      await this.loadDeckCards()
+      this.editingDeckCardId = id
+      this.viewingBaseCard = false
+      this.loadedFromDeck = true
+      this.snapshotAtLoad = JSON.parse(JSON.stringify(snapshot))
     },
 
-    async saveCollectionChanges() {
-      if (!this.$ygoDb || !this.cardKey) return
-      await this.addOrUpdateCurrentInCollection()
-      this.snapshotAtLoad = JSON.parse(
-        JSON.stringify(this.getCurrentCardSnapshot())
-      )
+    async saveDeckCardChanges() {
+      if (!this.$ygoDb || !this.editingDeckCardId) return
+      const snapshot = this.getCurrentCardSnapshot()
+      const name = this.cardTitle || 'Card'
+      await this.$ygoDb.updateDeckCard(this.editingDeckCardId, {
+        name,
+        cardKey: this.cardKey,
+        cardLang: this.cardLang,
+        snapshot,
+      })
+      this.snapshotAtLoad = JSON.parse(JSON.stringify(snapshot))
+      await this.loadDeckCards()
+    },
+
+    async autoSaveDeckCard() {
+      if (!this.editingDeckCardId || !this.$ygoDb) return
+      await this.saveDeckCardChanges()
     },
 
     async onUnsavedModalSave() {
@@ -2517,7 +2685,7 @@ export default {
       const action = this.pendingLeaveAction
       this.pendingLeaveAction = null
       if (!action) return
-      await this.saveCollectionChanges()
+      await this.saveDeckCardChanges()
       this.runPendingLeaveAction(action)
     },
 
@@ -2535,8 +2703,8 @@ export default {
 
     runPendingLeaveAction(action) {
       if (!action) return
-      if (action.type === 'loadCollectionItem') {
-        this.doLoadCollectionItemForEdit(action.item)
+      if (action.type === 'loadDeckCard') {
+        this.doLoadDeckCardForEdit(action.item)
       } else if (action.type === 'loadDefault') {
         this.doLoadDefaultData()
       } else if (action.type === 'applyCardFromSearch') {
@@ -2544,83 +2712,76 @@ export default {
       }
     },
 
-    async addOrUpdateCurrentInCollection() {
-      if (!this.$ygoDb || !this.cardKey) return
-      const snapshot = this.getCurrentCardSnapshot()
-      const name = this.cardTitle || 'Card'
-      const existing = this.userCollection.find(
-        (it) => String(it.cardKey) === String(this.cardKey)
-      )
-      if (existing) {
-        await this.$ygoDb.updateInCollection(existing.id, {
-          ...existing,
-          name,
-          cardLang: this.cardLang,
-          snapshot,
-          updatedAt: Date.now(),
-        })
-      } else {
-        await this.$ygoDb.addToCollection({
-          name,
-          cardKey: this.cardKey,
-          cardLang: this.cardLang,
-          snapshot,
-          updatedAt: Date.now(),
-        })
-      }
-      await this.loadCollection()
-    },
+    // -------- Decks --------
 
-    /** Adiciona o card atual à coleção e passa a editá-lo (alterações salvas nele). */
-    async addCurrentToCollectionAndStartEditing() {
-      if (!this.$ygoDb || !this.cardKey) return
-      await this.addOrUpdateCurrentInCollection()
-      const item = this.userCollection.find(
-        (it) => String(it.cardKey) === String(this.cardKey)
-      )
-      if (item) {
-        this.editingCollectionId = item.id
-        this.snapshotAtLoad = JSON.parse(
-          JSON.stringify(this.getCurrentCardSnapshot())
-        )
-      }
-      this.initialSnapshotWhenNotFromCollection = null
-    },
-
-    async loadCollection() {
+    async loadDecks() {
       if (!this.$ygoDb) return
-      const items = await this.$ygoDb.getCollection()
-      this.userCollection = items || []
-      items.forEach((item) => this.ensureCollectionImageUrl(item))
+      this.userDecks = await this.$ygoDb.getDecks('yugioh')
     },
 
-    async removeFromCollection(id) {
+    async createDeck() {
+      if (!this.$ygoDb || !this.newDeckName.trim()) return
+      await this.$ygoDb.createDeck(this.newDeckName.trim(), 'yugioh')
+      this.newDeckName = ''
+      this.showNewDeckModal = false
+      await this.loadDecks()
+    },
+
+    async selectDeck(deck) {
+      this.selectedDeckId = deck.id
+      await this.loadDeckCards()
+    },
+
+    async renameDeck(id, newName) {
+      if (!this.$ygoDb || !newName.trim()) return
+      await this.$ygoDb.updateDeck(id, newName.trim())
+      await this.loadDecks()
+    },
+
+    async deleteDeck(id) {
       if (!this.$ygoDb) return
-      if (this.editingCollectionId === id) {
-        this.editingCollectionId = null
+      if (this.selectedDeckId === id) {
+        this.selectedDeckId = null
+        this.selectedDeckCards = []
+      }
+      await this.$ygoDb.deleteDeck(id)
+      await this.loadDecks()
+    },
+
+    async loadDeckCards() {
+      if (!this.$ygoDb || !this.selectedDeckId) return
+      const items = await this.$ygoDb.getDeckCards(this.selectedDeckId)
+      this.selectedDeckCards = items || []
+      items.forEach((item) => this.ensureDeckCardImageUrl(item))
+    },
+
+    async removeDeckCard(id) {
+      if (!this.$ygoDb) return
+      if (this.editingDeckCardId === id) {
+        this.editingDeckCardId = null
         this.snapshotAtLoad = null
       }
-      await this.$ygoDb.removeFromCollection(id)
-      await this.loadCollection()
-      this.$delete(this.collectionImageUrls, id)
+      await this.$ygoDb.removeDeckCard(id)
+      await this.loadDeckCards()
+      this.$delete(this.deckCardImageUrls, id)
     },
 
-    getCollectionItemImageSrc(item) {
+    getDeckCardImageSrc(item) {
       const key = item.cardKey
-      return this.collectionImageUrls[key] || this.apiCardImageUrls[key] || null
+      return this.deckCardImageUrls[key] || this.apiCardImageUrls[key] || null
     },
 
-    async ensureCollectionImageUrl(item) {
+    async ensureDeckCardImageUrl(item) {
       const key = item.cardKey
-      if (this.collectionImageUrls[key]) return this.collectionImageUrls[key]
+      if (this.deckCardImageUrls[key]) return this.deckCardImageUrls[key]
       if (this.apiCardImageUrls[key]) {
-        this.$set(this.collectionImageUrls, key, this.apiCardImageUrls[key])
+        this.$set(this.deckCardImageUrls, key, this.apiCardImageUrls[key])
         return this.apiCardImageUrls[key]
       }
       const blob = await this.$ygoDb.getCardImage(key)
       if (blob) {
         const url = URL.createObjectURL(blob)
-        this.$set(this.collectionImageUrls, key, url)
+        this.$set(this.deckCardImageUrls, key, url)
         return url
       }
       const card = this.localCards.find((c) => String(c.id) === key)
@@ -2629,15 +2790,42 @@ export default {
       if (imgUrl) {
         await this.ensureCardImage(key, imgUrl, { forCurrentCard: false })
         if (this.apiCardImageUrls[key]) {
-          this.$set(this.collectionImageUrls, key, this.apiCardImageUrls[key])
+          this.$set(this.deckCardImageUrls, key, this.apiCardImageUrls[key])
           return this.apiCardImageUrls[key]
         }
       }
       return null
     },
 
-    async batchDownloadCollection() {
-      if (!this.userCollection.length) return
+    // -------- Tradução --------
+
+    openTranslationModal() {
+      if (!this.currentBaseCard) return
+      this.translatingCardId = this.currentBaseCard.id
+      this.translationName = this.currentBaseCard.name_pt || ''
+      this.translationDesc = this.currentBaseCard.desc_pt || ''
+      this.showTranslationModal = true
+    },
+
+    async saveTranslation() {
+      if (!this.$ygoDb || !this.translatingCardId) return
+      await this.$ygoDb.updateCardTranslation(
+        this.translatingCardId,
+        this.translationName,
+        this.translationDesc
+      )
+      this.showTranslationModal = false
+      const { cards } = await this.$ygoDb.getDB()
+      this.localCards = cards || []
+      if (this.cardKey && String(this.translatingCardId) === String(this.cardKey)) {
+        this.cardTitle = this.translationName || this.cardTitle
+        this.cardInfo = this.translationDesc || this.cardInfo
+        this.$nextTick(() => this.drawCard())
+      }
+    },
+
+    async batchDownloadDeck() {
+      if (!this.selectedDeckCards.length) return
       this.batchDownloading = true
       const saveState = {
         snapshot: this.getCurrentCardSnapshot(),
@@ -2646,8 +2834,8 @@ export default {
       }
       this._exportingCard = true
       try {
-        for (let i = 0; i < this.userCollection.length; i++) {
-          const entry = this.userCollection[i]
+        for (let i = 0; i < this.selectedDeckCards.length; i++) {
+          const entry = this.selectedDeckCards[i]
           const imgUrl = await this.getExportImageUrlForBatch(entry.cardKey)
           if (imgUrl)
             await this.ensureCardImage(entry.cardKey, imgUrl, {
@@ -2786,16 +2974,16 @@ export default {
 }
 
 body {
-  background: url('~static/Screentone.png') round,
+  background: url('../../../static/Screentone.png') round,
     -webkit-linear-gradient(to bottom right, #000000bb, #66666699, #000000bb),
     -webkit-linear-gradient(to bottom left, #111111bb, #11111199, #111111bb);
-  background: url('~static/Screentone.png') round,
+  background: url('../../../static/Screentone.png') round,
     -moz-linear-gradient(to bottom right, #000000bb, #66666699, #000000bb),
     -moz-linear-gradient(to bottom left, #111111bb, #11111199, #111111bb);
-  background: url('~static/Screentone.png') round,
+  background: url('../../../static/Screentone.png') round,
     -o-linear-gradient(to bottom right, #000000bb, #66666699, #000000bb),
     -o-linear-gradient(to bottom left, #111111bb, #11111199, #111111bb);
-  background: url('~static/Screentone.png') round,
+  background: url('../../../static/Screentone.png') round,
     linear-gradient(to bottom right, #000000bb, #66666699, #000000bb),
     linear-gradient(to bottom left, #111111bb, #11111199, #111111bb);
   background-blend-mode: multiply;

@@ -88,3 +88,19 @@ sw.*
 
 # Vim swap files
 *.swp
+
+# Card art images (downloaded at runtime)
+static/ygo/pics/*.webp
+static/ygo/pics/*.jpg
+static/ygo/pics/*.png
+
+# Electron build output
+release/
+
+# SQLite database
+*.db
+*.db-journal
+*.db-wal
+
+# Windows null device artifact
+nul

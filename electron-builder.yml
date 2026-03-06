@@ -1,0 +1,27 @@
+appId: com.yugioh-card-maker.app
+productName: Criador de Cartas Yu-Gi-Oh!
+directories:
+  output: release
+  buildResources: static
+files:
+  - dist/**/*
+  - src/main/**/*
+  - src/preload/**/*
+  - static/**/*
+  - "!static/CNAME"
+  - "!node_modules/.cache"
+extraMetadata:
+  main: src/main/index.js
+win:
+  target:
+    - nsis
+  icon: static/favicon.ico
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+asar: true
+asarUnpack:
+  - "node_modules/better-sqlite3/**"
+  - "node_modules/bindings/**"
+  - "node_modules/file-uri-to-path/**"
