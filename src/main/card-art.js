@@ -25,10 +25,18 @@ function ensurePicsDir() {
   return dir
 }
 
-function fetchUrl(url) {
+function fetchUrl(url, redirectCount = 0) {
   return new Promise((resolve, reject) => {
+    if (redirectCount > 5) {
+      reject(new Error('Too many redirects'))
+      return
+    }
     const lib = url.startsWith('https') ? https : http
     lib.get(url, (res) => {
+      if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+        fetchUrl(res.headers.location, redirectCount + 1).then(resolve, reject)
+        return
+      }
       if (res.statusCode !== 200) {
         reject(new Error(`HTTP ${res.statusCode}`))
         return

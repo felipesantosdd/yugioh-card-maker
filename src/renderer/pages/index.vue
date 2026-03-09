@@ -25,6 +25,15 @@
           >
             {{ syncError }}
           </div>
+          <div v-else class="text-right mb-1">
+            <button
+              class="btn btn-link btn-sm text-muted p-0"
+              style="font-size: 0.7rem"
+              @click="forceResync"
+            >
+              ↻ Forçar atualização do banco
+            </button>
+          </div>
           <!-- Busca por nome ou arquétipo -->
           <b-row class="mb-3 justify-content-center">
             <b-col cols="12" class="px-2 px-sm-5 search-panel-col">
@@ -108,7 +117,7 @@
                         @keyup.enter="
                           filteredCardsByName.length
                             ? selectCardFromName(filteredCardsByName[0])
-                            : searchCards()
+                            : null
                         "
                         @input="showNameDropdown = true"
                         @blur="closeNameDropdown"
@@ -131,21 +140,10 @@
                           class="list-group-item list-group-item-action py-2"
                           @click="selectCardFromName(card)"
                         >
-                          {{ card.name }}
+                          {{ getFilteredCardDisplayName(card) }}
                         </li>
                       </ul>
                     </div>
-                    <b-button
-                      variant="primary"
-                      :disabled="searchLoading"
-                      @click="searchCards"
-                    >
-                      {{
-                        searchLoading
-                          ? ui[uiLang].search_loading
-                          : ui[uiLang].search_button
-                      }}
-                    </b-button>
                   </b-col>
                 </b-row>
               </div>
@@ -225,10 +223,24 @@
             >
               <div class="panel-bg shadow p-3">
                 <!-- Banner de campos bloqueados -->
-                <div v-if="isFieldsLocked" class="alert alert-info py-2 mb-3 small d-flex align-items-center justify-content-between">
+                <div
+                  v-if="isFieldsLocked"
+                  class="
+                    alert alert-info
+                    py-2
+                    mb-3
+                    small
+                    d-flex
+                    align-items-center
+                    justify-content-between
+                  "
+                >
                   <span>
                     <fa :icon="['fas', 'lock']" class="mr-1" />
-                    {{ ui[uiLang].fields_locked || 'Card do banco de dados (somente leitura). Adicione a um deck para editar.' }}
+                    {{
+                      ui[uiLang].fields_locked ||
+                      'Card do banco de dados (somente leitura). Adicione a um deck para editar.'
+                    }}
                   </span>
                   <span>
                     <b-button
@@ -241,457 +253,443 @@
                       <fa :icon="['fas', 'language']" class="mr-1" />
                       {{ ui[uiLang].translate || 'Traduzir' }}
                     </b-button>
-                    <b-button
-                      v-if="selectedDeckId && cardKey"
-                      size="sm"
-                      variant="primary"
-                      @click="addToDeckCurrent"
-                    >
-                      <fa :icon="['fas', 'plus']" class="mr-1" />
-                      {{ ui[uiLang].add_to_deck || 'Adicionar ao Deck' }}
-                    </b-button>
                   </span>
                 </div>
                 <fieldset :disabled="isFieldsLocked">
-                <div class="card-body">
-                  <!-- Autenticidade, Raridade, Cor -->
-                  <b-row class="mb-3">
-                    <!-- Etiqueta de autenticidade -->
-                    <b-col cols="6" lg="3" class="px-2">
-                      <div class="form-check px-0">
-                        <label>{{ ui[uiLang].square_foil_stamp }}</label>
-                        <b-form-checkbox
-                          v-model="holo"
-                          :class="{ 'checkbox-wrap': true, active: holo }"
-                          button
-                          >{{
-                            holo ? ui[uiLang].on : ui[uiLang].off
-                          }}</b-form-checkbox
-                        >
-                      </div>
-                    </b-col>
-                    <!-- Etiqueta de autenticação -->
-                    <b-col cols="6" lg="3" class="px-2">
-                      <label>{{ ui[uiLang].rarity }}</label>
-                      <b-form-select
-                        v-model="cardRare"
-                        :options="cardRareOpts"
-                      ></b-form-select>
-                    </b-col>
-                    <!-- Cor do nome do card -->
-                    <b-col cols="6" lg="3" class="px-2">
-                      <label>{{ ui[uiLang].title_color }}</label>
-                      <b-form-input
-                        v-model="titleColor"
-                        type="color"
-                      ></b-form-input>
-                    </b-col>
-                  </b-row>
+                  <div class="card-body">
+                    <!-- Autenticidade, Raridade, Cor -->
+                    <b-row class="mb-3">
+                      <!-- Etiqueta de autenticidade -->
+                      <b-col cols="6" lg="3" class="px-2">
+                        <div class="form-check px-0">
+                          <label>{{ ui[uiLang].square_foil_stamp }}</label>
+                          <b-form-checkbox
+                            v-model="holo"
+                            :class="{ 'checkbox-wrap': true, active: holo }"
+                            button
+                            >{{
+                              holo ? ui[uiLang].on : ui[uiLang].off
+                            }}</b-form-checkbox
+                          >
+                        </div>
+                      </b-col>
+                      <!-- Etiqueta de autenticação -->
+                      <b-col cols="6" lg="3" class="px-2">
+                        <label>{{ ui[uiLang].rarity }}</label>
+                        <b-form-select
+                          v-model="cardRare"
+                          :options="cardRareOpts"
+                        ></b-form-select>
+                      </b-col>
+                      <!-- Cor do nome do card -->
+                      <b-col cols="6" lg="3" class="px-2">
+                        <label>{{ ui[uiLang].title_color }}</label>
+                        <b-form-input
+                          v-model="titleColor"
+                          type="color"
+                        ></b-form-input>
+                      </b-col>
+                    </b-row>
 
-                  <!-- Codigo do card -->
-                  <b-row class="my-3">
-                    <b-col cols="6" lg="4" class="px-2">
-                      <div class="form-check px-0">
-                        <label>{{ ui[uiLang].card_secret }}</label>
-                        <b-form-checkbox
-                          v-model="cardLoadYgoProEnabled"
-                          :class="{
-                            'checkbox-wrap': true,
-                            active: cardLoadYgoProEnabled,
-                          }"
-                          button
-                          >{{ ui[uiLang].auto_fill_card_data }}</b-form-checkbox
+                    <!-- Codigo do card -->
+                    <b-row class="my-3">
+                      <b-col cols="6" lg="4" class="px-2">
+                        <div class="form-check px-0">
+                          <label>{{ ui[uiLang].card_secret }}</label>
+                          <b-form-checkbox
+                            v-model="cardLoadYgoProEnabled"
+                            :class="{
+                              'checkbox-wrap': true,
+                              active: cardLoadYgoProEnabled,
+                            }"
+                            button
+                            >{{
+                              ui[uiLang].auto_fill_card_data
+                            }}</b-form-checkbox
+                          >
+                        </div>
+                      </b-col>
+                      <b-col cols="6" lg="8" class="px-2">
+                        <label
+                          ><small>{{
+                            ui[uiLang].card_secret_note
+                          }}</small></label
                         >
-                      </div>
-                    </b-col>
-                    <b-col cols="6" lg="8" class="px-2">
-                      <label
-                        ><small>{{ ui[uiLang].card_secret_note }}</small></label
+                        <b-form-input
+                          v-model="cardKey"
+                          type="number"
+                          maxlength="8"
+                          :placeholder="ui[uiLang].plz_input_card_secret"
+                        />
+                        <small v-if="apiCardLoading" class="text-muted">{{
+                          ui[uiLang].search_loading
+                        }}</small>
+                        <small v-else-if="apiCardError" class="text-danger">{{
+                          apiCardError
+                        }}</small>
+                      </b-col>
+                    </b-row>
+
+                    <!-- Nome do card -->
+                    <b-row class="my-3">
+                      <b-col class="px-2">
+                        <label>{{ ui[uiLang].card_name }}</label>
+                        <b-form-input v-model="cardTitle"></b-form-input>
+                      </b-col>
+                    </b-row>
+
+                    <!-- Imagem do card -->
+                    <b-row class="my-3">
+                      <b-col class="px-2">
+                        <b-form-file
+                          v-model="cardImg"
+                          :state="Boolean(cardImg)"
+                          :placeholder="ui[uiLang].upload_image"
+                          browse="✚"
+                          accept="image/*"
+                          :drop-placeholder="ui[uiLang].drag_and_drop"
+                        ></b-form-file>
+                      </b-col>
+                    </b-row>
+
+                    <!-- Tipo do card, Face do card, Efeito do card -->
+                    <b-row class="my-3">
+                      <!-- Tipo de card -->
+                      <b-col cols="6" lg="3" class="px-2">
+                        <label>{{ ui[uiLang].card_type }}</label>
+                        <b-form-select
+                          v-model="cardType"
+                          :options="cardTypeOpts"
+                        ></b-form-select>
+                      </b-col>
+
+                      <!-- Face do card -->
+                      <b-col cols="6" lg="3" class="px-2">
+                        <label>{{ ui[uiLang].card_subtype }}</label>
+                        <b-form-select
+                          v-model="cardSubtype"
+                          :options="cardSubtypeOpts[cardType]"
+                        ></b-form-select>
+                      </b-col>
+
+                      <!-- Efeito -->
+                      <b-col
+                        v-show="cardType === 'Monster'"
+                        cols="6"
+                        lg="3"
+                        class="px-2"
                       >
-                      <b-form-input
-                        v-model="cardKey"
-                        type="number"
-                        maxlength="8"
-                        :placeholder="ui[uiLang].plz_input_card_secret"
-                      />
-                      <small v-if="apiCardLoading" class="text-muted">{{
-                        ui[uiLang].search_loading
-                      }}</small>
-                      <small v-else-if="apiCardError" class="text-danger">{{
-                        apiCardError
-                      }}</small>
-                    </b-col>
-                  </b-row>
-
-                  <!-- Nome do card -->
-                  <b-row class="my-3">
-                    <b-col class="px-2">
-                      <label>{{ ui[uiLang].card_name }}</label>
-                      <b-form-input v-model="cardTitle"></b-form-input>
-                    </b-col>
-                  </b-row>
-
-                  <!-- Imagem do card -->
-                  <b-row class="my-3">
-                    <b-col class="px-2">
-                      <b-form-file
-                        v-model="cardImg"
-                        :state="Boolean(cardImg)"
-                        :placeholder="ui[uiLang].upload_image"
-                        browse="✚"
-                        accept="image/*"
-                        :drop-placeholder="ui[uiLang].drag_and_drop"
-                      ></b-form-file>
-                    </b-col>
-                  </b-row>
-
-                  <!-- Tipo do card, Face do card, Efeito do card -->
-                  <b-row class="my-3">
-                    <!-- Tipo de card -->
-                    <b-col cols="6" lg="3" class="px-2">
-                      <label>{{ ui[uiLang].card_type }}</label>
-                      <b-form-select
-                        v-model="cardType"
-                        :options="cardTypeOpts"
-                      ></b-form-select>
-                    </b-col>
-
-                    <!-- Face do card -->
-                    <b-col cols="6" lg="3" class="px-2">
-                      <label>{{ ui[uiLang].card_subtype }}</label>
-                      <b-form-select
-                        v-model="cardSubtype"
-                        :options="cardSubtypeOpts[cardType]"
-                      ></b-form-select>
-                    </b-col>
-
-                    <!-- Efeito -->
-                    <b-col
-                      v-show="cardType === 'Monster'"
-                      cols="6"
-                      lg="3"
-                      class="px-2"
-                    >
-                      <label>{{ ui[uiLang].card_effect }}</label>
-                      <b-form-select
-                        v-model="cardEff1"
-                        :options="cardEff1Opts"
-                      ></b-form-select>
-                    </b-col>
-                    <b-col
-                      v-show="cardType === 'Monster'"
-                      cols="6"
-                      lg="3"
-                      class="px-2"
-                    >
-                      <label>&emsp;</label>
-                      <b-form-select
-                        v-model="cardEff2"
-                        :options="cardEff2Opts"
-                      ></b-form-select>
-                    </b-col>
-                  </b-row>
-
-                  <!-- Atributo, Tipo -->
-                  <b-row v-show="cardType === 'Monster'" class="my-3">
-                    <!-- 屬性 -->
-                    <b-col cols="12" lg="6" class="px-2">
-                      <label>{{ ui[uiLang].card_attribute }}</label>
-                      <b-form-select
-                        v-model="cardAttr"
-                        :options="cardAttrOpts"
-                      ></b-form-select>
-                    </b-col>
-
-                    <!-- Tipo de Card -->
-                    <b-col
-                      v-show="cardType === 'Monster'"
-                      cols="6"
-                      lg="3"
-                      class="px-2"
-                    >
-                      <div class="form-check px-0">
-                        <label>{{ ui[uiLang].card_race_type }}</label>
-                        <b-form-checkbox
-                          v-model="cardCustomRaceEnabled"
-                          :class="{
-                            'checkbox-wrap': true,
-                            active: cardCustomRaceEnabled,
-                          }"
-                          button
-                          >{{ ui[uiLang].custom }}</b-form-checkbox
-                        >
-                      </div>
-                    </b-col>
-                    <!-- Tipo - Seleção de Tipo -->
-                    <b-col
-                      v-show="!cardCustomRaceEnabled"
-                      cols="6"
-                      lg="3"
-                      class="px-2"
-                    >
-                      <label>&emsp;</label>
-                      <b-form-select
-                        v-model="cardRace"
-                        :options="cardRaceOpts"
-                      ></b-form-select>
-                    </b-col>
-                    <!-- Tipo - Entrada Personalizada -->
-                    <b-col
-                      v-show="cardCustomRaceEnabled"
-                      cols="6"
-                      lg="3"
-                      class="px-2"
-                    >
-                      <label>&emsp;</label>
-                      <b-form-input
-                        v-model="cardCustomRace"
-                        type="text"
-                        maxlength="8"
-                        :placeholder="ui[uiLang].plz_input_race_type"
-                      />
-                    </b-col>
-                  </b-row>
-
-                  <!-- Balanço de Pêndulo, Invocação Especial, Nível -->
-                  <b-row class="my-3">
-                    <!-- Balanço de Pêndulo -->
-                    <b-col
-                      v-show="canPendulumEnabled"
-                      cols="6"
-                      lg="4"
-                      class="px-2"
-                    >
-                      <div class="form-check px-0">
+                        <label>{{ ui[uiLang].card_effect }}</label>
+                        <b-form-select
+                          v-model="cardEff1"
+                          :options="cardEff1Opts"
+                        ></b-form-select>
+                      </b-col>
+                      <b-col
+                        v-show="cardType === 'Monster'"
+                        cols="6"
+                        lg="3"
+                        class="px-2"
+                      >
                         <label>&emsp;</label>
-                        <b-form-checkbox
-                          v-model="Pendulum"
-                          :class="{ 'checkbox-wrap': true, active: Pendulum }"
-                          button
-                          >{{ ui[uiLang].pendulum }}</b-form-checkbox
-                        >
-                      </div>
-                    </b-col>
+                        <b-form-select
+                          v-model="cardEff2"
+                          :options="cardEff2Opts"
+                        ></b-form-select>
+                      </b-col>
+                    </b-row>
 
-                    <!-- Invocação Especial -->
-                    <b-col
-                      v-show="cardType === 'Monster'"
-                      cols="6"
-                      lg="4"
-                      class="px-2"
-                    >
-                      <div class="form-check px-0">
+                    <!-- Atributo, Tipo -->
+                    <b-row v-show="cardType === 'Monster'" class="my-3">
+                      <!-- 屬性 -->
+                      <b-col cols="12" lg="6" class="px-2">
+                        <label>{{ ui[uiLang].card_attribute }}</label>
+                        <b-form-select
+                          v-model="cardAttr"
+                          :options="cardAttrOpts"
+                        ></b-form-select>
+                      </b-col>
+
+                      <!-- Tipo de Card -->
+                      <b-col
+                        v-show="cardType === 'Monster'"
+                        cols="6"
+                        lg="3"
+                        class="px-2"
+                      >
+                        <div class="form-check px-0">
+                          <label>{{ ui[uiLang].card_race_type }}</label>
+                          <b-form-checkbox
+                            v-model="cardCustomRaceEnabled"
+                            :class="{
+                              'checkbox-wrap': true,
+                              active: cardCustomRaceEnabled,
+                            }"
+                            button
+                            >{{ ui[uiLang].custom }}</b-form-checkbox
+                          >
+                        </div>
+                      </b-col>
+                      <!-- Tipo - Seleção de Tipo -->
+                      <b-col
+                        v-show="!cardCustomRaceEnabled"
+                        cols="6"
+                        lg="3"
+                        class="px-2"
+                      >
                         <label>&emsp;</label>
-                        <b-form-checkbox
-                          v-model="Special"
-                          :class="{ 'checkbox-wrap': true, active: Special }"
-                          button
-                          >{{ ui[uiLang].special_summon }}</b-form-checkbox
-                        >
-                      </div>
-                    </b-col>
-
-                    <!-- Nível -->
-                    <b-col
-                      v-show="cardType === 'Monster' && !isLinkMonster"
-                      cols="12"
-                      lg="4"
-                      class="px-2"
-                    >
-                      <label>{{ ui[uiLang].lavel_and_rank }}</label>
-                      <b-form-select
-                        v-model="cardLevel"
-                        :options="cardLevelOpts"
-                      ></b-form-select>
-                    </b-col>
-                  </b-row>
-
-                  <!-- Área de Efeito de Pêndulo -->
-                  <b-row v-show="Pendulum" class="my-3">
-                    <b-col cols="12">
-                      <h4 class="text-light text-center">
-                        {{ ui[uiLang].pendulum_area }}
-                      </h4>
-                    </b-col>
-                    <b-col cols="12">
-                      <b-row class="mb-3">
-                        <b-col cols="4" class="px-2">
-                          <label>{{ ui[uiLang].pendulum_blue }}</label>
-                          <b-form-input
-                            v-model="cardBLUE"
-                            type="number"
-                            min="0"
-                            max="12"
-                          ></b-form-input>
-                        </b-col>
-
-                        <b-col cols="4" class="px-2">
-                          <label>{{ ui[uiLang].pendulum_red }}</label>
-                          <b-form-input
-                            v-model="cardRED"
-                            type="number"
-                            min="0"
-                            max="12"
-                          ></b-form-input>
-                        </b-col>
-
-                        <b-col cols="4" class="px-2">
-                          <label>{{ ui[uiLang].text_size }}</label>
-                          <b-form-input
-                            v-model="pendulumSize"
-                            type="number"
-                          ></b-form-input>
-                        </b-col>
-                      </b-row>
-
-                      <b-row class="my-3">
-                        <b-col class="px-2">
-                          <label>{{ ui[uiLang].card_info_text }}</label>
-                          <b-form-textarea
-                            v-model="cardPendulumInfo"
-                            rows="5"
-                          ></b-form-textarea>
-                        </b-col>
-                      </b-row>
-                    </b-col>
-                  </b-row>
-
-                  <!-- Área de Ataque/Defesa -->
-                  <b-row class="my-3">
-                    <!-- Ataque -->
-                    <b-col
-                      v-show="cardType === 'Monster'"
-                      cols="4"
-                      class="px-2"
-                    >
-                      <label>{{ ui[uiLang].attack }}</label>
-                      <b-form-input
-                        v-model="cardATK"
-                        type="text"
-                        maxlength="6"
-                      ></b-form-input>
-                    </b-col>
-
-                    <!-- Defesa -->
-                    <b-col
-                      v-show="cardType === 'Monster' && !isLinkMonster"
-                      cols="4"
-                      class="px-2"
-                    >
-                      <label>{{ ui[uiLang].defence }}</label>
-                      <b-form-input
-                        v-model="cardDEF"
-                        type="text"
-                        maxlength="6"
-                      ></b-form-input>
-                    </b-col>
-
-                    <!-- Link -->
-                    <b-col v-show="isLinkMonster" cols="4" class="px-2">
-                      <label>{{ ui[uiLang].link }}</label>
-                      <table>
-                        <tr v-for="row in [0, 1, 2]" :key="row">
-                          <td v-for="col in [1, 2, 3]" :key="col">
-                            <b-form-checkbox
-                              v-if="row * 3 + col !== 5"
-                              v-model="links[row * 3 + col].val"
-                              :class="{
-                                'checkbox-wrap': true,
-                                active: links[row * 3 + col].val,
-                              }"
-                              button
-                              >{{
-                                links[row * 3 + col].symbol
-                              }}</b-form-checkbox
-                            >
-                          </td>
-                        </tr>
-                      </table>
-                    </b-col>
-
-                    <!-- Tamanho do texto e posição (top) -->
-                    <b-col cols="2" class="px-2">
-                      <label>{{ ui[uiLang].text_size }}</label>
-                      <b-form-input
-                        v-model="infoSize"
-                        type="number"
-                      ></b-form-input>
-                    </b-col>
-                    <b-col cols="2" class="px-2">
-                      <label>{{ ui[uiLang].text_position }}</label>
-                      <b-form-input
-                        v-model.number="infoPosition"
-                        type="number"
-                        placeholder="0"
-                      ></b-form-input>
-                    </b-col>
-                  </b-row>
-
-                  <!-- Descrição do cartão -->
-                  <b-row class="my-3">
-                    <b-col class="px-2">
-                      <label>{{ ui[uiLang].card_info_text }}</label>
-                      <b-form-textarea
-                        v-model="cardInfo"
-                        rows="5"
-                      ></b-form-textarea>
-                    </b-col>
-                  </b-row>
-
-                  <!-- Área de botões -->
-                  <b-row class="my-3">
-                    <b-col class="px-2">
-                      <button
-                        type="button"
-                        class="my-2 btn btn-info"
-                        @click="doDrawCard"
+                        <b-form-select
+                          v-model="cardRace"
+                          :options="cardRaceOpts"
+                        ></b-form-select>
+                      </b-col>
+                      <!-- Tipo - Entrada Personalizada -->
+                      <b-col
+                        v-show="cardCustomRaceEnabled"
+                        cols="6"
+                        lg="3"
+                        class="px-2"
                       >
-                        {{ ui[uiLang].generate }}</button
-                      >&emsp;
-                      <button
-                        type="button"
-                        class="my-2 btn btn-success"
-                        @click="download_img"
+                        <label>&emsp;</label>
+                        <b-form-input
+                          v-model="cardCustomRace"
+                          type="text"
+                          maxlength="8"
+                          :placeholder="ui[uiLang].plz_input_race_type"
+                        />
+                      </b-col>
+                    </b-row>
+
+                    <!-- Balanço de Pêndulo, Invocação Especial, Nível -->
+                    <b-row class="my-3">
+                      <!-- Balanço de Pêndulo -->
+                      <b-col
+                        v-show="canPendulumEnabled"
+                        cols="6"
+                        lg="4"
+                        class="px-2"
                       >
-                        {{ ui[uiLang].download }}
-                      </button>
-                      <b-button
-                        v-if="
-                          cardKey &&
-                          selectedDeckId &&
-                          !isCurrentCardInDeck &&
-                          loadedFromDeck
-                        "
-                        class="my-2"
-                        variant="outline-primary"
-                        @click="addToDeckCurrent"
+                        <div class="form-check px-0">
+                          <label>&emsp;</label>
+                          <b-form-checkbox
+                            v-model="Pendulum"
+                            :class="{ 'checkbox-wrap': true, active: Pendulum }"
+                            button
+                            >{{ ui[uiLang].pendulum }}</b-form-checkbox
+                          >
+                        </div>
+                      </b-col>
+
+                      <!-- Invocação Especial -->
+                      <b-col
+                        v-show="cardType === 'Monster'"
+                        cols="6"
+                        lg="4"
+                        class="px-2"
                       >
-                        {{ ui[uiLang].add_to_deck || 'Adicionar ao Deck' }}
-                      </b-button>
-                      <b-button
-                        v-if="hasUnsavedLayoutChanges"
-                        class="my-2"
-                        variant="success"
-                        @click="saveDeckCardChanges"
+                        <div class="form-check px-0">
+                          <label>&emsp;</label>
+                          <b-form-checkbox
+                            v-model="Special"
+                            :class="{ 'checkbox-wrap': true, active: Special }"
+                            button
+                            >{{ ui[uiLang].special_summon }}</b-form-checkbox
+                          >
+                        </div>
+                      </b-col>
+
+                      <!-- Nível -->
+                      <b-col
+                        v-show="cardType === 'Monster' && !isLinkMonster"
+                        cols="12"
+                        lg="4"
+                        class="px-2"
                       >
-                        {{ ui[uiLang].save_changes }}
-                      </b-button>
-                      <label style="color: #ccc"
-                        >&emsp;{{ ui[uiLang].auto_gen_note }}</label
+                        <label>{{ ui[uiLang].lavel_and_rank }}</label>
+                        <b-form-select
+                          v-model="cardLevel"
+                          :options="cardLevelOpts"
+                        ></b-form-select>
+                      </b-col>
+                    </b-row>
+
+                    <!-- Área de Efeito de Pêndulo -->
+                    <b-row v-show="Pendulum" class="my-3">
+                      <b-col cols="12">
+                        <h4 class="text-light text-center">
+                          {{ ui[uiLang].pendulum_area }}
+                        </h4>
+                      </b-col>
+                      <b-col cols="12">
+                        <b-row class="mb-3">
+                          <b-col cols="4" class="px-2">
+                            <label>{{ ui[uiLang].pendulum_blue }}</label>
+                            <b-form-input
+                              v-model="cardBLUE"
+                              type="number"
+                              min="0"
+                              max="12"
+                            ></b-form-input>
+                          </b-col>
+
+                          <b-col cols="4" class="px-2">
+                            <label>{{ ui[uiLang].pendulum_red }}</label>
+                            <b-form-input
+                              v-model="cardRED"
+                              type="number"
+                              min="0"
+                              max="12"
+                            ></b-form-input>
+                          </b-col>
+
+                          <b-col cols="4" class="px-2">
+                            <label>{{ ui[uiLang].text_size }}</label>
+                            <b-form-input
+                              v-model="pendulumSize"
+                              type="number"
+                            ></b-form-input>
+                          </b-col>
+                        </b-row>
+
+                        <b-row class="my-3">
+                          <b-col class="px-2">
+                            <label>{{ ui[uiLang].card_info_text }}</label>
+                            <b-form-textarea
+                              v-model="cardPendulumInfo"
+                              rows="5"
+                            ></b-form-textarea>
+                          </b-col>
+                        </b-row>
+                      </b-col>
+                    </b-row>
+
+                    <!-- Área de Ataque/Defesa -->
+                    <b-row class="my-3">
+                      <!-- Ataque -->
+                      <b-col
+                        v-show="cardType === 'Monster'"
+                        cols="4"
+                        class="px-2"
                       >
-                    </b-col>
-                    <b-col cols="6" class="px-2 text-right">
-                      <button
-                        type="button"
-                        class="my-2 btn btn-danger"
-                        @click="load_default_data"
+                        <label>{{ ui[uiLang].attack }}</label>
+                        <b-form-input
+                          v-model="cardATK"
+                          type="text"
+                          maxlength="6"
+                        ></b-form-input>
+                      </b-col>
+
+                      <!-- Defesa -->
+                      <b-col
+                        v-show="cardType === 'Monster' && !isLinkMonster"
+                        cols="4"
+                        class="px-2"
                       >
-                        {{ ui[uiLang].reset_to_default }}
-                      </button>
-                    </b-col>
-                  </b-row>
-                </div>
+                        <label>{{ ui[uiLang].defence }}</label>
+                        <b-form-input
+                          v-model="cardDEF"
+                          type="text"
+                          maxlength="6"
+                        ></b-form-input>
+                      </b-col>
+
+                      <!-- Link -->
+                      <b-col v-show="isLinkMonster" cols="4" class="px-2">
+                        <label>{{ ui[uiLang].link }}</label>
+                        <table>
+                          <tr v-for="row in [0, 1, 2]" :key="row">
+                            <td v-for="col in [1, 2, 3]" :key="col">
+                              <b-form-checkbox
+                                v-if="row * 3 + col !== 5"
+                                v-model="links[row * 3 + col].val"
+                                :class="{
+                                  'checkbox-wrap': true,
+                                  active: links[row * 3 + col].val,
+                                }"
+                                button
+                                >{{
+                                  links[row * 3 + col].symbol
+                                }}</b-form-checkbox
+                              >
+                            </td>
+                          </tr>
+                        </table>
+                      </b-col>
+
+                      <!-- Tamanho do texto e posição (top) -->
+                      <b-col cols="2" class="px-2">
+                        <label>{{ ui[uiLang].text_size }}</label>
+                        <b-form-input
+                          v-model.number="infoSize"
+                          type="number"
+                        ></b-form-input>
+                      </b-col>
+                      <b-col cols="2" class="px-2">
+                        <label>{{ ui[uiLang].text_position }}</label>
+                        <b-form-input
+                          v-model.number="infoPosition"
+                          type="number"
+                          placeholder="0"
+                        ></b-form-input>
+                      </b-col>
+                    </b-row>
+
+                    <!-- Descrição do cartão -->
+                    <b-row class="my-3">
+                      <b-col class="px-2">
+                        <label>{{ ui[uiLang].card_info_text }}</label>
+                        <b-form-textarea
+                          v-model="cardInfo"
+                          rows="5"
+                        ></b-form-textarea>
+                      </b-col>
+                    </b-row>
+                  </div>
                 </fieldset>
+                <!-- Área de botões (fora do fieldset para não serem desabilitados) -->
+                <b-row class="my-3 mx-0">
+                  <b-col class="px-2">
+                    <button
+                      type="button"
+                      class="my-2 btn btn-success"
+                      @click="download_img"
+                    >
+                      {{ ui[uiLang].download }}
+                    </button>
+                    <b-button
+                      v-if="
+                        cardKey &&
+                        selectedDeckId &&
+                        !isCurrentCardInDeck
+                      "
+                      class="my-2 ml-2"
+                      variant="outline-primary"
+                      @click="addToDeckCurrent"
+                    >
+                      {{ ui[uiLang].add_to_deck || 'Adicionar ao Deck' }}
+                    </b-button>
+                    <b-button
+                      v-if="hasUnsavedLayoutChanges"
+                      class="my-2 ml-2"
+                      variant="success"
+                      @click="saveDeckCardChanges"
+                    >
+                      {{ ui[uiLang].save_changes }}
+                    </b-button>
+                    <label style="color: #ccc"
+                      >&emsp;{{ ui[uiLang].auto_gen_note }}</label
+                    >
+                  </b-col>
+                  <b-col cols="6" class="px-2 text-right">
+                    <button
+                      type="button"
+                      class="my-2 btn btn-danger"
+                      @click="load_default_data"
+                    >
+                      {{ ui[uiLang].reset_to_default }}
+                    </button>
+                  </b-col>
+                </b-row>
               </div>
 
               <!-- Resultados da busca (classificados: arquétipo > nome > descrição) -->
@@ -708,142 +706,115 @@
                   </div>
                   <div
                     class="d-flex flex-wrap mb-3"
-                    style="max-height: 280px; overflow-y: auto; gap: 10px"
+                    style="max-height: 320px; overflow-y: auto; gap: 4px"
                   >
-                    <div
+                    <img
                       v-for="card in searchResultsByArchetype"
                       :key="'arch-' + card.id"
-                      class="
-                        search-result-card
-                        rounded
-                        p-2
-                        text-center
-                        position-relative
-                      "
-                      :style="{
-                        width: '100px',
-                        cursor: 'pointer',
-                        backgroundColor: getSearchResultCardBg(card),
-                        border: '1px solid #312F49',
-                      }"
+                      v-b-tooltip.hover.top="getDisplayName(card)"
+                      :src="getSearchResultImageSrc(card)"
+                      :alt="getDisplayName(card)"
+                      class="search-thumb rounded"
+                      loading="lazy"
                       @click="applyCardFromSearch(card)"
-                    >
-                      <img
-                        :src="getSearchResultImageSrc(card)"
-                        :alt="card.name"
-                        class="img-fluid rounded"
-                        style="
-                          height: 90px;
-                          object-fit: contain;
-                          display: block;
-                        "
-                        loading="lazy"
-                        @error="onSearchResultImgError(card, $event)"
-                      />
-                      <small
-                        :class="[
-                          'd-block text-truncate mt-1',
-                          getSearchResultTextClass(card),
-                        ]"
-                        >{{ card.name }}</small
-                      >
-                    </div>
+                      @error="onSearchResultImgError(card, $event)"
+                    />
                   </div>
                 </template>
-                <template v-if="searchResultsByName.length > 0">
+                <template
+                  v-if="searchMode === 'name' && searchResultsByName.length > 0"
+                >
                   <div class="small text-muted mb-1 mt-2">
                     {{ getSearchSectionLabel('name') }}
                   </div>
                   <div
                     class="d-flex flex-wrap mb-3"
-                    style="max-height: 280px; overflow-y: auto; gap: 10px"
+                    style="max-height: 320px; overflow-y: auto; gap: 4px"
                   >
-                    <div
+                    <img
                       v-for="card in searchResultsByName"
                       :key="'name-' + card.id"
-                      class="
-                        search-result-card
-                        rounded
-                        p-2
-                        text-center
-                        position-relative
-                      "
-                      :style="{
-                        width: '100px',
-                        cursor: 'pointer',
-                        backgroundColor: getSearchResultCardBg(card),
-                        border: '1px solid #312F49',
-                      }"
+                      v-b-tooltip.hover.top="getDisplayName(card)"
+                      :src="getSearchResultImageSrc(card)"
+                      :alt="getDisplayName(card)"
+                      class="search-thumb rounded"
+                      loading="lazy"
                       @click="applyCardFromSearch(card)"
-                    >
-                      <img
-                        :src="getSearchResultImageSrc(card)"
-                        :alt="card.name"
-                        class="img-fluid rounded"
-                        style="
-                          height: 90px;
-                          object-fit: contain;
-                          display: block;
-                        "
-                        loading="lazy"
-                        @error="onSearchResultImgError(card, $event)"
-                      />
-                      <small
-                        :class="[
-                          'd-block text-truncate mt-1',
-                          getSearchResultTextClass(card),
-                        ]"
-                        >{{ card.name }}</small
-                      >
-                    </div>
+                      @error="onSearchResultImgError(card, $event)"
+                    />
                   </div>
                 </template>
-                <template v-if="searchResultsByDesc.length > 0">
+                <template
+                  v-if="searchMode === 'name' && searchResultsByDesc.length > 0"
+                >
                   <div class="small text-muted mb-1 mt-2">
                     {{ getSearchSectionLabel('desc') }}
                   </div>
                   <div
                     class="d-flex flex-wrap"
-                    style="max-height: 280px; overflow-y: auto; gap: 10px"
+                    style="max-height: 320px; overflow-y: auto; gap: 4px"
                   >
-                    <div
+                    <img
                       v-for="card in searchResultsByDesc"
                       :key="'desc-' + card.id"
-                      class="
-                        search-result-card
-                        rounded
-                        p-2
-                        text-center
-                        position-relative
-                      "
-                      :style="{
-                        width: '100px',
-                        cursor: 'pointer',
-                        backgroundColor: getSearchResultCardBg(card),
-                        border: '1px solid #312F49',
-                      }"
+                      v-b-tooltip.hover.top="getDisplayName(card)"
+                      :src="getSearchResultImageSrc(card)"
+                      :alt="getDisplayName(card)"
+                      class="search-thumb rounded"
+                      loading="lazy"
                       @click="applyCardFromSearch(card)"
-                    >
-                      <img
-                        :src="getSearchResultImageSrc(card)"
-                        :alt="card.name"
-                        class="img-fluid rounded"
-                        style="
-                          height: 90px;
-                          object-fit: contain;
-                          display: block;
-                        "
-                        loading="lazy"
-                        @error="onSearchResultImgError(card, $event)"
-                      />
-                      <small
-                        :class="[
-                          'd-block text-truncate mt-1',
-                          getSearchResultTextClass(card),
-                        ]"
-                        >{{ card.name }}</small
-                      >
-                    </div>
+                      @error="onSearchResultImgError(card, $event)"
+                    />
+                  </div>
+                </template>
+                <template v-if="searchResultsCitedRelated.length > 0">
+                  <div class="small text-muted mb-1 mt-2">
+                    {{
+                      ui[uiLang].search_section_cited ||
+                      'Cards citados e relacionados'
+                    }}
+                  </div>
+                  <div
+                    class="d-flex flex-wrap"
+                    style="max-height: 320px; overflow-y: auto; gap: 4px"
+                  >
+                    <img
+                      v-for="card in searchResultsCitedRelated"
+                      :key="'cited-' + card.id"
+                      v-b-tooltip.hover.top="getDisplayName(card)"
+                      :src="getSearchResultImageSrc(card)"
+                      :alt="getDisplayName(card)"
+                      class="search-thumb rounded"
+                      loading="lazy"
+                      @click="applyCardFromSearch(card)"
+                      @error="onSearchResultImgError(card, $event)"
+                    />
+                  </div>
+                </template>
+                <template
+                  v-if="
+                    searchMode === 'archetype' &&
+                    searchResultsRelated.length > 0
+                  "
+                >
+                  <div class="small text-muted mb-1 mt-2">
+                    {{ getSearchSectionLabel('related') }}
+                  </div>
+                  <div
+                    class="d-flex flex-wrap"
+                    style="max-height: 320px; overflow-y: auto; gap: 4px"
+                  >
+                    <img
+                      v-for="card in searchResultsRelated"
+                      :key="'rel-' + card.id"
+                      v-b-tooltip.hover.top="getDisplayName(card)"
+                      :src="getSearchResultImageSrc(card)"
+                      :alt="getDisplayName(card)"
+                      class="search-thumb rounded"
+                      loading="lazy"
+                      @click="applyCardFromSearch(card)"
+                      @error="onSearchResultImgError(card, $event)"
+                    />
                   </div>
                 </template>
               </div>
@@ -854,12 +825,47 @@
                 {{ ui[uiLang].search_no_results }}
               </div>
 
+              <!-- Cards relacionados ao card selecionado -->
+              <div
+                v-if="viewingBaseCard && relatedCards.length > 0"
+                class="panel-bg shadow p-3 mt-3"
+              >
+                <label class="d-block mb-2">{{
+                  ui[uiLang].related_to_selected
+                }}</label>
+                <div
+                  class="d-flex flex-wrap"
+                  style="max-height: 320px; overflow-y: auto; gap: 4px"
+                >
+                  <img
+                    v-for="card in relatedCards"
+                    :key="'rel-sel-' + card.id"
+                    v-b-tooltip.hover.top="getDisplayName(card)"
+                    :src="getSearchResultImageSrc(card)"
+                    :alt="getDisplayName(card)"
+                    class="search-thumb rounded"
+                    loading="lazy"
+                    @click="applyCardFromSearch(card)"
+                    @error="onSearchResultImgError(card, $event)"
+                  />
+                </div>
+              </div>
+
               <!-- Meus Decks -->
               <div class="panel-bg shadow p-3 mt-3">
-                <div class="d-flex align-items-center justify-content-between mb-2">
-                  <label class="mb-0">{{ ui[uiLang].my_decks || 'Meus Decks' }}</label>
-                  <b-button size="sm" variant="outline-success" @click="showNewDeckModal = true">
-                    <fa :icon="['fas', 'plus']" /> {{ ui[uiLang].new_deck || 'Novo Deck' }}
+                <div
+                  class="d-flex align-items-center justify-content-between mb-2"
+                >
+                  <label class="mb-0">{{
+                    ui[uiLang].my_decks || 'Meus Decks'
+                  }}</label>
+                  <b-button
+                    size="sm"
+                    variant="outline-success"
+                    @click="showNewDeckModal = true"
+                  >
+                    <fa :icon="['fas', 'plus']" />
+                    {{ ui[uiLang].new_deck || 'Novo Deck' }}
                   </b-button>
                 </div>
 
@@ -868,25 +874,69 @@
                   <div
                     v-for="deck in userDecks"
                     :key="deck.id"
-                    class="d-flex align-items-center justify-content-between border rounded p-2 mb-1"
-                    :class="selectedDeckId === deck.id ? 'border-primary bg-dark' : 'bg-dark'"
+                    class="
+                      d-flex
+                      align-items-center
+                      justify-content-between
+                      border
+                      rounded
+                      p-2
+                      mb-1
+                    "
+                    :class="
+                      selectedDeckId === deck.id
+                        ? 'border-primary bg-dark'
+                        : 'bg-dark'
+                    "
                     style="cursor: pointer"
                     @click="selectDeck(deck)"
                   >
                     <span class="text-white small">
-                      <fa :icon="['fas', 'folder']" class="mr-1" :class="selectedDeckId === deck.id ? 'text-primary' : 'text-muted'" />
+                      <fa
+                        :icon="['fas', 'folder']"
+                        class="mr-1"
+                        :class="
+                          selectedDeckId === deck.id
+                            ? 'text-primary'
+                            : 'text-muted'
+                        "
+                      />
                       {{ deck.name }}
                     </span>
-                    <b-button size="sm" variant="outline-danger" @click.stop="deleteDeck(deck.id)">
-                      <fa :icon="['fas', 'trash']" />
-                    </b-button>
+                    <div>
+                      <b-button
+                        size="sm"
+                        variant="outline-secondary"
+                        class="mr-1"
+                        title="Editar nome"
+                        @click.stop="openEditDeckModal(deck)"
+                      >
+                        <fa :icon="['fas', 'pen']" />
+                      </b-button>
+                      <b-button
+                        size="sm"
+                        variant="outline-danger"
+                        @click.stop="deleteDeck(deck.id)"
+                      >
+                        <fa :icon="['fas', 'trash']" />
+                      </b-button>
+                    </div>
                   </div>
                 </div>
-                <p v-else class="text-muted small mb-2">{{ ui[uiLang].no_decks || 'Nenhum deck criado.' }}</p>
+                <p v-else class="text-muted small mb-2">
+                  {{ ui[uiLang].no_decks || 'Nenhum deck criado.' }}
+                </p>
 
                 <!-- Cards do deck selecionado -->
                 <div v-if="selectedDeck">
-                  <div class="d-flex align-items-center justify-content-between mb-2">
+                  <div
+                    class="
+                      d-flex
+                      align-items-center
+                      justify-content-between
+                      mb-2
+                    "
+                  >
                     <label class="mb-0 text-light small">
                       <fa :icon="['fas', 'folder-open']" class="mr-1" />
                       {{ selectedDeck.name }} ({{ selectedDeckCards.length }})
@@ -898,44 +948,64 @@
                       :disabled="batchDownloading"
                       @click="batchDownloadDeck"
                     >
-                      {{ batchDownloading ? (ui[uiLang].batch_downloading || 'Baixando...') : (ui[uiLang].batch_download || 'Baixar Todos') }}
+                      {{
+                        batchDownloading
+                          ? ui[uiLang].batch_downloading || 'Baixando...'
+                          : ui[uiLang].batch_download || 'Baixar Todos'
+                      }}
                     </b-button>
                   </div>
                   <div
                     v-if="selectedDeckCards.length > 0"
-                    class="d-flex flex-wrap gap-2"
-                    style="max-height: 240px; overflow-y: auto"
+                    class="d-flex flex-wrap"
+                    style="max-height: 280px; overflow-y: auto; gap: 4px"
                   >
                     <div
                       v-for="item in selectedDeckCards"
                       :key="item.id"
-                      class="border rounded p-2 bg-dark text-center"
-                      :class="editingDeckCardId === item.id ? 'border-primary' : ''"
-                      style="width: 90px; cursor: pointer"
+                      v-b-tooltip.hover.top="item.name"
+                      class="deck-thumb-wrap position-relative"
+                      :class="
+                        editingDeckCardId === item.id ? 'deck-thumb-active' : ''
+                      "
                       @click="loadDeckCardForEdit(item)"
                     >
                       <img
                         v-if="getDeckCardImageSrc(item)"
                         :src="getDeckCardImageSrc(item)"
                         :alt="item.name"
-                        class="img-fluid rounded"
-                        style="height: 70px; object-fit: contain"
+                        class="deck-thumb rounded"
                       />
                       <div
                         v-else
-                        class="rounded bg-secondary d-flex align-items-center justify-content-center text-white small"
-                        style="height: 70px"
-                      >…</div>
-                      <small class="d-block text-white text-truncate mt-1">{{ item.name }}</small>
-                      <b-button
-                        size="sm"
-                        variant="outline-danger"
-                        class="mt-1"
+                        class="
+                          deck-thumb
+                          rounded
+                          bg-secondary
+                          d-flex
+                          align-items-center
+                          justify-content-center
+                          text-white
+                          small
+                        "
+                      >
+                        ?
+                      </div>
+                      <button
+                        class="deck-thumb-remove"
+                        title="Remover"
                         @click.stop="removeDeckCard(item.id)"
-                      >×</b-button>
+                      >
+                        ×
+                      </button>
                     </div>
                   </div>
-                  <p v-else class="text-muted small mb-0">{{ ui[uiLang].deck_empty || 'Deck vazio. Busque um card e adicione.' }}</p>
+                  <p v-else class="text-muted small mb-0">
+                    {{
+                      ui[uiLang].deck_empty ||
+                      'Deck vazio. Busque um card e adicione.'
+                    }}
+                  </p>
                 </div>
               </div>
             </b-col>
@@ -1012,11 +1082,65 @@
     >
       <b-form @submit.prevent="createDeck">
         <b-form-group :label="ui[uiLang].deck_name || 'Nome do deck'">
-          <b-form-input v-model="newDeckName" :placeholder="ui[uiLang].deck_name_placeholder || 'Ex: Dragões Azuis'" required />
+          <b-form-input
+            v-model="newDeckName"
+            class="deck-name-input"
+            :placeholder="
+              ui[uiLang].deck_name_placeholder || 'Ex: Dragões Azuis'
+            "
+            required
+          />
         </b-form-group>
         <div class="text-right mt-3">
-          <b-button variant="secondary" class="mr-2" @click="showNewDeckModal = false">{{ ui[uiLang].cancel || 'Cancelar' }}</b-button>
-          <b-button type="submit" variant="primary" :disabled="!newDeckName.trim()">{{ ui[uiLang].create || 'Criar' }}</b-button>
+          <b-button
+            variant="secondary"
+            class="mr-2"
+            @click="showNewDeckModal = false"
+            >{{ ui[uiLang].cancel || 'Cancelar' }}</b-button
+          >
+          <b-button
+            type="submit"
+            variant="primary"
+            :disabled="!newDeckName.trim()"
+            >{{ ui[uiLang].create || 'Criar' }}</b-button
+          >
+        </div>
+      </b-form>
+    </b-modal>
+
+    <!-- Modal: Editar Nome do Deck -->
+    <b-modal
+      v-model="showEditDeckModal"
+      :title="ui[uiLang].edit_deck_title || 'Editar nome do deck'"
+      ok-title=""
+      cancel-title=""
+      hide-footer
+      centered
+    >
+      <b-form @submit.prevent="saveEditDeck">
+        <b-form-group :label="ui[uiLang].deck_name || 'Nome do deck'">
+          <b-form-input
+            v-model="editingDeckName"
+            class="deck-name-input"
+            :placeholder="
+              ui[uiLang].deck_name_placeholder || 'Ex: Dragões Azuis'
+            "
+            required
+          />
+        </b-form-group>
+        <div class="text-right mt-3">
+          <b-button
+            variant="secondary"
+            class="mr-2"
+            @click="showEditDeckModal = false"
+            >{{ ui[uiLang].cancel || 'Cancelar' }}</b-button
+          >
+          <b-button
+            type="submit"
+            variant="primary"
+            :disabled="!editingDeckName.trim()"
+            >{{ ui[uiLang].save || 'Salvar' }}</b-button
+          >
         </div>
       </b-form>
     </b-modal>
@@ -1033,17 +1157,41 @@
     >
       <b-form @submit.prevent="saveTranslation">
         <b-form-group :label="ui[uiLang].card_name_pt || 'Nome em Português'">
-          <b-form-input v-model="translationName" :placeholder="ui[uiLang].card_name_pt_placeholder || 'Nome traduzido'" />
+          <b-form-input
+            v-model="translationName"
+            :placeholder="
+              ui[uiLang].card_name_pt_placeholder || 'Nome traduzido'
+            "
+          />
         </b-form-group>
-        <b-form-group :label="ui[uiLang].card_desc_pt || 'Descrição em Português'">
-          <b-form-textarea v-model="translationDesc" rows="6" :placeholder="ui[uiLang].card_desc_pt_placeholder || 'Efeito/descrição traduzida'" />
+        <b-form-group
+          :label="ui[uiLang].card_desc_pt || 'Descrição em Português'"
+        >
+          <b-form-textarea
+            v-model="translationDesc"
+            rows="6"
+            :placeholder="
+              ui[uiLang].card_desc_pt_placeholder ||
+              'Efeito/descrição traduzida'
+            "
+          />
         </b-form-group>
         <div class="text-muted small mb-3">
-          {{ ui[uiLang].translate_note || 'Esta tradução será salva no banco local. Quando uma tradução oficial for disponibilizada pela API, ela substituirá a sua.' }}
+          {{
+            ui[uiLang].translate_note ||
+            'Esta tradução será salva no banco local. Quando uma tradução oficial for disponibilizada pela API, ela substituirá a sua.'
+          }}
         </div>
         <div class="text-right">
-          <b-button variant="secondary" class="mr-2" @click="showTranslationModal = false">{{ ui[uiLang].cancel || 'Cancelar' }}</b-button>
-          <b-button type="submit" variant="success">{{ ui[uiLang].save || 'Salvar' }}</b-button>
+          <b-button
+            variant="secondary"
+            class="mr-2"
+            @click="showTranslationModal = false"
+            >{{ ui[uiLang].cancel || 'Cancelar' }}</b-button
+          >
+          <b-button type="submit" variant="success">{{
+            ui[uiLang].save || 'Salvar'
+          }}</b-button>
         </div>
       </b-form>
     </b-modal>
@@ -1054,6 +1202,8 @@
 
 <script>
 import { mapMutations } from 'vuex'
+import JSZip from 'jszip'
+import LoadingDialog from '../components/LoadingDialog.vue'
 import ui from '../../../static/lang.ui.json'
 import cardMeta from '../../../static/lang.card_meta.json'
 import archetypesList from '../../../static/archetypes.json'
@@ -1073,6 +1223,7 @@ const LINK_MARKER_TO_INDEX = {
 }
 
 export default {
+  components: { LoadingDialog },
   data() {
     return {
       activeTab: 0,
@@ -1094,11 +1245,11 @@ export default {
 
       holo: true,
       cardRare: '0',
-      cardRareOpts: {
-        0: 'N',
-        1: 'R',
-        2: 'UR',
-      },
+      cardRareOpts: [
+        { value: '0', text: 'N' },
+        { value: '1', text: 'R' },
+        { value: '2', text: 'UR' },
+      ],
       titleColor: '#000000',
       cardLoadYgoProEnabled: true,
       cardKey: '',
@@ -1120,7 +1271,10 @@ export default {
       Pendulum: true,
       Special: true,
       cardLevel: '12',
-      cardLevelOpts: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+      cardLevelOpts: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((n) => ({
+        value: n,
+        text: String(n),
+      })),
       cardBLUE: 12,
       cardRED: 12,
       pendulumSize: 23,
@@ -1139,7 +1293,7 @@ export default {
         9: { val: false, symbol: '◢' },
       },
       infoSize: '22',
-      infoPosition: 0,
+      infoPosition: 8,
       cardInfo: '',
 
       imgs: {},
@@ -1154,6 +1308,7 @@ export default {
       searchQueryNormalized: '',
       searchLoading: false,
       searchTried: false,
+      relatedCards: [],
 
       userDecks: [],
       selectedDeckId: null,
@@ -1171,6 +1326,9 @@ export default {
 
       showNewDeckModal: false,
       newDeckName: '',
+      showEditDeckModal: false,
+      editingDeckId: null,
+      editingDeckName: '',
 
       programmaticUpdate: false,
       autoSaveTimer: null,
@@ -1199,17 +1357,19 @@ export default {
     },
     filteredArchetypes() {
       if (!this.searchByArchetype.trim()) return this.archetypeOptions
-      const q = this.searchByArchetype.toLowerCase().trim()
+      const q = this.normalizeSearchQuery(this.searchByArchetype)
       return this.archetypeOptions.filter((a) =>
-        a.archetype_name.toLowerCase().includes(q)
+        this.stripAccents(a.archetype_name.toLowerCase()).includes(q)
       )
     },
     filteredCardsByName() {
       if (!this.searchByName.trim()) return []
       const q = this.normalizeSearchQuery(this.searchByName)
-      return this.localCards.filter((c) =>
-        (c.name_en || c.name || '').toLowerCase().includes(q)
-      )
+      return this.localCards.filter((c) => {
+        const en = this.stripAccents((c.name_en || c.name || '').toLowerCase())
+        const pt = this.stripAccents((c.name_pt || '').toLowerCase())
+        return en.includes(q) || pt.includes(q)
+      })
     },
     searchResultsByArchetype() {
       return this.searchResults.filter((c) => c.matchType === 'archetype')
@@ -1220,20 +1380,52 @@ export default {
     searchResultsByDesc() {
       return this.searchResults.filter((c) => c.matchType === 'desc')
     },
+    searchResultsRelated() {
+      return this.searchResults.filter(
+        (c) => c.matchType === 'name' || c.matchType === 'desc'
+      )
+    },
+    searchResultsCitedRelated() {
+      return this.searchResults.filter((c) => c.matchType === 'related')
+    },
     currentSnapshotForAutoSave() {
       if (!this.cardKey) return null
       return { cardKey: this.cardKey, ...this.getCurrentCardSnapshot() }
+    },
+    cardDisplayDeps() {
+      return JSON.stringify(this.getCurrentCardSnapshot())
     },
     isFieldsLocked() {
       return this.viewingBaseCard && !this.loadedFromDeck
     },
     currentBaseCard() {
       if (!this.cardKey) return null
-      return this.localCards.find((c) => String(c.id) === String(this.cardKey)) || null
+      return (
+        this.localCards.find((c) => String(c.id) === String(this.cardKey)) ||
+        null
+      )
+    },
+    nameIndexMap() {
+      const map = new Map()
+      for (const card of this.localCards) {
+        const en = this.normalizeSearchQuery(card.name_en || card.name || '')
+        const pt = this.normalizeSearchQuery(card.name_pt || '')
+        if (en) {
+          if (!map.has(en)) map.set(en, [])
+          map.get(en).push(card)
+        }
+        if (pt && pt !== en) {
+          if (!map.has(pt)) map.set(pt, [])
+          map.get(pt).push(card)
+        }
+      }
+      return map
     },
     baseCardNeedsTranslation() {
       if (!this.currentBaseCard) return false
-      return !this.currentBaseCard.name_pt || this.currentBaseCard.name_pt === ''
+      return (
+        !this.currentBaseCard.name_pt || this.currentBaseCard.name_pt === ''
+      )
     },
     hasUnsavedLayoutChanges() {
       if (this.editingDeckCardId == null || this.snapshotAtLoad == null)
@@ -1252,41 +1444,43 @@ export default {
       return this.userDecks.find((d) => d.id === this.selectedDeckId) || null
     },
     cardTypeOpts() {
-      return {
-        Monster: this.ui[this.uiLang].monster_card,
-        Spell: this.ui[this.uiLang].spell_card,
-        Trap: this.ui[this.uiLang].trap_card,
-      }
+      return [
+        { value: 'Monster', text: this.ui[this.uiLang].monster_card },
+        { value: 'Spell', text: this.ui[this.uiLang].spell_card },
+        { value: 'Trap', text: this.ui[this.uiLang].trap_card },
+      ]
     },
     cardSubtypeOpts() {
+      const m = this.ui[this.uiLang].m_card
+      const s = this.ui[this.uiLang].st_card
       return {
-        Monster: {
-          Normal: this.ui[this.uiLang].m_card.normal,
-          Effect: this.ui[this.uiLang].m_card.effect,
-          Fusion: this.ui[this.uiLang].m_card.fusion,
-          Ritual: this.ui[this.uiLang].m_card.ritual,
-          Synchro: this.ui[this.uiLang].m_card.synchro,
-          Xyz: this.ui[this.uiLang].m_card.xyz,
-          Link: this.ui[this.uiLang].m_card.link,
-          Token: this.ui[this.uiLang].m_card.token,
-          Slifer: this.ui[this.uiLang].m_card.slifer,
-          Ra: this.ui[this.uiLang].m_card.ra,
-          Obelisk: this.ui[this.uiLang].m_card.obelisk,
-          LDragon: this.ui[this.uiLang].m_card.ldragon,
-        },
-        Spell: {
-          Normal: this.ui[this.uiLang].st_card.normal,
-          Continuous: this.ui[this.uiLang].st_card.continuous,
-          Field: this.ui[this.uiLang].st_card.field,
-          Equip: this.ui[this.uiLang].st_card.equip,
-          Quick: this.ui[this.uiLang].st_card.quick,
-          Ritual: this.ui[this.uiLang].st_card.ritual,
-        },
-        Trap: {
-          Normal: this.ui[this.uiLang].st_card.normal,
-          Continuous: this.ui[this.uiLang].st_card.continuous,
-          Counter: this.ui[this.uiLang].st_card.counter,
-        },
+        Monster: [
+          { value: 'Normal', text: m.normal },
+          { value: 'Effect', text: m.effect },
+          { value: 'Fusion', text: m.fusion },
+          { value: 'Ritual', text: m.ritual },
+          { value: 'Synchro', text: m.synchro },
+          { value: 'Xyz', text: m.xyz },
+          { value: 'Link', text: m.link },
+          { value: 'Token', text: m.token },
+          { value: 'Slifer', text: m.slifer },
+          { value: 'Ra', text: m.ra },
+          { value: 'Obelisk', text: m.obelisk },
+          { value: 'LDragon', text: m.ldragon },
+        ],
+        Spell: [
+          { value: 'Normal', text: s.normal },
+          { value: 'Continuous', text: s.continuous },
+          { value: 'Field', text: s.field },
+          { value: 'Equip', text: s.equip },
+          { value: 'Quick', text: s.quick },
+          { value: 'Ritual', text: s.ritual },
+        ],
+        Trap: [
+          { value: 'Normal', text: s.normal },
+          { value: 'Continuous', text: s.continuous },
+          { value: 'Counter', text: s.counter },
+        ],
       }
     },
     cardEffOpts() {
@@ -1313,33 +1507,34 @@ export default {
       ]
     },
     cardRaceOpts() {
-      return {
-        fiend: this.ui[this.uiLang].card_race_type_opts.fiend,
-        zombie: this.ui[this.uiLang].card_race_type_opts.zombie,
-        sea_serpent: this.ui[this.uiLang].card_race_type_opts.sea_serpent,
-        thunder: this.ui[this.uiLang].card_race_type_opts.thunder,
-        rock: this.ui[this.uiLang].card_race_type_opts.rock,
-        machine: this.ui[this.uiLang].card_race_type_opts.machine,
-        dinosaur: this.ui[this.uiLang].card_race_type_opts.dinosaur,
-        beast: this.ui[this.uiLang].card_race_type_opts.beast,
-        insect: this.ui[this.uiLang].card_race_type_opts.insect,
-        fish: this.ui[this.uiLang].card_race_type_opts.fish,
-        plant: this.ui[this.uiLang].card_race_type_opts.plant,
-        beast_warrior: this.ui[this.uiLang].card_race_type_opts.beast_warrior,
-        warrior: this.ui[this.uiLang].card_race_type_opts.warrior,
-        winged_beast: this.ui[this.uiLang].card_race_type_opts.winged_beast,
-        fairy: this.ui[this.uiLang].card_race_type_opts.fairy,
-        dragon: this.ui[this.uiLang].card_race_type_opts.dragon,
-        reptile: this.ui[this.uiLang].card_race_type_opts.reptile,
-        aqua: this.ui[this.uiLang].card_race_type_opts.aqua,
-        pyro: this.ui[this.uiLang].card_race_type_opts.pyro,
-        spellcaster: this.ui[this.uiLang].card_race_type_opts.spellcaster,
-        wyrm: this.ui[this.uiLang].card_race_type_opts.wyrm,
-        cyberse: this.ui[this.uiLang].card_race_type_opts.cyberse,
-        psychic: this.ui[this.uiLang].card_race_type_opts.psychic,
-        divine_beast: this.ui[this.uiLang].card_race_type_opts.divine_beast,
-        creator_god: this.ui[this.uiLang].card_race_type_opts.creator_god,
-      }
+      const o = this.ui[this.uiLang].card_race_type_opts
+      return [
+        { value: 'fiend', text: o.fiend },
+        { value: 'zombie', text: o.zombie },
+        { value: 'sea_serpent', text: o.sea_serpent },
+        { value: 'thunder', text: o.thunder },
+        { value: 'rock', text: o.rock },
+        { value: 'machine', text: o.machine },
+        { value: 'dinosaur', text: o.dinosaur },
+        { value: 'beast', text: o.beast },
+        { value: 'insect', text: o.insect },
+        { value: 'fish', text: o.fish },
+        { value: 'plant', text: o.plant },
+        { value: 'beast_warrior', text: o.beast_warrior },
+        { value: 'warrior', text: o.warrior },
+        { value: 'winged_beast', text: o.winged_beast },
+        { value: 'fairy', text: o.fairy },
+        { value: 'dragon', text: o.dragon },
+        { value: 'reptile', text: o.reptile },
+        { value: 'aqua', text: o.aqua },
+        { value: 'pyro', text: o.pyro },
+        { value: 'spellcaster', text: o.spellcaster },
+        { value: 'wyrm', text: o.wyrm },
+        { value: 'cyberse', text: o.cyberse },
+        { value: 'psychic', text: o.psychic },
+        { value: 'divine_beast', text: o.divine_beast },
+        { value: 'creator_god', text: o.creator_god },
+      ]
     },
     cardTemplateText() {
       let templateUrl =
@@ -1370,31 +1565,22 @@ export default {
       )
     },
     cardEff1Opts() {
-      return Object.fromEntries(
-        Object.keys(this.cardEffOpts)
-          .filter((key) => {
-            // Remova "none" e remova duplicatas com "Eff2" (exceto quando o valor for "normal")
-            return key !== 'none' && (key === 'normal' || key !== this.cardEff2)
-          })
-          .map((key) => [key, this.cardEffOpts[key]])
-      )
+      return Object.keys(this.cardEffOpts)
+        .filter(
+          (key) => key !== 'none' && (key === 'normal' || key !== this.cardEff2)
+        )
+        .map((key) => ({ value: key, text: this.cardEffOpts[key] }))
     },
     cardEff2Opts() {
-      return Object.fromEntries(
-        Object.keys(this.cardEffOpts)
-          .filter((key) => {
-            // Remova duplicatas com "Eff1" (exceto quando o valor for "normal")）
-            return key === 'normal' || key !== this.cardEff1
-          })
-          .map((key) => {
-            return [
-              key,
-              key === 'normal'
-                ? this.ui[this.uiLang].m_card.effect
-                : this.cardEffOpts[key],
-            ]
-          })
-      )
+      return Object.keys(this.cardEffOpts)
+        .filter((key) => key === 'normal' || key !== this.cardEff1)
+        .map((key) => ({
+          value: key,
+          text:
+            key === 'normal'
+              ? this.ui[this.uiLang].m_card.effect
+              : this.cardEffOpts[key],
+        }))
     },
   },
   watch: {
@@ -1423,7 +1609,9 @@ export default {
     currentSnapshotForAutoSave: {
       deep: true,
       handler() {
-        if (!this.cardKey || this.programmaticUpdate || !this.$ygoDb) return
+        if (this.programmaticUpdate) return
+        if (this.$ygoDb && this.cardKey) this.saveLastCard()
+        if (!this.cardKey || !this.$ygoDb) return
         if (!this.loadedFromDeck || !this.editingDeckCardId) return
         if (this.autoSaveTimer) clearTimeout(this.autoSaveTimer)
         this.autoSaveTimer = setTimeout(() => {
@@ -1432,20 +1620,40 @@ export default {
         }, 500)
       },
     },
+    infoSize() {
+      this.scheduleDrawCard()
+    },
+    infoPosition() {
+      this.scheduleDrawCard()
+    },
+    pendulumSize() {
+      this.scheduleDrawCard()
+    },
+    cardDisplayDeps() {
+      this.scheduleDrawCard()
+    },
   },
   mounted() {
     window.addEventListener('scroll', this.onScroll)
     this.fireLoadingDialog()
     this.load_default_data()
-    setInterval(this.drawCard, 1500)
     this.initYgoDb()
     if (this.$ygoDb) this.loadDecks()
   },
   beforeDestroy() {
     window.removeEventListener('scroll', this.onScroll)
+    if (this._drawCardRaf) cancelAnimationFrame(this._drawCardRaf)
   },
   methods: {
     ...mapMutations(['fireLoadingDialog', 'closeLoadingDialog']),
+
+    scheduleDrawCard() {
+      if (this._drawCardRaf) cancelAnimationFrame(this._drawCardRaf)
+      this._drawCardRaf = requestAnimationFrame(() => {
+        this._drawCardRaf = null
+        this.drawCard()
+      })
+    },
 
     async loadDeckCardForEdit(item) {
       if (this.hasUnsavedLayoutChanges) {
@@ -1460,6 +1668,7 @@ export default {
       this.initialSnapshotWhenNotFromCollection = null
       this.editingDeckCardId = item.id
       this.viewingBaseCard = false
+      this.relatedCards = []
       this.snapshotAtLoad = JSON.parse(JSON.stringify(item.snapshot))
       this.loadFromSnapshot(item.snapshot)
       this.cardKey = item.cardKey
@@ -1469,7 +1678,7 @@ export default {
       if (imgUrl) {
         this.$nextTick(() => this.fireLoadingDialog())
         await this.ensureCardImage(item.cardKey, imgUrl)
-        this.drawCard(this.apiCardImageUrls[item.cardKey] || imgUrl)
+        this.drawCard(this.apiCardImageUrls[item.cardKey] || null)
       } else {
         this.cardPhotoLoading = false
         this.$nextTick(() => {
@@ -1543,17 +1752,21 @@ export default {
     drawCardLoadingImages(callback) {
       const keys = Object.keys(this.imgs)
       let count = 0
+      let done = false
+      const finish = () => {
+        if (done) return
+        done = true
+        setTimeout(callback, 100)
+      }
       const maybeDone = () => {
         count += 1
-        if (count >= keys.length) setTimeout(callback, 100)
+        if (count >= keys.length) finish()
       }
+      setTimeout(finish, 10000)
       for (const key of keys) {
         const src = this.imgs[key]
         const image = new window.Image()
-        if (
-          typeof src === 'string' &&
-          (src.startsWith('http') || src.startsWith('blob:'))
-        ) {
+        if (typeof src === 'string' && src.startsWith('blob:')) {
           image.crossOrigin = 'anonymous'
         }
         this.imgs[key] = image
@@ -1564,19 +1777,23 @@ export default {
             photoDone = true
             maybeDone()
           }
-          image.onload = () => {
-            photoMaybeDone()
-          }
-          image.onerror = () => {
-            const def = new window.Image()
-            def.onload = () => {
-              this.imgs.photo = def
-              photoMaybeDone()
+          if (typeof src === 'string' && src.startsWith('http')) {
+            image.onload = photoMaybeDone
+            image.onerror = photoMaybeDone
+            image.src = 'images/default.jpg'
+          } else {
+            image.onload = photoMaybeDone
+            image.onerror = () => {
+              const def = new window.Image()
+              def.onload = () => {
+                this.imgs.photo = def
+                photoMaybeDone()
+              }
+              def.onerror = photoMaybeDone
+              def.src = 'images/default.jpg'
             }
-            def.onerror = photoMaybeDone
-            def.src = 'images/default.jpg'
+            image.src = src || 'images/default.jpg'
           }
-          image.src = src
         } else {
           image.onload = maybeDone
           image.onerror = maybeDone
@@ -1660,7 +1877,9 @@ export default {
       ctx.font = `${57 + offset.tS}pt ${fontName[0]}, ${fontName[3]}, ${
         fontName[4]
       }, ${fontName[5]}`
-      ctx.fillStyle = this.rareColor(ctx)
+      const useWhiteTitle =
+        this.isLinkMonster || this.isXyzMonster || this.cardType === 'Trap'
+      ctx.fillStyle = useWhiteTitle ? '#FFFFFF' : this.rareColor(ctx)
       ctx.fillText(this.cardTitle, 77 + offset.tX, 140 + offset.tY, 750)
       ctx.shadowColor = '#000'
       ctx.shadowBlur = 0
@@ -1837,7 +2056,7 @@ export default {
       )
       ctx.fillText(this.cardRED, 895, 1040, 60)
       // Escreva texto.
-      const baseFontSize = Number(this.pendulumSize)
+      const baseFontSize = Number(this.pendulumSize) || 20
       const xStart = 160
       const yStart = 920 + offset.oY
       const maxW = 660
@@ -1846,14 +2065,18 @@ export default {
       ctx.textAlign = 'left'
       ctx.textBaseline = 'top'
 
-      let fontSize = baseFontSize
       const minFontSize = 12
-      let lines
+      let fontSize = Math.max(baseFontSize, minFontSize)
+      let lines = this.computeWrappedLines(
+        ctx,
+        this.cardPendulumInfo || '',
+        maxW
+      )
 
       while (fontSize >= minFontSize) {
         const lh = fontSize + offset.lh
         ctx.font = `${fontSize}pt ${fontName[2]}, ${fontName[3]}, ${fontName[4]}, ${fontName[5]}`
-        lines = this.computeWrappedLines(ctx, this.cardPendulumInfo, maxW)
+        lines = this.computeWrappedLines(ctx, this.cardPendulumInfo || '', maxW)
         const totalHeight = lines.length * lh
         if (yStart + totalHeight <= yLimit) break
         fontSize -= 1
@@ -1861,28 +2084,34 @@ export default {
 
       const lh = fontSize + offset.lh
       ctx.font = `${fontSize}pt ${fontName[2]}, ${fontName[3]}, ${fontName[4]}, ${fontName[5]}`
+      ctx.save()
+      ctx.beginPath()
+      ctx.rect(xStart, yStart, maxW, yLimit - yStart)
+      ctx.clip()
       let drawY = yStart
       for (const line of lines) {
-        if (drawY + lh > yLimit + lh) break
+        if (drawY + lh > yLimit) break
         ctx.fillText(line, xStart, drawY)
         drawY += lh
       }
+      ctx.restore()
     },
 
     drawCardInfoText(ctx, offset, fontName) {
-      const baseFontSize = Number(this.infoSize)
+      const baseFontSize = Number(this.infoSize) || 20
       const topOffset = Number(this.infoPosition) || 0
       const xStart = 75
-      const yStart = 1095 + offset.oY + (this.cardType === 'Monster' ? 30 : 0) + topOffset
+      const yStart =
+        1095 + offset.oY + (this.cardType === 'Monster' ? 30 : 0) + topOffset
       const maxW = 825
       const yLimit = this.cardType === 'Monster' ? 1330 : 1390
 
       ctx.textAlign = 'left'
       ctx.textBaseline = 'top'
 
-      let fontSize = baseFontSize
       const minFontSize = 12
-      let lines
+      let fontSize = Math.max(baseFontSize, minFontSize)
+      let lines = this.computeWrappedLines(ctx, this.cardInfo || '', maxW)
 
       while (fontSize >= minFontSize) {
         const lh = fontSize + offset.lh
@@ -1895,12 +2124,17 @@ export default {
 
       const lh = fontSize + offset.lh
       ctx.font = `${fontSize}pt ${fontName[2]}, ${fontName[3]}, ${fontName[4]}, ${fontName[5]}`
+      ctx.save()
+      ctx.beginPath()
+      ctx.rect(xStart, yStart, maxW, yLimit - yStart)
+      ctx.clip()
       let drawY = yStart
       for (const line of lines) {
-        if (drawY + lh > yLimit + lh) break
+        if (drawY + lh > yLimit) break
         ctx.fillText(line, xStart, drawY)
         drawY += lh
       }
+      ctx.restore()
     },
 
     // Cor do cartão.
@@ -1929,72 +2163,163 @@ export default {
       }
     },
 
+    /**
+     * Separação silábica segundo regras do português:
+     * 1) V.CV — consoante entre vogais vai pra próxima sílaba: a-mi-go
+     * 2) VC.CV — duas consoantes: se formam cluster (br,tr,etc.) ficam juntas,
+     *    senão separam: ab-so, a-brir
+     * 3) rr, ss — sempre separam: car-ro, pas-so
+     * 4) Dígrafos (ch, lh, nh) nunca separam
+     * 5) Ditongos (ai, ei, ão, etc.) ficam juntos
+     * 6) Hiato (vogais que não formam ditongo) separam: sa-ú-de
+     * 7) qu, gu antes de vogal: o 'u' faz parte da consoante
+     */
     findSyllableBreaks(word) {
-      const vowels = /[aeiouáéíóúâêôãõàèìòùäëïöüy]/i
-      const isVowel = (ch) => vowels.test(ch)
-      const insepClusters = [
-        'bl','br','cl','cr','dr','fl','fr','gl','gr',
-        'pl','pr','tl','tr','vr','ch','lh','nh','qu','gu',
-      ]
-      const breaks = []
-      const len = word.length
-      if (len <= 3) return breaks
+      const w = word.toLowerCase()
+      const len = w.length
+      if (len <= 3) return []
 
-      let i = 0
-      while (i < len) {
-        if (isVowel(word[i])) {
-          let j = i + 1
-          while (j < len && isVowel(word[j])) {
-            const pair = (word[j - 1] + word[j]).toLowerCase()
-            const diphthongs = ['ai','ei','oi','ui','au','eu','ou','ão','õe','ãe','oe','ae']
-            if (diphthongs.includes(pair)) {
-              j++
-            } else {
-              if (j >= 2 && j < len - 1) breaks.push(j)
-              break
-            }
-          }
-          if (j >= len) break
-          if (!isVowel(word[j])) {
-            let consCount = 0
-            let k = j
-            while (k < len && !isVowel(word[k])) { consCount++; k++ }
-            if (k >= len) break
-            if (consCount === 1) {
-              if (j >= 2) breaks.push(j)
-            } else if (consCount >= 2) {
-              const cluster = (word[k - 1] + word[k]).toLowerCase()
-              const prevCluster = consCount >= 2 ? (word[j] + word[j + 1]).toLowerCase() : ''
-              if (insepClusters.includes(cluster) && consCount === 2) {
-                if (j >= 2) breaks.push(j)
-              } else if (insepClusters.includes(prevCluster)) {
-                if (j + 2 < len && j >= 1) breaks.push(j + 2)
-              } else {
-                if (j + 1 < len && j >= 1) breaks.push(j + 1)
-              }
-            }
-          }
-          i = j > i ? j : i + 1
-        } else {
-          i++
+      const isVowelChar = (ch) => /[aeiouáéíóúâêôãõàèìòùäëïöüy]/.test(ch)
+
+      const types = []
+      for (let i = 0; i < len; i++) {
+        types.push(isVowelChar(w[i]) ? 'V' : 'C')
+      }
+
+      for (let i = 0; i < len - 2; i++) {
+        if (
+          (w[i] === 'q' || w[i] === 'g') &&
+          w[i + 1] === 'u' &&
+          isVowelChar(w[i + 2])
+        ) {
+          types[i + 1] = 'C'
         }
       }
-      const unique = [...new Set(breaks)].filter((b) => b >= 2 && b <= len - 2).sort((a, b) => a - b)
-      return unique
+
+      const fallingDiphs = new Set([
+        'ai',
+        'ei',
+        'oi',
+        'ui',
+        'au',
+        'eu',
+        'ou',
+        'iu',
+        'ão',
+        'ãe',
+        'ãi',
+        'õe',
+      ])
+
+      const nucleiStarts = []
+      let inNucleus = false
+      for (let i = 0; i < len; i++) {
+        if (types[i] === 'V') {
+          if (!inNucleus) {
+            nucleiStarts.push(i)
+            inNucleus = true
+          } else {
+            const pair = w[i - 1] + w[i]
+            if (!fallingDiphs.has(pair)) {
+              nucleiStarts.push(i)
+            }
+          }
+        } else {
+          inNucleus = false
+        }
+      }
+
+      if (nucleiStarts.length <= 1) return []
+
+      const insepOnset = new Set([
+        'bl',
+        'br',
+        'cl',
+        'cr',
+        'dr',
+        'fl',
+        'fr',
+        'gl',
+        'gr',
+        'pl',
+        'pr',
+        'tl',
+        'tr',
+        'vr',
+        'ch',
+        'lh',
+        'nh',
+      ])
+
+      const breaks = []
+
+      for (let n = 0; n < nucleiStarts.length - 1; n++) {
+        const nextNucStart = nucleiStarts[n + 1]
+        let endOfNuc = nucleiStarts[n]
+        while (endOfNuc + 1 < nextNucStart && types[endOfNuc + 1] === 'V') {
+          endOfNuc++
+        }
+
+        const consStart = endOfNuc + 1
+        const consEnd = nextNucStart
+        const consCount = consEnd - consStart
+
+        if (consCount === 0) {
+          breaks.push(nextNucStart)
+        } else if (consCount === 1) {
+          breaks.push(consStart)
+        } else if (consCount === 2) {
+          const pair = w[consStart] + w[consStart + 1]
+          if (pair === 'rr' || pair === 'ss') {
+            breaks.push(consStart + 1)
+          } else if (insepOnset.has(pair) || pair === 'qu' || pair === 'gu') {
+            breaks.push(consStart)
+          } else {
+            breaks.push(consStart + 1)
+          }
+        } else {
+          const lastTwo = w[consEnd - 2] + w[consEnd - 1]
+          if (insepOnset.has(lastTwo)) {
+            breaks.push(consEnd - 2)
+          } else {
+            breaks.push(consEnd - 1)
+          }
+        }
+      }
+
+      return [...new Set(breaks)]
+        .filter((b) => b >= 1 && b <= len - 1)
+        .sort((a, b) => a - b)
     },
 
     breakWordAtSyllable(ctx, word, maxWidth) {
       const hyphen = '-'
-      const breaks = this.findSyllableBreaks(word)
-      if (breaks.length > 0) {
-        for (let k = breaks.length - 1; k >= 0; k--) {
-          const pos = breaks[k]
+
+      const hyphenPositions = []
+      for (let i = 1; i < word.length; i++) {
+        if (word[i - 1] === '-') hyphenPositions.push(i)
+      }
+      if (hyphenPositions.length > 0) {
+        for (let k = hyphenPositions.length - 1; k >= 0; k--) {
+          const pos = hyphenPositions[k]
+          const part1 = word.slice(0, pos)
+          if (ctx.measureText(part1).width <= maxWidth) {
+            return { first: part1, rest: word.slice(pos) }
+          }
+        }
+      }
+
+      const syllBreaks = this.findSyllableBreaks(word)
+      if (syllBreaks.length > 0) {
+        for (let k = syllBreaks.length - 1; k >= 0; k--) {
+          const pos = syllBreaks[k]
           const part1 = word.slice(0, pos) + hyphen
           if (ctx.measureText(part1).width <= maxWidth) {
             return { first: part1, rest: word.slice(pos) }
           }
         }
       }
+
       for (let i = word.length - 1; i >= 2; i--) {
         const part1 = word.slice(0, i) + hyphen
         if (ctx.measureText(part1).width <= maxWidth) {
@@ -2006,10 +2331,14 @@ export default {
 
     computeWrappedLines(ctx, text, maxWidth) {
       const lines = []
-      const paragraphs = text.split('\n')
+      if (text == null || text === '') return lines
+      const paragraphs = String(text).split('\n')
 
       for (const para of paragraphs) {
-        if (!para.trim()) { lines.push(''); continue }
+        if (!para.trim()) {
+          lines.push('')
+          continue
+        }
         const tokens = para.split(/(\s+)/)
         let currentLine = ''
         let currentWidth = 0
@@ -2022,11 +2351,34 @@ export default {
           }
         }
 
+        const breakAndPush = (word) => {
+          let rest = word
+          while (rest.length > 0) {
+            const restW = ctx.measureText(rest).width
+            if (restW <= maxWidth) {
+              currentLine = rest
+              currentWidth = restW
+              break
+            }
+            const br = this.breakWordAtSyllable(ctx, rest, maxWidth)
+            if (br && br.rest.length > 0) {
+              lines.push(br.first)
+              rest = br.rest
+            } else {
+              lines.push(rest)
+              rest = ''
+            }
+          }
+        }
+
         for (const token of tokens) {
           if (/^\s+$/.test(token)) {
             if (!currentLine) continue
             const w = ctx.measureText(' ').width
-            if (currentWidth + w > maxWidth) { flushLine(); continue }
+            if (currentWidth + w > maxWidth) {
+              flushLine()
+              continue
+            }
             currentLine += ' '
             currentWidth += w
             continue
@@ -2037,27 +2389,26 @@ export default {
             currentWidth += wordWidth
             continue
           }
-          if (currentLine.trim()) flushLine()
-          if (wordWidth <= maxWidth) {
-            currentLine = token
-            currentWidth = wordWidth
-            continue
-          }
-          let rest = token
-          while (rest.length > 0) {
-            const remainW = ctx.measureText(rest).width
-            if (remainW <= maxWidth) {
-              currentLine = rest
-              currentWidth = remainW
-              break
-            }
-            const br = this.breakWordAtSyllable(ctx, rest, maxWidth)
-            if (br && br.rest.length > 0) {
-              lines.push(br.first)
-              rest = br.rest
+
+          const remaining = maxWidth - currentWidth
+          const br = this.breakWordAtSyllable(ctx, token, remaining)
+          if (br && br.first.length >= 3) {
+            currentLine += br.first
+            flushLine()
+            const restW = ctx.measureText(br.rest).width
+            if (restW <= maxWidth) {
+              currentLine = br.rest
+              currentWidth = restW
             } else {
-              lines.push(rest)
-              rest = ''
+              breakAndPush(br.rest)
+            }
+          } else {
+            flushLine()
+            if (wordWidth <= maxWidth) {
+              currentLine = token
+              currentWidth = wordWidth
+            } else {
+              breakAndPush(token)
             }
           }
         }
@@ -2078,15 +2429,17 @@ export default {
     // Baixar Card.
     download_img() {
       const canvas = this.$refs.yugiohcard
+      const name = this.sanitizeFilename(this.cardTitle) || 'card'
+      const baseName = `${name}.jpg`
+      const baseNamePng = `${name}.png`
       if (canvas.msToBlob) {
         // para o Internet Explorer.
         const blob = canvas.msToBlob()
-        window.navigator.msSaveBlob(blob, 'YuGiOh.png')
+        window.navigator.msSaveBlob(blob, baseNamePng)
       } else {
-        const data = this.cardMetaLang.Default
         const a = document.createElement('a')
         a.href = canvas.toDataURL('image/jpeg')
-        a.download = `${data.title}.jpg`
+        a.download = baseName
         a.click()
       }
     },
@@ -2107,6 +2460,7 @@ export default {
       this.snapshotAtLoad = null
       this.loadedFromDeck = false
       this.viewingBaseCard = false
+      this.relatedCards = []
       const data = this.cardMetaLang.Default
       this.holo = true
       this.cardRare = '0'
@@ -2133,7 +2487,7 @@ export default {
       for (let i = 1; i <= 9; i++) if (i !== 5) this.links[i].val = false
       this.cardInfo = data.info
       this.infoSize = data.size
-      this.infoPosition = 0
+      this.infoPosition = 8
       this.cardPendulumInfo = data.pInfo
       this.pendulumSize = data.pSize
     },
@@ -2253,28 +2607,57 @@ export default {
       }
 
       try {
-        if (this.$ygoDb) {
-          let blob = await this.$ygoDb.getCardImage(key)
-          if (!blob) {
-            const res = await fetch(imageUrl)
-            if (!res.ok) throw new Error(res.statusText)
-            blob = await res.blob()
-            await this.$ygoDb.saveCardImage(key, blob)
+        const timeout = (promise, ms) =>
+          Promise.race([
+            promise,
+            new Promise((_, rej) =>
+              setTimeout(() => rej(new Error('timeout')), ms)
+            ),
+          ])
+
+        if (window.cardArt) {
+          try {
+            const base64 = await timeout(
+              window.cardArt.get(key, imageUrl),
+              15000
+            )
+            if (base64) {
+              const binary = atob(base64)
+              const bytes = new Uint8Array(binary.length)
+              for (let i = 0; i < binary.length; i++)
+                bytes[i] = binary.charCodeAt(i)
+              const blob = new Blob([bytes], { type: 'image/webp' })
+              const url = URL.createObjectURL(blob)
+              setUrlAndDraw(url)
+              return
+            }
+          } catch (_) {
+            /* timeout or download error, fall through */
           }
-          const url = URL.createObjectURL(blob)
-          setUrlAndDraw(url)
-          return
         }
 
-        setUrlAndDraw(imageUrl)
+        if (this.$ygoDb) {
+          const blob = await timeout(
+            this.$ygoDb.getCardImage(key),
+            8000
+          )
+          if (blob) {
+            const url = URL.createObjectURL(blob)
+            setUrlAndDraw(url)
+            return
+          }
+        }
+
+        setUrlAndDraw(null)
       } catch (e) {
-        this.$set(this.apiCardImageUrls, key, imageUrl)
+        console.warn('ensureCardImage falhou para', key, e)
+        this.$set(this.apiCardImageUrls, key, null)
         if (forCurrentCard) {
           scheduledDraw = true
           this.cardPhotoLoading = false
           this.$nextTick(() => {
             this.fireLoadingDialog()
-            this.drawCard(imageUrl)
+            this.drawCard()
           })
         }
       } finally {
@@ -2304,14 +2687,10 @@ export default {
       return url || 'images/default.jpg'
     },
 
-    /** Lista de resultados da busca: imagem cropped (arte do card). */
     getSearchResultImageSrc(card) {
       const img = card.card_images && card.card_images[0]
-      const url = img ? this.getCanvasImageUrl(img) : null
-      if (url) return url
-      return (
-        (img && (img.image_url_small || img.image_url)) || 'images/default.jpg'
-      )
+      if (!img) return 'images/default.jpg'
+      return img.image_url_small || img.image_url || 'images/default.jpg'
     },
 
     /** Cor de fundo do card na lista de busca por tipo/subtipo. */
@@ -2358,14 +2737,108 @@ export default {
         this.localCards = Array.isArray(cards) ? cards : []
         this.lastSync = lastSync
         this.localDatabaseVersion = databaseVersion ?? null
-        const oldFormat =
-          this.localCards.length > 0 &&
-          this.localCards.some((c) => c.lang == null)
-        if (oldFormat || await this.$ygoDb.shouldSync(lastSync))
-          await this.syncYgoDb()
+        if (await this.$ygoDb.shouldSync(lastSync)) await this.syncYgoDb()
+        await this.restoreSearchState()
+        await this.restoreLastCard()
       } catch (e) {
         this.syncError = this.ui[this.uiLang].db_sync_error
       }
+    },
+
+    async saveSearchState() {
+      if (!this.$ygoDb) return
+      const state = {
+        searchMode: this.searchMode,
+        searchQueryNormalized: this.searchQueryNormalized,
+        searchTried: this.searchTried,
+      }
+      try {
+        await this.$ygoDb.updateSyncMeta('searchState', JSON.stringify(state))
+      } catch (_) {
+        /* ignore */
+      }
+    },
+
+    async restoreSearchState() {
+      if (!this.$ygoDb || this.localCards.length === 0) return
+      try {
+        const raw = await this.$ygoDb.getSyncMeta('searchState')
+        if (!raw) return
+        const state = JSON.parse(raw)
+        this.searchMode = state.searchMode || 'archetype'
+        this.searchByArchetype = ''
+        this.searchByName = ''
+        this.searchTried = false
+        const hasQuery =
+          (this.searchMode === 'archetype' && this.searchByArchetype.trim()) ||
+          (this.searchMode === 'name' && this.searchByName.trim())
+        if (hasQuery) this.searchCards()
+      } catch (_) {
+        /* ignore */
+      }
+    },
+
+    saveLastCard() {
+      if (!this.$ygoDb || !this.cardKey) return
+      if (this._saveLastCardTimer) clearTimeout(this._saveLastCardTimer)
+      this._saveLastCardTimer = setTimeout(async () => {
+        try {
+          const state = {
+            cardKey: this.cardKey,
+            cardLang: this.cardLang,
+            snapshot: this.getCurrentCardSnapshot(),
+          }
+          await this.$ygoDb.updateSyncMeta('lastCard', JSON.stringify(state))
+        } catch (_) {
+          /* ignore */
+        }
+      }, 800)
+    },
+
+    async restoreLastCard() {
+      if (!this.$ygoDb) return
+      try {
+        const raw = await this.$ygoDb.getSyncMeta('lastCard')
+        if (!raw) return
+        const state = JSON.parse(raw)
+        if (!state.snapshot) return
+        this.programmaticUpdate = true
+        this.loadFromSnapshot(state.snapshot)
+        this.cardKey = state.cardKey || ''
+        this.cardLang = state.cardLang || 'pt'
+        this.viewingBaseCard = !!this.localCardsMap[this.cardKey]
+        this.loadedFromDeck = false
+        this.editingDeckCardId = null
+        const card = this.localCards.find(
+          (c) => String(c.id) === String(this.cardKey)
+        )
+        const img = card?.card_images?.[0]
+        const imgUrl = img ? this.getCanvasImageUrl(img) : null
+        if (imgUrl) {
+          this.cardPhotoLoading = true
+          this.$nextTick(() => this.fireLoadingDialog())
+          await this.ensureCardImage(this.cardKey, imgUrl)
+        }
+        this.$nextTick(() => this.drawCard())
+        if (card && this.viewingBaseCard) {
+          setTimeout(() => {
+            this.relatedCards = this.buildRelatedCards(card, 2)
+            this.preloadRelatedCardImages()
+          }, 0)
+        }
+      } catch (_) {
+        /* ignore */
+      }
+    },
+
+    async forceResync() {
+      if (!this.$ygoDb) return
+      await this.$ygoDb.updateSyncMeta('databaseVersion', '')
+      await this.syncYgoDb()
+      const { cards, lastSync, databaseVersion } = await this.$ygoDb.getDB()
+      this.localCards = Array.isArray(cards) ? cards : []
+      this.lastSync = lastSync
+      this.localDatabaseVersion = databaseVersion ?? null
     },
 
     async syncYgoDb() {
@@ -2381,10 +2854,8 @@ export default {
             : null
         const hasNewVersion =
           remoteVersion && remoteVersion !== this.localDatabaseVersion
-        const oldFormat =
-          this.localCards.length > 0 &&
-          this.localCards.some((c) => c.lang == null)
-        const mustRefetch = hasNewVersion || (remoteVersion && oldFormat)
+        const forceRefresh = !this.localDatabaseVersion
+        const mustRefetch = hasNewVersion || forceRefresh
         if (!mustRefetch) {
           if (remoteVersion && this.localDatabaseVersion === remoteVersion) {
             await this.$ygoDb.updateSyncMeta('lastSync', Date.now())
@@ -2491,13 +2962,161 @@ export default {
       }, 200)
     },
     selectCardFromName(card) {
-      this.searchByName = card.name
+      this.searchByName = ''
       this.showNameDropdown = false
       this.applyCardFromSearch(card)
     },
 
+    stripAccents(str) {
+      return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    },
+
+    extractReferencedNames(card) {
+      const seen = new Set()
+      const add = (s) => {
+        const n = this.normalizeSearchQuery(s)
+        if (n && n.length >= 2) seen.add(n)
+      }
+      const texts = [card.desc_en, card.desc_pt, card.desc].filter(Boolean)
+      const quoteRe = /"([^"]+)"/g
+      for (const text of texts) {
+        let m
+        while ((m = quoteRe.exec(text)) !== null) {
+          const raw = m[1].trim()
+          add(raw)
+          const ma = raw.match(/^(.+?)\(a\)$/i)
+          const mo = raw.match(/^(.+?)\(o\)$/i)
+          if (ma) {
+            const base = ma[1].trim()
+            add(base)
+            if (base.endsWith('o')) add(base.slice(0, -1) + 'a')
+          } else if (mo) {
+            const base = mo[1].trim()
+            add(base)
+            if (base.endsWith('a')) add(base.slice(0, -1) + 'o')
+          }
+        }
+      }
+      return [...seen]
+    },
+
+    findCardsByExtractedNames(names) {
+      const found = new Map()
+      const n = (s) => this.normalizeSearchQuery(s || '')
+      const namesList = names.filter(Boolean)
+      for (const name of namesList) {
+        const exact = this.nameIndexMap.get(name)
+        if (exact) for (const c of exact) found.set(String(c.id), c)
+      }
+      if (namesList.length === 0) return [...found.values()]
+      for (const card of this.localCards) {
+        if (found.has(String(card.id))) continue
+        const en = n(card.name_en || card.name)
+        const pt = n(card.name_pt)
+        for (const name of namesList) {
+          if ((en && en.includes(name)) || (pt && pt.includes(name))) {
+            found.set(String(card.id), card)
+            break
+          }
+        }
+      }
+      return [...found.values()]
+    },
+
+    findCardsMentioning(cardNames) {
+      const namesNorm = cardNames
+        .map((s) => this.normalizeSearchQuery(s))
+        .filter(Boolean)
+      if (!namesNorm.length) return []
+      const found = new Map()
+      const n = (s) => this.stripAccents((s || '').toLowerCase())
+      for (const card of this.localCards) {
+        const descEn = n(card.desc_en)
+        const descPt = n(card.desc_pt)
+        const descRaw = n(card.desc)
+        const combined = [descEn, descPt, descRaw].filter(Boolean).join(' ')
+        if (!combined) continue
+        for (const q of namesNorm) {
+          if (combined.includes(q)) {
+            found.set(String(card.id), card)
+            break
+          }
+        }
+      }
+      return [...found.values()]
+    },
+
+    cardTypePriority(card) {
+      const t = (card.type || '').toLowerCase()
+      const f = (card.frameType || '').toLowerCase()
+      if (t.includes('token') || f === 'token') return 99
+      if (
+        f === 'normal' ||
+        (t.includes('normal') &&
+          !t.includes('effect') &&
+          !t.includes('spell') &&
+          !t.includes('trap'))
+      )
+        return 0
+      if (t.includes('effect') || f === 'effect') return 1
+      if (t.includes('spell')) return 2
+      if (t.includes('trap')) return 3
+      if (t.includes('ritual')) return 4
+      if (t.includes('fusion')) return 5
+      if (t.includes('synchro')) return 6
+      if (t.includes('xyz')) return 7
+      if (t.includes('pendulum')) return 8
+      if (t.includes('link')) return 9
+      return 10
+    },
+
+    buildRelatedCards(card, depth = 2) {
+      const mainId = String(card.id)
+      const collected = new Map()
+      const add = (c) => {
+        const id = String(c.id)
+        if (id === mainId || collected.has(id)) return
+        collected.set(id, { ...c, _matchLang: c._matchLang || 'en' })
+      }
+
+      const mainNames = [card.name_en || card.name, card.name_pt]
+        .filter(Boolean)
+        .map((s) => this.normalizeSearchQuery(s))
+
+      const level1Cited = this.findCardsByExtractedNames(
+        this.extractReferencedNames(card)
+      )
+      const level1Mentioning = this.findCardsMentioning(mainNames)
+      for (const c of level1Cited) add(c)
+      for (const c of level1Mentioning) add(c)
+
+      if (depth >= 2) {
+        const level1Cards = [...collected.values()].slice(0, 8)
+        for (const c1 of level1Cards) {
+          const cited = this.findCardsByExtractedNames(
+            this.extractReferencedNames(c1)
+          )
+          const names1 = [c1.name_en || c1.name, c1.name_pt]
+            .filter(Boolean)
+            .map((s) => this.normalizeSearchQuery(s))
+          const mentioning = this.findCardsMentioning(names1)
+          for (const c of cited) add(c)
+          for (const c of mentioning) add(c)
+        }
+      }
+
+      const excludeIds = new Set(this.searchResults.map((r) => String(r.id)))
+      const result = [...collected.values()]
+        .filter((c) => !excludeIds.has(String(c.id)))
+        .sort((a, b) => this.cardTypePriority(a) - this.cardTypePriority(b))
+        .slice(0, 150)
+      return result
+    },
+
     normalizeSearchQuery(q) {
-      return (q || '').toLowerCase().replace(/\s+/g, ' ').trim()
+      return this.stripAccents(
+        (q || '').toLowerCase().replace(/\s+/g, ' ').trim()
+      )
     },
 
     getSearchSectionLabel(sectionKey) {
@@ -2505,28 +3124,51 @@ export default {
       const raw = this.ui[this.uiLang] && this.ui[this.uiLang][key]
       const fallbacks = {
         archetype: 'Arquétipo "__Q__"',
-        name: 'Cartas com "__Q__" no nome',
-        desc: 'Cartas que mencionam "__Q__" no texto',
+        related: 'Cards relacionados a "__Q__"',
+        name: '"__Q__"',
+        desc: 'Cards que mencionam "__Q__" na descrição',
       }
       const template = raw || fallbacks[sectionKey] || ''
       const q = this.searchQueryNormalized
       return template.replace(/\{\{q\}\}/gi, q).replace(/__Q__/g, q)
     },
 
-    getCardMatchType(card, queryNorm) {
-      if (!queryNorm) return 'none'
-      const arch = (card.archetype || '').toLowerCase()
-      const nameEn = (card.name_en || card.name || '').toLowerCase()
-      const descEn = (card.desc_en || card.desc || '').toLowerCase()
-      const isArchetype = arch === queryNorm
-      const isName = nameEn.includes(queryNorm)
-      const isDesc =
-        descEn.includes(queryNorm) ||
-        (card.desc_en || card.desc || '').includes(`"${queryNorm}"`)
-      if (isArchetype) return 'archetype'
-      if (isName) return 'name'
-      if (isDesc) return 'desc'
-      return 'none'
+    getCardMatchInfo(card, queryNorm) {
+      if (!queryNorm) return { type: 'none', lang: 'en' }
+      const n = (s) => this.stripAccents((s || '').toLowerCase())
+      const arch = n(card.archetype)
+      const nameEn = n(card.name_en || card.name)
+      const namePt = n(card.name_pt)
+      const descEn = n(card.desc_en)
+      const descPt = n(card.desc_pt)
+      const descRaw = n(card.desc)
+
+      if (arch && (arch === queryNorm || arch.includes(queryNorm))) {
+        const lang = namePt.includes(queryNorm) ? 'pt' : 'en'
+        return { type: 'archetype', lang }
+      }
+      if (namePt.includes(queryNorm)) return { type: 'name', lang: 'pt' }
+      if (nameEn.includes(queryNorm)) return { type: 'name', lang: 'en' }
+      if (descPt.includes(queryNorm)) return { type: 'desc', lang: 'pt' }
+      if (descEn.includes(queryNorm) || descRaw.includes(queryNorm))
+        return { type: 'desc', lang: 'en' }
+      return { type: 'none', lang: 'en' }
+    },
+
+    getDisplayName(card) {
+      if (card._matchLang === 'pt' && card.name_pt) return card.name_pt
+      if (card._matchLang === 'en' || card._matchLang)
+        return card.name_en || card.name || ''
+      if (this.cardLang === 'pt' && card.name_pt) return card.name_pt
+      return card.name_en || card.name || ''
+    },
+
+    getFilteredCardDisplayName(card) {
+      if (!this.searchByName) return card.name_en || card.name || ''
+      const q = this.normalizeSearchQuery(this.searchByName)
+      const pt = this.stripAccents((card.name_pt || '').toLowerCase())
+      if (pt.includes(q) && card.name_pt) return card.name_pt
+      return card.name_en || card.name || ''
     },
 
     searchCards() {
@@ -2544,15 +3186,53 @@ export default {
         return
       }
       const queryNorm = this.normalizeSearchQuery(queryRaw)
-      const matchPriority = { archetype: 0, name: 1, desc: 2 }
+      const matchPriority = { archetype: 0, name: 1, desc: 2, related: 3 }
       const withType = this.localCards
-        .map((c) => ({ ...c, matchType: this.getCardMatchType(c, queryNorm) }))
+        .map((c) => {
+          const info = this.getCardMatchInfo(c, queryNorm)
+          return { ...c, matchType: info.type, _matchLang: info.lang }
+        })
         .filter((c) => c.matchType !== 'none')
-        .sort((a, b) => matchPriority[a.matchType] - matchPriority[b.matchType])
-      this.searchResults = withType.slice(0, 200)
+        .sort((a, b) => {
+          const mp = matchPriority[a.matchType] - matchPriority[b.matchType]
+          if (mp !== 0) return mp
+          return this.cardTypePriority(a) - this.cardTypePriority(b)
+        })
+      const archCards = withType.filter((c) => c.matchType === 'archetype')
+      const nameCards = withType.filter((c) => c.matchType === 'name')
+      const descCards = withType.filter((c) => c.matchType === 'desc')
+      const existingIds = new Set(
+        [...archCards, ...nameCards, ...descCards]
+          .slice(0, 300)
+          .map((c) => String(c.id))
+      )
+      const primaryForExpand = [...archCards, ...nameCards, ...descCards].slice(
+        0,
+        3
+      )
+      const relatedExpanded = new Map()
+      for (const primary of primaryForExpand) {
+        for (const c of this.buildRelatedCards(primary, 2)) {
+          if (!existingIds.has(String(c.id))) {
+            relatedExpanded.set(String(c.id), {
+              ...c,
+              matchType: 'related',
+              _matchLang: c._matchLang || 'en',
+            })
+          }
+        }
+      }
+      const relatedCardsList = [...relatedExpanded.values()].slice(0, 100)
+      this.searchResults = [
+        ...archCards.slice(0, 100),
+        ...nameCards.slice(0, 100),
+        ...descCards.slice(0, 100),
+        ...relatedCardsList,
+      ]
       this.searchQueryNormalized = queryNorm
       this.searchLoading = false
       this.preloadSearchResultImages()
+      this.saveSearchState()
     },
 
     preloadSearchResultImages() {
@@ -2579,13 +3259,14 @@ export default {
     },
 
     doApplyCardFromSearch(card) {
+      this.searchByName = ''
+      this.searchByArchetype = ''
+      this.saveSearchState()
       this.initialSnapshotWhenNotFromCollection = null
       this.editingDeckCardId = null
       this.snapshotAtLoad = null
       this.loadedFromDeck = false
       this.viewingBaseCard = true
-      // eslint-disable-next-line no-console -- debug: inspecionar imagens do card
-      console.log('Card selecionado:', card)
       const key = String(card.id)
       const img = card.card_images && card.card_images[0]
       const imgUrl = img ? this.getCanvasImageUrl(img) : null
@@ -2595,7 +3276,15 @@ export default {
       this.cardPhotoLoading = !!imgUrl
       if (imgUrl) {
         this.$nextTick(() => this.fireLoadingDialog())
-        this.ensureCardImage(key, imgUrl) // chama drawCard no finally quando a imagem estiver pronta
+        this.ensureCardImage(key, imgUrl)
+        // Fallback: garantir que loading não fique infinito se ensureCardImage travar
+        setTimeout(() => {
+          if (this.cardPhotoLoading && this.cardKey === key) {
+            this.cardPhotoLoading = false
+            this.closeLoadingDialog()
+            this.drawCard()
+          }
+        }, 20000)
       } else {
         this.cardPhotoLoading = false
         this.$nextTick(() => {
@@ -2610,6 +3299,29 @@ export default {
           )
         }, 800)
       })
+      const runRelated = () => {
+        this.relatedCards = this.buildRelatedCards(card, 2)
+        this.preloadRelatedCardImages()
+      }
+      if (typeof requestIdleCallback !== 'undefined') {
+        requestIdleCallback(() => runRelated(), { timeout: 500 })
+      } else {
+        setTimeout(runRelated, 150)
+      }
+    },
+
+    preloadRelatedCardImages() {
+      if (!this.$ygoDb || !this.relatedCards.length) return
+      const limit = 20
+      for (const card of this.relatedCards.slice(0, limit)) {
+        const img = card.card_images && card.card_images[0]
+        const imgUrl = img ? this.getCanvasImageUrl(img) : null
+        if (imgUrl && !this.apiCardImageUrls[String(card.id)]) {
+          this.ensureCardImage(String(card.id), imgUrl, {
+            forCurrentCard: false,
+          })
+        }
+      }
     },
 
     getCurrentCardSnapshot() {
@@ -2648,15 +3360,18 @@ export default {
       if (!this.$ygoDb || !this.cardKey || !this.selectedDeckId) return
       const snapshot = this.getCurrentCardSnapshot()
       const name = this.cardTitle || 'Card'
-      const id = await this.$ygoDb.addCardToDeck(this.selectedDeckId, Number(this.cardKey) || null, {
-        name,
-        cardKey: this.cardKey,
-        cardLang: this.cardLang,
-        snapshot,
-      })
+      const id = await this.$ygoDb.addCardToDeck(
+        this.selectedDeckId,
+        Number(this.cardKey) || null,
+        {
+          name,
+          cardKey: this.cardKey,
+          cardLang: this.cardLang,
+          snapshot,
+        }
+      )
       await this.loadDeckCards()
       this.editingDeckCardId = id
-      this.viewingBaseCard = false
       this.loadedFromDeck = true
       this.snapshotAtLoad = JSON.parse(JSON.stringify(snapshot))
     },
@@ -2693,7 +3408,13 @@ export default {
       this.$refs.unsavedChangesModal.hide()
       const action = this.pendingLeaveAction
       this.pendingLeaveAction = null
-      this.runPendingLeaveAction(action)
+      // Limpar estado de alterações não salvas antes de executar a ação,
+      // para que hasUnsavedLayoutChanges fique false e não mostre o modal de novo
+      this.editingDeckCardId = null
+      this.snapshotAtLoad = null
+      this.$nextTick(() => {
+        this.runPendingLeaveAction(action)
+      })
     },
 
     onUnsavedModalCancel() {
@@ -2732,6 +3453,23 @@ export default {
       await this.loadDeckCards()
     },
 
+    openEditDeckModal(deck) {
+      this.editingDeckId = deck.id
+      this.editingDeckName = deck.name || ''
+      this.showEditDeckModal = true
+    },
+    async saveEditDeck() {
+      if (!this.$ygoDb || !this.editingDeckId || !this.editingDeckName.trim())
+        return
+      await this.$ygoDb.updateDeck(
+        this.editingDeckId,
+        this.editingDeckName.trim()
+      )
+      this.showEditDeckModal = false
+      this.editingDeckId = null
+      this.editingDeckName = ''
+      await this.loadDecks()
+    },
     async renameDeck(id, newName) {
       if (!this.$ygoDb || !newName.trim()) return
       await this.$ygoDb.updateDeck(id, newName.trim())
@@ -2768,6 +3506,11 @@ export default {
 
     getDeckCardImageSrc(item) {
       const key = item.cardKey
+      const card = this.localCards.find((c) => String(c.id) === String(key))
+      const img = card?.card_images?.[0]
+      if (img && (img.image_url_small || img.image_url)) {
+        return img.image_url_small || img.image_url
+      }
       return this.deckCardImageUrls[key] || this.apiCardImageUrls[key] || null
     },
 
@@ -2817,15 +3560,26 @@ export default {
       this.showTranslationModal = false
       const { cards } = await this.$ygoDb.getDB()
       this.localCards = cards || []
-      if (this.cardKey && String(this.translatingCardId) === String(this.cardKey)) {
+      if (
+        this.cardKey &&
+        String(this.translatingCardId) === String(this.cardKey)
+      ) {
         this.cardTitle = this.translationName || this.cardTitle
         this.cardInfo = this.translationDesc || this.cardInfo
         this.$nextTick(() => this.drawCard())
       }
     },
 
+    sanitizeFilename(s) {
+      return (
+        (s || '')
+          .replace(/[^a-zA-Z0-9\u00C0-\u024F\s-]/g, '')
+          .replace(/\s+/g, ' ')
+          .trim() || 'card'
+      )
+    },
     async batchDownloadDeck() {
-      if (!this.selectedDeckCards.length) return
+      if (!this.selectedDeckCards.length || !this.selectedDeck) return
       this.batchDownloading = true
       const saveState = {
         snapshot: this.getCurrentCardSnapshot(),
@@ -2833,6 +3587,7 @@ export default {
         cardLang: this.cardLang,
       }
       this._exportingCard = true
+      const zip = new JSZip()
       try {
         for (let i = 0; i < this.selectedDeckCards.length; i++) {
           const entry = this.selectedDeckCards[i]
@@ -2851,16 +3606,21 @@ export default {
           const canvas = this.$refs.yugiohcard
           if (canvas) {
             const dataUrl = canvas.toDataURL('image/png')
-            const a = document.createElement('a')
-            a.href = dataUrl
-            a.download = `${(entry.name || 'card').replace(
-              /[^a-zA-Z0-9\u00C0-\u024F\s-]/g,
-              ''
-            )}_${entry.cardKey}.png`
-            a.click()
+            const base64 = dataUrl.replace(/^data:image\/png;base64,/, '')
+            const fname = `${this.sanitizeFilename(entry.name)}_${
+              entry.cardKey
+            }.png`
+            zip.file(fname, base64, { base64: true })
           }
-          await new Promise((resolve) => setTimeout(resolve, 300))
+          await new Promise((resolve) => setTimeout(resolve, 100))
         }
+        const zipBlob = await zip.generateAsync({ type: 'blob' })
+        const zipUrl = URL.createObjectURL(zipBlob)
+        const a = document.createElement('a')
+        a.href = zipUrl
+        a.download = `${this.sanitizeFilename(this.selectedDeck.name)}.zip`
+        a.click()
+        URL.revokeObjectURL(zipUrl)
       } finally {
         this._exportingCard = false
         this.batchDownloading = false
@@ -2918,7 +3678,7 @@ export default {
       this.cardInfo = data.infoText
       this.infoSize = data.size
       this.infoPosition =
-        data.infoPosition != null ? Number(data.infoPosition) : 0
+        data.infoPosition != null ? Number(data.infoPosition) : 5
       this.cardPendulumInfo = data.pendulumText
       this.pendulumSize = data.pSize
       setTimeout(() => {
@@ -3006,6 +3766,11 @@ nav {
   color: #fff;
 }
 
+.deck-name-input,
+.deck-name-input:focus {
+  color: #121212 !important;
+}
+
 /* Painel de busca acima do canvas para o dropdown de arquétipo aparecer */
 .search-panel-col {
   position: relative;
@@ -3070,5 +3835,58 @@ select option {
   content: '✚' !important;
   background-color: #787878 !important;
   color: #fff;
+}
+/* Thumbnails de busca */
+.search-thumb {
+  height: 200px;
+  width: auto;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.search-thumb:hover {
+  transform: scale(1.08);
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.4);
+  z-index: 2;
+}
+/* Thumbnails de deck */
+.deck-thumb-wrap {
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+.deck-thumb-wrap:hover {
+  transform: scale(1.08);
+  z-index: 2;
+}
+.deck-thumb {
+  height: 200px;
+  width: auto;
+  display: block;
+}
+.deck-thumb-active {
+  outline: 2px solid #007bff;
+  border-radius: 4px;
+}
+.deck-thumb-remove {
+  display: none;
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(220, 53, 69, 0.9);
+  color: #fff;
+  font-size: 12px;
+  line-height: 1;
+  padding: 0;
+  cursor: pointer;
+  z-index: 3;
+}
+.deck-thumb-wrap:hover .deck-thumb-remove {
+  display: block;
+}
+.deck-thumb-remove:hover {
+  background: #dc3545;
 }
 </style>

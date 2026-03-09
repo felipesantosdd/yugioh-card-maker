@@ -1050,7 +1050,7 @@ export default {
         9: { val: false, symbol: '◢' },
       },
       infoSize: '22',
-      infoPosition: 0,
+      infoPosition: 8,
       cardInfo: '',
 
       imgs: {},
@@ -1941,7 +1941,7 @@ export default {
       for (let i = 1; i <= 9; i++) if (i !== 5) this.links[i].val = false
       this.cardInfo = data.info
       this.infoSize = data.size
-      this.infoPosition = 0
+      this.infoPosition = 8
       this.cardPendulumInfo = data.pInfo
       this.pendulumSize = data.pSize
     },
@@ -2730,7 +2730,7 @@ export default {
       this.cardInfo = data.infoText
       this.infoSize = data.size
       this.infoPosition =
-        data.infoPosition != null ? Number(data.infoPosition) : 0
+        data.infoPosition != null ? Number(data.infoPosition) : 5
       this.cardPendulumInfo = data.pendulumText
       this.pendulumSize = data.pSize
       setTimeout(() => {

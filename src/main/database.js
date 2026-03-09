@@ -158,11 +158,12 @@ function saveCardsEN(enCards) {
   const tx = d.transaction(() => {
     d.prepare('DELETE FROM cards').run()
     for (const card of enCards) {
+      const data = { ...card, lang: 'en' }
       insert.run(
         card.id,
         card.name || '',
         card.desc || '',
-        JSON.stringify(card)
+        JSON.stringify(data)
       )
     }
   })
@@ -326,6 +327,12 @@ function removeDeckCard(id) {
   }
 }
 
+function getSyncMeta(key) {
+  const d = open()
+  const row = d.prepare('SELECT value FROM sync_meta WHERE key = ?').get(key)
+  return row ? row.value : null
+}
+
 module.exports = {
   open,
   close,
@@ -335,6 +342,7 @@ module.exports = {
   mergeCardsPT,
   updateCardTranslation,
   shouldSync,
+  getSyncMeta,
   updateSyncMeta,
   clearCards,
   clearCardImages,

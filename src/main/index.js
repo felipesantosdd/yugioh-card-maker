@@ -41,6 +41,7 @@ function registerIpcHandlers() {
   ipcMain.handle('ygoDb:mergeCardsPT', (_e, ptCards) => database.mergeCardsPT(ptCards))
   ipcMain.handle('ygoDb:updateCardTranslation', (_e, cardId, namePt, descPt) => database.updateCardTranslation(cardId, namePt, descPt))
   ipcMain.handle('ygoDb:shouldSync', (_e, lastSync) => database.shouldSync(lastSync))
+  ipcMain.handle('ygoDb:getSyncMeta', (_e, key) => database.getSyncMeta(key))
   ipcMain.handle('ygoDb:updateSyncMeta', (_e, key, value) => database.updateSyncMeta(key, value))
   ipcMain.handle('ygoDb:clearCards', () => database.clearCards())
   ipcMain.handle('ygoDb:clearCardImages', () => database.clearCardImages())

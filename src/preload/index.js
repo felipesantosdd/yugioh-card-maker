@@ -8,6 +8,7 @@ contextBridge.exposeInMainWorld('ygoDb', {
   mergeCardsPT: (ptCards) => ipcRenderer.invoke('ygoDb:mergeCardsPT', ptCards),
   updateCardTranslation: (cardId, namePt, descPt) => ipcRenderer.invoke('ygoDb:updateCardTranslation', cardId, namePt, descPt),
   shouldSync: (lastSync) => ipcRenderer.invoke('ygoDb:shouldSync', lastSync),
+  getSyncMeta: (key) => ipcRenderer.invoke('ygoDb:getSyncMeta', key),
   updateSyncMeta: (key, value) => ipcRenderer.invoke('ygoDb:updateSyncMeta', key, value),
   clearCards: () => ipcRenderer.invoke('ygoDb:clearCards'),
   clearCardImages: () => ipcRenderer.invoke('ygoDb:clearCardImages'),

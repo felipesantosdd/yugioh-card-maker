@@ -13,7 +13,7 @@ module.exports = (_env, argv) => {
     output: {
       path: path.resolve(__dirname, 'dist'),
       filename: 'js/[name].[contenthash:8].js',
-      publicPath: './',
+      publicPath: isProd ? './' : '/',
       clean: true,
     },
     resolve: {
