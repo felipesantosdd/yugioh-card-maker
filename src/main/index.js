@@ -2,6 +2,7 @@ const { app, BrowserWindow, ipcMain } = require('electron')
 const path = require('path')
 const database = require('./database')
 const cardArt = require('./card-art')
+const silhouettePdf = require('./silhouette-pdf')
 
 let mainWindow = null
 
@@ -23,7 +24,8 @@ function createWindow() {
   if (process.env.NODE_ENV === 'development') {
     const port = process.env.DEV_SERVER_PORT || 9080
     mainWindow.loadURL(`http://localhost:${port}`)
-    mainWindow.webContents.openDevTools()
+    // DevTools: abrir manualmente com F12 se precisar (evita erro dragEvent ao trocar abas)
+    // mainWindow.webContents.openDevTools()
   } else {
     mainWindow.loadFile(path.join(__dirname, '../../dist/index.html'))
   }
@@ -74,6 +76,20 @@ function registerIpcHandlers() {
     return buf ? buf.toString('base64') : null
   })
   ipcMain.handle('cardArt:exists', (_e, id) => cardArt.cardArtExists(id))
+
+  // PDF para Silhouette/Cricut (integrado, sem Python externo)
+  ipcMain.handle('silhouette:generatePdf', async (_e, { images, cardSize = 'japanese', paperSize = 'a4', cardsTouch = false }) => {
+    if (!Array.isArray(images) || images.length === 0) {
+      throw new Error('Informe ao menos uma imagem (array de { base64 } ou strings base64).')
+    }
+    const list = images.map((img) => (typeof img === 'string' ? { base64: img } : img))
+    return silhouettePdf.generateSilhouettePdf(list, cardSize, paperSize, { cardsTouch })
+  })
+  ipcMain.handle('silhouette:getTemplate', (_e, templateFileName) => {
+    const buf = silhouettePdf.getTemplateBuffer(templateFileName)
+    return buf.toString('base64')
+  })
+  ipcMain.handle('silhouette:getCardSizeOptions', () => silhouettePdf.getCardSizeOptions())
 }
 
 app.whenReady().then(() => {

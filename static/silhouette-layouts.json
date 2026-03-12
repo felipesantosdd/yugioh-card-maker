@@ -1,0 +1,126 @@
+{
+  "ppi": 300,
+  "defaults": {
+    "card_radius": "3mm",
+    "registration": {
+      "inset": "10mm",
+      "thickness": "1mm",
+      "length": "5mm"
+    }
+  },
+  "card_sizes": {
+    "american_mini": {
+      "width": "41mm",
+      "height": "63mm",
+      "label": "American Mini (41×63 mm)"
+    },
+    "japanese": {
+      "width": "59mm",
+      "height": "86mm",
+      "radius": "1mm",
+      "label": "Japonês — Yu-Gi-Oh! (59×86 mm)"
+    },
+    "standard": {
+      "width": "63mm",
+      "height": "88mm",
+      "aliases": ["euro_poker"],
+      "label": "Standard — Magic / Digimon (63×88 mm)"
+    },
+    "poker": {
+      "width": "2.5in",
+      "height": "3.5in",
+      "label": "Poker — Pokémon (63,5×88,9 mm)"
+    },
+    "bridge": {
+      "width": "2.25in",
+      "height": "3.5in",
+      "label": "Bridge (57×89 mm)"
+    }
+  },
+  "paper_sizes": {
+    "letter": {
+      "width": "11in",
+      "height": "8.5in"
+    },
+    "a4": {
+      "width": "297mm",
+      "height": "210mm"
+    }
+  },
+  "layouts": {
+    "letter": {
+      "american_mini": {
+        "orientation": "portrait",
+        "version": 1,
+        "num_rows": 4,
+        "num_cols": 4,
+        "registration": { "length": "12.78mm" }
+      },
+      "japanese": {
+        "orientation": "landscape",
+        "version": 2,
+        "num_rows": 2,
+        "num_cols": 4,
+        "registration": { "length": "10.08mm" }
+      },
+      "standard": {
+        "orientation": "landscape",
+        "version": 5,
+        "num_rows": 2,
+        "num_cols": 4,
+        "registration": { "length": "8.04mm" }
+      },
+      "poker": {
+        "orientation": "landscape",
+        "version": 3,
+        "num_rows": 2,
+        "num_cols": 4,
+        "registration": { "length": "7.2mm" }
+      },
+      "bridge": {
+        "orientation": "landscape",
+        "version": 3,
+        "num_rows": 2,
+        "num_cols": 4,
+        "registration": { "length": "12.28mm" }
+      }
+    },
+    "a4": {
+      "american_mini": {
+        "orientation": "portrait",
+        "version": 1,
+        "num_rows": 4,
+        "num_cols": 4,
+        "registration": { "length": "9.91mm" }
+      },
+      "japanese": {
+        "orientation": "portrait",
+        "version": 3,
+        "num_rows": 3,
+        "num_cols": 3,
+        "registration": { "length": "6.94mm" }
+      },
+      "standard": {
+        "orientation": "landscape",
+        "version": 4,
+        "num_rows": 3,
+        "num_cols": 6,
+        "registration": { "length": "6.6mm" }
+      },
+      "poker": {
+        "orientation": "portrait",
+        "version": 2,
+        "num_rows": 4,
+        "num_cols": 4,
+        "registration": { "length": "24.98mm" }
+      },
+      "bridge": {
+        "orientation": "portrait",
+        "version": 3,
+        "num_rows": 3,
+        "num_cols": 3,
+        "registration": { "length": "6.69mm" }
+      }
+    }
+  }
+}

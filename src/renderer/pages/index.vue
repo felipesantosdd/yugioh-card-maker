@@ -657,11 +657,7 @@
                       {{ ui[uiLang].download }}
                     </button>
                     <b-button
-                      v-if="
-                        cardKey &&
-                        selectedDeckId &&
-                        !isCurrentCardInDeck
-                      "
+                      v-if="cardKey && selectedDeckId && !isCurrentCardInDeck"
                       class="my-2 ml-2"
                       variant="outline-primary"
                       @click="addToDeckCurrent"
@@ -862,7 +858,10 @@
                   <b-button
                     size="sm"
                     variant="outline-success"
-                    @click="showNewDeckModal = true"
+                    @click="
+                      newDeckGame = 'yugioh'
+                      showNewDeckModal = true
+                    "
                   >
                     <fa :icon="['fas', 'plus']" />
                     {{ ui[uiLang].new_deck || 'Novo Deck' }}
@@ -941,19 +940,34 @@
                       <fa :icon="['fas', 'folder-open']" class="mr-1" />
                       {{ selectedDeck.name }} ({{ selectedDeckCards.length }})
                     </label>
-                    <b-button
-                      v-if="selectedDeckCards.length > 0"
-                      size="sm"
-                      variant="outline-info"
-                      :disabled="batchDownloading"
-                      @click="batchDownloadDeck"
-                    >
-                      {{
-                        batchDownloading
-                          ? ui[uiLang].batch_downloading || 'Baixando...'
-                          : ui[uiLang].batch_download || 'Baixar Todos'
-                      }}
-                    </b-button>
+                    <div v-if="selectedDeckCards.length > 0" class="d-flex align-items-center">
+                      <b-button
+                        size="sm"
+                        variant="outline-info"
+                        class="mr-2"
+                        :disabled="batchDownloading"
+                        @click="batchDownloadDeck"
+                      >
+                        {{
+                          batchDownloading
+                            ? ui[uiLang].batch_downloading || 'Baixando...'
+                            : ui[uiLang].batch_download || 'Baixar Todos'
+                        }}
+                      </b-button>
+                      <b-button
+                        v-if="typeof window !== 'undefined' && window.silhouette"
+                        size="sm"
+                        variant="outline-success"
+                        :disabled="silhouetteDownloading"
+                        @click="openSilhouetteModal"
+                      >
+                        {{
+                          silhouetteDownloading
+                            ? (ui[uiLang].silhouette_downloading || 'Gerando PDF…')
+                            : (ui[uiLang].silhouette_download || 'Baixar para Silhuete (Cricut)')
+                        }}
+                      </b-button>
+                    </div>
                   </div>
                   <div
                     v-if="selectedDeckCards.length > 0"
@@ -1040,6 +1054,402 @@
               </b-col>
             </b-row>
           </footer>
+        </b-tab>
+        <b-tab :title="ui[uiLang].tab_monster_hunter">
+          <b-row class="h-100 justify-content-center align-content-center">
+            <!-- Canvas à esquerda (igual card-panel do YGO) -->
+            <b-col
+              id="mh-card-panel"
+              cols="12"
+              md="6"
+              lg="4"
+              class="mt-3 mt-sm-5 mt-md-0"
+            >
+              <div class="panel-bg shadow p-3">
+                <!-- Wrapper com mesmo conceito do canvas YGO: 1000×1450, escala para caber no painel -->
+                <div
+                  ref="mhPreviewWrap"
+                  class="mh-card-preview-wrap mx-auto"
+                  :style="{
+                    width: '100%',
+                    maxWidth: '1000px',
+                    height: 1450 * mhPreviewScale + 'px',
+                  }"
+                >
+                  <div
+                    class="mh-card-preview position-relative"
+                    :style="mhCardPreviewStyle"
+                  >
+                    <!-- Título: top 60, left 100, 800x150, fontSize 74, com bg -->
+                    <div
+                      class="
+                        position-absolute
+                        mh-text-box
+                        text-center text-black
+                        overflow-hidden
+                        font-weight-bold
+                      "
+                      :style="{
+                        top: (mhTitleTop ?? 60) + 'px',
+                        left: (mhTitleLeft ?? 100) + 'px',
+                        width: (mhTitleWidth ?? 800) + 'px',
+                        height: (mhTitleHeight ?? 150) + 'px',
+                        fontSize: (mhTitleFontSize ?? 74) + 'px',
+                        fontWeight: 'bold',
+                        backgroundColor: 'transparent',
+                      }"
+                    >
+                      <span
+                        class="mh-text-inner"
+                        v-html="mhTextWithEmojis(mhTitle)"
+                      ></span>
+                    </div>
+                    <!-- Descrição 1: top 240, left 100, 800x420, fontSize 46, com bg -->
+                    <div
+                      class="
+                        position-absolute
+                        mh-text-box
+                        text-center text-black
+                        overflow-hidden
+                      "
+                      :style="{
+                        top: (mhBox1Top ?? 240) + 'px',
+                        left: (mhBox1Left ?? 100) + 'px',
+                        width: (mhBox1Width ?? 800) + 'px',
+                        height: (mhBox1Height ?? 420) + 'px',
+                        fontSize: (mhBox1FontSize ?? 46) + 'px',
+                        backgroundColor: 'transparent',
+                      }"
+                    >
+                      <span
+                        class="mh-text-inner"
+                        v-html="mhTextWithEmojis(mhDesc1)"
+                      ></span>
+                    </div>
+                    <!-- Descrição 2: top 730, left 100, 800x500, fontSize 46, com bg -->
+                    <div
+                      class="
+                        position-absolute
+                        mh-text-box
+                        text-center text-black
+                        overflow-hidden
+                      "
+                      :style="{
+                        top: (mhBox2Top ?? 730) + 'px',
+                        left: (mhBox2Left ?? 100) + 'px',
+                        width: (mhBox2Width ?? 800) + 'px',
+                        height: (mhBox2Height ?? 500) + 'px',
+                        fontSize: (mhBox2FontSize ?? 46) + 'px',
+                        backgroundColor: 'transparent',
+                      }"
+                    >
+                      <span
+                        class="mh-text-inner"
+                        v-html="mhTextWithEmojis(mhDesc2)"
+                      ></span>
+                    </div>
+                    <!-- Número (só no layout time-02) -->
+                    <div
+                      v-if="mhCardType === 'time-02'"
+                      class="position-absolute mh-text-box mh-number-box"
+                      :style="{
+                        top: (mhNumberTop ?? 1220) + 'px',
+                        left: (mhNumberLeft ?? 49) + 'px',
+                        width: (mhNumberWidth ?? 170) + 'px',
+                        height: (mhNumberHeight ?? 170) + 'px',
+                        fontSize: (mhNumberFontSize ?? 120) + 'px',
+                        color: '#fff',
+                        WebkitTextStroke: '1px #000',
+                        backgroundColor: mhNumberBg
+                          ? 'rgba(255,255,255,0.9)'
+                          : 'transparent',
+                        padding: '4px',
+                      }"
+                    >
+                      <span class="mh-text-inner">{{
+                        (mhNumberValue != null && mhNumberValue !== '' && Number(mhNumberValue) >= 1)
+                          ? mhNumberValue
+                          : 1
+                      }}</span>
+                    </div>
+                    <img
+                      :src="'images/pic/mh/icons/' + mhIconColor + '.png'"
+                      alt=""
+                      class="position-absolute"
+                      :style="mhIconStyle"
+                      @error="$event.target.style.display = 'none'"
+                    />
+                  </div>
+                </div>
+              </div>
+            </b-col>
+            <!-- Formulário à direita em div separada (igual data-panel do YGO) -->
+            <b-col
+              id="mh-data-panel"
+              cols="12"
+              md="6"
+              lg="8"
+              class="mt-3 mt-sm-5 mt-md-0"
+            >
+              <div class="panel-bg shadow p-3">
+                <b-form-group :label="ui[uiLang].mh_title">
+                  <b-form-input
+                    v-model="mhTitle"
+                    :placeholder="ui[uiLang].mh_title"
+                  />
+                </b-form-group>
+                <b-form-group :label="ui[uiLang].mh_card_type">
+                  <b-form-select
+                    v-model="mhCardType"
+                    :options="mhCardTypeOpts"
+                  />
+                </b-form-group>
+                <b-form-group :label="ui[uiLang].mh_desc1" label-size="sm">
+                  <b-form-textarea v-model="mhDesc1" rows="4" class="small" />
+                </b-form-group>
+                <b-form-group :label="ui[uiLang].mh_desc2" label-size="sm">
+                  <b-form-textarea v-model="mhDesc2" rows="4" class="small" />
+                </b-form-group>
+                <template v-if="mhCardType === 'time-02'">
+                  <b-form-group
+                    :label="ui[uiLang].mh_number_value"
+                    label-size="sm"
+                  >
+                    <b-form-input
+                      v-model.number="mhNumberValue"
+                      type="number"
+                      min="1"
+                      placeholder="1"
+                      class="small"
+                      style="max-width: 120px"
+                    />
+                  </b-form-group>
+                </template>
+                <b-form-group :label="ui[uiLang].mh_icon_color">
+                  <b-form-select
+                    v-model="mhIconColor"
+                    size="sm"
+                    style="max-width: 120px"
+                  >
+                    <option value="time-01">
+                      {{ ui[uiLang].mh_icon_blue }}
+                    </option>
+                    <option value="time-02">
+                      {{ ui[uiLang].mh_icon_red }}
+                    </option>
+                  </b-form-select>
+                </b-form-group>
+                <div class="d-flex flex-wrap align-items-center mb-2">
+                  <b-button
+                    variant="outline-light"
+                    size="sm"
+                    class="mr-3"
+                    @click="loadNewMHCard"
+                  >
+                    <fa :icon="['fas', 'plus']" class="mr-1" />
+                    {{ ui[uiLang].mh_new_card || 'Novo card' }}
+                  </b-button>
+                  <b-button
+                    variant="primary"
+                    size="sm"
+                    :disabled="
+                      !mhSelectedDeckId ||
+                      (editingMhDeckCardId && !hasUnsavedMHChanges)
+                    "
+                    :title="
+                      !mhSelectedDeckId
+                        ? ui[uiLang].mh_my_decks || 'Selecione um deck abaixo'
+                        : editingMhDeckCardId && !hasUnsavedMHChanges
+                          ? (ui[uiLang].no_changes || 'Nenhuma alteração')
+                          : ''
+                    "
+                    @click="saveOrAddMhCard"
+                  >
+                    <fa :icon="['fas', 'save']" class="mr-1" />
+                    {{
+                      editingMhDeckCardId
+                        ? (ui[uiLang].save_changes || 'Salvar alterações')
+                        : (ui[uiLang].mh_save_to_deck || 'Salvar no deck')
+                    }}
+                  </b-button>
+                </div>
+
+                <!-- Meus Decks (Monster Hunter) -->
+                <div class="mt-4 pt-3 border-top border-secondary">
+                  <div
+                    class="
+                      d-flex
+                      align-items-center
+                      justify-content-between
+                      mb-2
+                    "
+                  >
+                    <label class="mb-0">{{
+                      ui[uiLang].mh_my_decks || 'Meus Decks (MH)'
+                    }}</label>
+                    <b-button
+                      size="sm"
+                      variant="outline-success"
+                      @click="
+                        newDeckGame = 'monsterhunter'
+                        showNewDeckModal = true
+                      "
+                    >
+                      <fa :icon="['fas', 'plus']" />
+                      {{ ui[uiLang].new_deck || 'Novo Deck' }}
+                    </b-button>
+                  </div>
+                  <div v-if="mhUserDecks.length > 0" class="mb-3">
+                    <div
+                      v-for="deck in mhUserDecks"
+                      :key="deck.id"
+                      class="
+                        d-flex
+                        align-items-center
+                        justify-content-between
+                        border
+                        rounded
+                        p-2
+                        mb-1
+                      "
+                      :class="
+                        mhSelectedDeckId === deck.id
+                          ? 'border-primary bg-dark'
+                          : 'bg-dark'
+                      "
+                      style="cursor: pointer"
+                      @click="selectMhDeck(deck)"
+                    >
+                      <span class="text-white small">
+                        <fa
+                          :icon="['fas', 'folder']"
+                          class="mr-1"
+                          :class="
+                            mhSelectedDeckId === deck.id
+                              ? 'text-primary'
+                              : 'text-muted'
+                          "
+                        />
+                        {{ deck.name }}
+                      </span>
+                      <div>
+                        <b-button
+                          size="sm"
+                          variant="outline-secondary"
+                          class="mr-1"
+                          title="Editar nome"
+                          @click.stop="openEditMhDeckModal(deck)"
+                        >
+                          <fa :icon="['fas', 'pen']" />
+                        </b-button>
+                        <b-button
+                          size="sm"
+                          variant="outline-info"
+                          class="mr-1"
+                          :title="ui[uiLang].download || 'Baixar deck'"
+                          :disabled="mhDeckDownloading === deck.id"
+                          @click.stop="openMhDownloadModal(deck)"
+                        >
+                          <fa
+                            :icon="['fas', 'file-archive']"
+                            :class="{ 'fa-spin': mhDeckDownloading === deck.id }"
+                          />
+                        </b-button>
+                        <b-button
+                          size="sm"
+                          variant="outline-danger"
+                          @click.stop="deleteMhDeck(deck.id)"
+                        >
+                          <fa :icon="['fas', 'trash']" />
+                        </b-button>
+                      </div>
+                    </div>
+                  </div>
+                  <p v-else class="text-muted small mb-2">
+                    {{ ui[uiLang].no_decks || 'Nenhum deck criado.' }}
+                  </p>
+                  <div v-if="mhSelectedDeck" class="mt-2">
+                    <label class="mb-2 text-light small d-block">
+                      <fa :icon="['fas', 'folder-open']" class="mr-1" />
+                      {{ mhSelectedDeck.name }} ({{
+                        mhSelectedDeckCards.length
+                      }})
+                    </label>
+                    <div
+                      v-if="mhSelectedDeckCards.length > 0"
+                      class="d-flex flex-wrap"
+                      style="max-height: 280px; overflow-y: auto; gap: 4px"
+                    >
+                      <div
+                        v-for="item in mhSelectedDeckCards"
+                        :key="item.id"
+                        v-b-tooltip.hover.top="item.name || 'Card'"
+                        class="deck-thumb-wrap position-relative"
+                        :class="
+                          editingMhDeckCardId === item.id
+                            ? 'deck-thumb-active'
+                            : ''
+                        "
+                        @click="loadMhDeckCardForEdit(item)"
+                      >
+                        <div
+                          class="mh-deck-thumb rounded position-relative"
+                          :style="{
+                            backgroundImage: `url('images/pic/mh/layout/${
+                              (item.snapshot && item.snapshot.mhCardType) ||
+                              'time-01'
+                            }.png')`,
+                          }"
+                        >
+                          <div class="mh-deck-thumb-title">
+                            {{
+                              item.name ||
+                              (item.snapshot && item.snapshot.mhTitle) ||
+                              'Card'
+                            }}
+                          </div>
+                          <div
+                            class="mh-deck-thumb-desc"
+                            :title="
+                              (item.snapshot && item.snapshot.mhDesc1) || ''
+                            "
+                          >
+                            {{
+                              item.snapshot && item.snapshot.mhDesc1
+                                ? (item.snapshot.mhDesc1 + '').slice(0, 28) +
+                                  '…'
+                                : ''
+                            }}
+                          </div>
+                          <div class="mh-deck-thumb-icon-wrap">
+                            <img
+                              :src="
+                                'images/pic/mh/icons/' +
+                                ((item.snapshot && item.snapshot.mhIconColor) ||
+                                  'time-01') +
+                                '.png'
+                              "
+                              alt=""
+                              class="mh-deck-thumb-icon"
+                              @error="$event.target.style.display = 'none'"
+                            />
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          class="deck-thumb-remove"
+                          :title="ui[uiLang].remove || 'Remover'"
+                          @click.stop="removeMhDeckCard(item.id)"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </b-col>
+          </b-row>
         </b-tab>
         <b-tab :title="ui[uiLang].tab_other_games">
           <div class="panel-bg shadow p-3 text-center text-muted py-5">
@@ -1145,6 +1555,54 @@
       </b-form>
     </b-modal>
 
+    <!-- Modal: Baixar para Silhuete (PDF + arquivo de corte) - deck YGO -->
+    <b-modal
+      v-model="showSilhouetteModal"
+      :title="ui[uiLang].silhouette_modal_title || 'Folha para impressão e corte'"
+      ok-title=""
+      cancel-title=""
+      hide-footer
+      centered
+      @show="loadSilhouetteCardSizeOptions"
+    >
+      <p class="text-muted small mb-3">
+        Gera um PDF com as cartas na folha e o arquivo .studio3 para abrir na Silhouette Studio e fazer o corte.
+      </p>
+      <b-form-group :label="ui[uiLang].mh_download_card_size || 'Tamanho do card'">
+        <b-form-select
+          v-model="silhouetteCardSize"
+          :options="silhouetteCardSizeOptions"
+          value-field="key"
+          text-field="label"
+          size="sm"
+        />
+      </b-form-group>
+      <b-form-group :label="ui[uiLang].silhouette_paper_size || 'Tamanho da folha'">
+        <b-form-radio-group v-model="silhouettePaperSize" name="silhouette-paper">
+          <b-form-radio value="letter">{{ ui[uiLang].silhouette_letter || 'Letter (EUA)' }}</b-form-radio>
+          <b-form-radio value="a4">{{ ui[uiLang].silhouette_a4 || 'A4' }}</b-form-radio>
+        </b-form-radio-group>
+      </b-form-group>
+      <b-form-group>
+        <b-form-checkbox v-model="silhouetteCardsTouch">
+          {{ ui[uiLang].silhouette_cards_touch || 'Cards se tocam (reduz falha de impressão)' }}
+        </b-form-checkbox>
+        <small class="text-muted d-block mt-1">Desenha os cards invadindo o espaço entre eles; se a impressão entortar, a sobra não vira margem branca.</small>
+      </b-form-group>
+      <div class="text-right">
+        <b-button variant="secondary" class="mr-2" @click="showSilhouetteModal = false">
+          {{ ui[uiLang].cancel || 'Cancelar' }}
+        </b-button>
+        <b-button
+          variant="success"
+          :disabled="silhouetteDownloading"
+          @click="downloadSilhouetteDeck"
+        >
+          {{ silhouetteDownloading ? (ui[uiLang].silhouette_downloading || 'Gerando PDF…') : (ui[uiLang].silhouette_generate || 'Gerar PDF e arquivo de corte') }}
+        </b-button>
+      </div>
+    </b-modal>
+
     <!-- Modal: Tradução PT-BR -->
     <b-modal
       v-model="showTranslationModal"
@@ -1196,12 +1654,71 @@
       </b-form>
     </b-modal>
 
+    <!-- Modal: Download deck MH — formato PNG ou Silhuete -->
+    <b-modal
+      v-model="showMhDownloadModal"
+      :title="mhDownloadDeck ? (mhDownloadDeck.name + ' — Formato de download') : 'Baixar deck'"
+      ok-title=""
+      cancel-title=""
+      hide-footer
+      centered
+      @hidden="mhDownloadDeck = null"
+    >
+      <template v-if="mhDownloadDeck">
+        <b-form-group :label="ui[uiLang].mh_download_format || 'Em que formato deseja os cards?'">
+          <b-form-radio-group v-model="mhDownloadFormat" name="mh-download-format">
+            <b-form-radio value="png">{{ ui[uiLang].mh_download_png || 'PNG — imagens dos cards + deck.json (ZIP)' }}</b-form-radio>
+            <b-form-radio value="silhouette">{{ ui[uiLang].mh_download_silhouette || 'Silhuete — PDF para impressão + arquivo de corte (ZIP)' }}</b-form-radio>
+          </b-form-radio-group>
+        </b-form-group>
+        <template v-if="mhDownloadFormat === 'silhouette'">
+          <b-form-group :label="ui[uiLang].mh_download_card_size || 'Tamanho do card'" class="mt-3">
+            <b-form-select
+              v-model="mhDownloadCardSize"
+              :options="silhouetteCardSizeOptions"
+              value-field="key"
+              text-field="label"
+              size="sm"
+            />
+            <div v-if="silhouetteCardSizeOptions.length === 0 && window.silhouette" class="text-muted small mt-1">
+              Carregando…
+            </div>
+          </b-form-group>
+          <b-form-group :label="ui[uiLang].mh_download_paper || 'Papel de impressão'">
+            <b-form-radio-group v-model="mhDownloadSilhouettePaper" name="mh-silhouette-paper">
+              <b-form-radio value="letter">{{ ui[uiLang].silhouette_letter || 'Letter (EUA)' }}</b-form-radio>
+              <b-form-radio value="a4">{{ ui[uiLang].silhouette_a4 || 'A4' }}</b-form-radio>
+            </b-form-radio-group>
+          </b-form-group>
+          <b-form-group>
+            <b-form-checkbox v-model="mhDownloadCardsTouch">
+              {{ ui[uiLang].silhouette_cards_touch || 'Cards se tocam (reduz falha de impressão)' }}
+            </b-form-checkbox>
+          </b-form-group>
+        </template>
+        <div class="text-right mt-3">
+          <b-button variant="secondary" class="mr-2" @click="showMhDownloadModal = false">
+            {{ ui[uiLang].cancel || 'Cancelar' }}
+          </b-button>
+          <b-button
+            variant="success"
+            :disabled="mhDeckDownloading === mhDownloadDeck.id"
+            @click="confirmMhDownload"
+          >
+            <fa v-if="mhDeckDownloading === mhDownloadDeck.id" icon="spinner" spin class="mr-1" />
+            {{ mhDeckDownloading === mhDownloadDeck.id ? (ui[uiLang].mh_download_generating || 'Gerando…') : (ui[uiLang].mh_download_zip_btn || 'Baixar ZIP') }}
+          </b-button>
+        </div>
+      </template>
+    </b-modal>
+
     <LoadingDialog />
   </div>
 </template>
 
 <script>
 import { mapMutations } from 'vuex'
+import html2canvas from 'html2canvas'
 import JSZip from 'jszip'
 import LoadingDialog from '../components/LoadingDialog.vue'
 import ui from '../../../static/lang.ui.json'
@@ -1315,6 +1832,11 @@ export default {
       selectedDeckCards: [],
       deckCardImageUrls: {},
       batchDownloading: false,
+      showSilhouetteModal: false,
+      silhouettePaperSize: 'a4',
+      silhouetteCardSize: 'japanese',
+      silhouetteCardsTouch: true,
+      silhouetteDownloading: false,
       loadedFromDeck: false,
       editingDeckCardId: null,
       viewingBaseCard: false,
@@ -1336,9 +1858,98 @@ export default {
       snapshotAtLoad: null,
       initialSnapshotWhenNotFromCollection: null,
       pendingLeaveAction: null,
+
+      // Monster Hunter card (desc1/desc2 layout fixo: ver preview)
+      mhTitle: '',
+      mhCardType: 'time-01',
+      mhDesc1: '',
+      mhDesc2: '',
+      mhBox1Top: 240,
+      mhBox1Left: 100,
+      mhBox1Width: 800,
+      mhBox1Height: 420,
+      mhBox1FontSize: 46,
+      mhBox1Bg: true,
+      mhBox2Top: 730,
+      mhBox2Left: 100,
+      mhBox2Width: 800,
+      mhBox2Height: 500,
+      mhBox2FontSize: 46,
+      mhBox2Bg: true,
+      mhTitleTop: 60,
+      mhTitleLeft: 100,
+      mhTitleWidth: 800,
+      mhTitleHeight: 150,
+      mhTitleFontSize: 74,
+      mhTitleBg: true,
+      mhNumberValue: '',
+      mhNumberTop: 1220,
+      mhNumberLeft: 49,
+      mhNumberWidth: 170,
+      mhNumberHeight: 170,
+      mhNumberFontSize: 120,
+      mhNumberBg: false,
+      mhIconColor: 'time-01',
+      /** Posição do ícone por layout (cada tipo de card tem sua própria posição) */
+      mhLayoutIcon: {
+        'time-01': { bottom: 90, right: 72, width: 148, height: 148 },
+        'time-02': { bottom: 65, right: 62, width: 148, height: 148 },
+      },
+      mhPreviewScale: 1,
+      // Monster Hunter decks
+      mhUserDecks: [],
+      mhSelectedDeckId: null,
+      mhSelectedDeckCards: [],
+      editingMhDeckCardId: null,
+      snapshotMhAtLoad: null,
+      mhDeckDownloading: null,
+      showMhDownloadModal: false,
+      mhDownloadDeck: null,
+      mhDownloadFormat: 'png',
+      mhDownloadSilhouettePaper: 'a4',
+      mhDownloadCardSize: 'japanese',
+      mhDownloadCardsTouch: true,
+      silhouetteCardSizeOptions: [],
+      newDeckGame: 'yugioh',
     }
   },
   computed: {
+    mhCardPreviewStyle() {
+      return {
+        width: '1000px',
+        height: '1450px',
+        transform: `scale(${this.mhPreviewScale})`,
+        transformOrigin: 'top left',
+        backgroundImage: `url('images/pic/mh/layout/${
+          this.mhCardType || 'time-01'
+        }.png')`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+      }
+    },
+    mhCardTypeOpts() {
+      return [
+        {
+          value: 'time-01',
+          text: this.ui[this.uiLang]?.mh_type_tempo || 'Tempo',
+        },
+        {
+          value: 'time-02',
+          text: this.ui[this.uiLang]?.mh_type_tempo_02 || 'Tempo 02',
+        },
+      ]
+    },
+    mhIconStyle() {
+      const layout =
+        this.mhLayoutIcon[this.mhCardType] || this.mhLayoutIcon['time-01']
+      return {
+        bottom: (layout.bottom ?? 90) + 'px',
+        right: (layout.right ?? 72) + 'px',
+        width: (layout.width ?? 148) + 'px',
+        height: (layout.height ?? 148) + 'px',
+        objectFit: 'contain',
+      }
+    },
     localCardsMap() {
       const map = {}
       for (const card of this.localCards) {
@@ -1442,6 +2053,18 @@ export default {
     selectedDeck() {
       if (!this.selectedDeckId) return null
       return this.userDecks.find((d) => d.id === this.selectedDeckId) || null
+    },
+    mhSelectedDeck() {
+      if (!this.mhSelectedDeckId) return null
+      return (
+        this.mhUserDecks.find((d) => d.id === this.mhSelectedDeckId) || null
+      )
+    },
+    hasUnsavedMHChanges() {
+      if (this.editingMhDeckCardId == null || this.snapshotMhAtLoad == null)
+        return false
+      const current = this.getCurrentMHCardSnapshot()
+      return JSON.stringify(this.snapshotMhAtLoad) !== JSON.stringify(current)
     },
     cardTypeOpts() {
       return [
@@ -1632,20 +2255,130 @@ export default {
     cardDisplayDeps() {
       this.scheduleDrawCard()
     },
+    activeTab(tab) {
+      if (tab === 1) {
+        this.$nextTick(() => this.updateMhPreviewScale())
+        this.loadMHDecks()
+      }
+    },
   },
   mounted() {
     window.addEventListener('scroll', this.onScroll)
+    window.addEventListener('resize', this.updateMhPreviewScale)
     this.fireLoadingDialog()
     this.load_default_data()
     this.initYgoDb()
     if (this.$ygoDb) this.loadDecks()
+    this.$nextTick(() => this.updateMhPreviewScale())
   },
   beforeDestroy() {
     window.removeEventListener('scroll', this.onScroll)
+    window.removeEventListener('resize', this.updateMhPreviewScale)
     if (this._drawCardRaf) cancelAnimationFrame(this._drawCardRaf)
   },
   methods: {
     ...mapMutations(['fireLoadingDialog', 'closeLoadingDialog']),
+
+    updateMhPreviewScale() {
+      const wrap = this.$refs.mhPreviewWrap
+      if (!wrap) return
+      const w = wrap.clientWidth || 1000
+      this.mhPreviewScale = Math.min(1, w / 1000)
+    },
+
+    /**
+     * Substitui códigos emoji/nome no texto por <img> da pasta pic/mh/emoji.
+     * Basta adicionar um PNG na pasta (ex: fire.png) e usar emoji/fire no texto.
+     */
+    mhTextWithEmojis(text) {
+      if (text == null || text === '') return ''
+      const s = String(text)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/\n/g, '<br>')
+      return s.replace(
+        /emoji\/([a-zA-Z0-9_-]+)/g,
+        (_, name) =>
+          `<img src="images/pic/mh/emoji/${name}.png" alt="emoji/${name}" class="mh-inline-emoji" />`
+      )
+    },
+
+    getCurrentMHCardSnapshot() {
+      return {
+        mhTitle: this.mhTitle,
+        mhDesc1: this.mhDesc1,
+        mhDesc2: this.mhDesc2,
+        mhCardType: this.mhCardType,
+        mhIconColor: this.mhIconColor,
+        mhBox1Top: this.mhBox1Top,
+        mhBox1Left: this.mhBox1Left,
+        mhBox1Width: this.mhBox1Width,
+        mhBox1Height: this.mhBox1Height,
+        mhBox1FontSize: this.mhBox1FontSize,
+        mhBox1Bg: this.mhBox1Bg,
+        mhBox2Top: this.mhBox2Top,
+        mhBox2Left: this.mhBox2Left,
+        mhBox2Width: this.mhBox2Width,
+        mhBox2Height: this.mhBox2Height,
+        mhBox2FontSize: this.mhBox2FontSize,
+        mhBox2Bg: this.mhBox2Bg,
+        mhTitleTop: this.mhTitleTop,
+        mhTitleLeft: this.mhTitleLeft,
+        mhTitleWidth: this.mhTitleWidth,
+        mhTitleHeight: this.mhTitleHeight,
+        mhTitleFontSize: this.mhTitleFontSize,
+        mhTitleBg: this.mhTitleBg,
+        mhNumberValue: this.mhNumberValue,
+        mhNumberTop: this.mhNumberTop,
+        mhNumberLeft: this.mhNumberLeft,
+        mhNumberWidth: this.mhNumberWidth,
+        mhNumberHeight: this.mhNumberHeight,
+        mhNumberFontSize: this.mhNumberFontSize,
+        mhNumberBg: this.mhNumberBg,
+      }
+    },
+
+    loadFromMHSnapshot(data) {
+      if (!data) return
+      this.mhTitle = data.mhTitle ?? ''
+      this.mhDesc1 = data.mhDesc1 ?? ''
+      this.mhDesc2 = data.mhDesc2 ?? ''
+      this.mhCardType = data.mhCardType ?? 'time-01'
+      this.mhIconColor = data.mhIconColor ?? 'time-01'
+      this.mhBox1Top = data.mhBox1Top ?? 240
+      this.mhBox1Left = data.mhBox1Left ?? 100
+      this.mhBox1Width = data.mhBox1Width ?? 800
+      this.mhBox1Height = data.mhBox1Height ?? 420
+      this.mhBox1FontSize = data.mhBox1FontSize ?? 46
+      this.mhBox1Bg = data.mhBox1Bg ?? false
+      this.mhBox2Top = data.mhBox2Top ?? 730
+      this.mhBox2Left = data.mhBox2Left ?? 100
+      this.mhBox2Width = data.mhBox2Width ?? 800
+      this.mhBox2Height = data.mhBox2Height ?? 500
+      this.mhBox2FontSize = data.mhBox2FontSize ?? 46
+      this.mhBox2Bg = data.mhBox2Bg ?? false
+      this.mhTitleTop = data.mhTitleTop ?? 60
+      this.mhTitleLeft = data.mhTitleLeft ?? 100
+      this.mhTitleWidth = data.mhTitleWidth ?? 800
+      this.mhTitleHeight = data.mhTitleHeight ?? 150
+      this.mhTitleFontSize = data.mhTitleFontSize ?? 74
+      this.mhTitleBg = data.mhTitleBg ?? true
+      this.mhNumberValue = data.mhNumberValue ?? ''
+      this.mhNumberTop = data.mhNumberTop ?? 1220
+      this.mhNumberLeft = data.mhNumberLeft ?? 49
+      this.mhNumberWidth = data.mhNumberWidth ?? 170
+      this.mhNumberHeight = data.mhNumberHeight ?? 170
+      this.mhNumberFontSize = data.mhNumberFontSize ?? 120
+      this.mhNumberBg = data.mhNumberBg ?? false
+    },
+
+    loadNewMHCard() {
+      this.editingMhDeckCardId = null
+      this.snapshotMhAtLoad = null
+      this.loadFromMHSnapshot({})
+    },
 
     scheduleDrawCard() {
       if (this._drawCardRaf) cancelAnimationFrame(this._drawCardRaf)
@@ -2637,10 +3370,7 @@ export default {
         }
 
         if (this.$ygoDb) {
-          const blob = await timeout(
-            this.$ygoDb.getCardImage(key),
-            8000
-          )
+          const blob = await timeout(this.$ygoDb.getCardImage(key), 8000)
           if (blob) {
             const url = URL.createObjectURL(blob)
             setUrlAndDraw(url)
@@ -3440,14 +4170,6 @@ export default {
       this.userDecks = await this.$ygoDb.getDecks('yugioh')
     },
 
-    async createDeck() {
-      if (!this.$ygoDb || !this.newDeckName.trim()) return
-      await this.$ygoDb.createDeck(this.newDeckName.trim(), 'yugioh')
-      this.newDeckName = ''
-      this.showNewDeckModal = false
-      await this.loadDecks()
-    },
-
     async selectDeck(deck) {
       this.selectedDeckId = deck.id
       await this.loadDeckCards()
@@ -3465,10 +4187,14 @@ export default {
         this.editingDeckId,
         this.editingDeckName.trim()
       )
+      const wasMhDeck = this.mhUserDecks.some(
+        (d) => d.id === this.editingDeckId
+      )
       this.showEditDeckModal = false
       this.editingDeckId = null
       this.editingDeckName = ''
-      await this.loadDecks()
+      if (wasMhDeck) await this.loadMHDecks()
+      else await this.loadDecks()
     },
     async renameDeck(id, newName) {
       if (!this.$ygoDb || !newName.trim()) return
@@ -3484,6 +4210,243 @@ export default {
       }
       await this.$ygoDb.deleteDeck(id)
       await this.loadDecks()
+    },
+
+    // -------- Monster Hunter Decks --------
+    async loadMHDecks() {
+      if (!this.$ygoDb) return
+      this.mhUserDecks = await this.$ygoDb.getDecks('monsterhunter')
+    },
+
+    async createDeck() {
+      if (!this.$ygoDb || !this.newDeckName.trim()) return
+      const game = this.newDeckGame || 'yugioh'
+      const id = await this.$ygoDb.createDeck(this.newDeckName.trim(), game)
+      this.newDeckName = ''
+      this.showNewDeckModal = false
+      if (game === 'monsterhunter') {
+        await this.loadMHDecks()
+        this.mhSelectedDeckId = id
+        await this.loadMHDeckCards()
+      } else {
+        await this.loadDecks()
+      }
+    },
+
+    async selectMhDeck(deck) {
+      this.mhSelectedDeckId = deck.id
+      await this.loadMHDeckCards()
+    },
+
+    openEditMhDeckModal(deck) {
+      this.editingDeckId = deck.id
+      this.editingDeckName = deck.name || ''
+      this.showEditDeckModal = true
+    },
+
+    async deleteMhDeck(id) {
+      if (!this.$ygoDb) return
+      if (this.mhSelectedDeckId === id) {
+        this.mhSelectedDeckId = null
+        this.mhSelectedDeckCards = []
+        this.editingMhDeckCardId = null
+        this.snapshotMhAtLoad = null
+      }
+      await this.$ygoDb.deleteDeck(id)
+      await this.loadMHDecks()
+    },
+
+    async loadMHDeckCards() {
+      if (!this.$ygoDb || !this.mhSelectedDeckId) return
+      const items = await this.$ygoDb.getDeckCards(this.mhSelectedDeckId)
+      this.mhSelectedDeckCards = items || []
+    },
+
+    async saveOrAddMhCard() {
+      if (!this.$ygoDb || !this.mhSelectedDeckId) return
+      if (this.editingMhDeckCardId) {
+        await this.saveMhDeckCardChanges()
+      } else {
+        await this.addCurrentMHToDeck()
+      }
+    },
+
+    async addCurrentMHToDeck() {
+      if (!this.$ygoDb || !this.mhSelectedDeckId) return
+      const snapshot = this.getCurrentMHCardSnapshot()
+      const name = this.mhTitle?.trim() || 'Card MH'
+      await this.$ygoDb.addCardToDeck(this.mhSelectedDeckId, null, {
+        name,
+        snapshot,
+      })
+      await this.loadMHDeckCards()
+      this.loadNewMHCard()
+    },
+
+    async saveMhDeckCardChanges() {
+      if (!this.$ygoDb || !this.editingMhDeckCardId) return
+      const snapshot = this.getCurrentMHCardSnapshot()
+      const name = this.mhTitle?.trim() || 'Card MH'
+      await this.$ygoDb.updateDeckCard(this.editingMhDeckCardId, {
+        name,
+        snapshot,
+      })
+      this.snapshotMhAtLoad = JSON.parse(JSON.stringify(snapshot))
+      await this.loadMHDeckCards()
+    },
+
+    loadMhDeckCardForEdit(item) {
+      this.loadFromMHSnapshot(item.snapshot || {})
+      this.editingMhDeckCardId = item.id
+      this.snapshotMhAtLoad = JSON.parse(JSON.stringify(item.snapshot || {}))
+    },
+
+    async removeMhDeckCard(id) {
+      if (!this.$ygoDb) return
+      if (this.editingMhDeckCardId === id) {
+        this.editingMhDeckCardId = null
+        this.snapshotMhAtLoad = null
+      }
+      await this.$ygoDb.removeDeckCard(id)
+      await this.loadMHDeckCards()
+    },
+
+    async loadSilhouetteCardSizeOptions() {
+      if (typeof window === 'undefined' || !window.silhouette || !window.silhouette.getCardSizeOptions) return
+      try {
+        this.silhouetteCardSizeOptions = await window.silhouette.getCardSizeOptions() || []
+      } catch (_) {
+        this.silhouetteCardSizeOptions = []
+      }
+    },
+
+    openSilhouetteModal() {
+      this.loadSilhouetteCardSizeOptions()
+      this.showSilhouetteModal = true
+    },
+
+    async openMhDownloadModal(deck) {
+      this.mhDownloadDeck = deck
+      this.mhDownloadFormat = 'png'
+      this.mhDownloadSilhouettePaper = 'a4'
+      this.mhDownloadCardSize = 'japanese'
+      await this.loadSilhouetteCardSizeOptions()
+      this.showMhDownloadModal = true
+    },
+
+    async confirmMhDownload() {
+      if (!this.mhDownloadDeck) return
+      try {
+        if (this.mhDownloadFormat === 'png') {
+          await this.downloadMhDeckAsPng(this.mhDownloadDeck)
+        } else {
+          await this.downloadMhDeckAsSilhouette(this.mhDownloadDeck)
+        }
+      } finally {
+        this.showMhDownloadModal = false
+        this.mhDownloadDeck = null
+      }
+    },
+
+    async downloadMhDeckAsPng(deck) {
+      if (!this.$ygoDb || !deck || !deck.id) return
+      this.mhDeckDownloading = deck.id
+      const prevTab = this.activeTab
+      this.activeTab = 1
+      await this.$nextTick()
+      await new Promise((r) => setTimeout(r, 300))
+      try {
+        const cards = await this.$ygoDb.getDeckCards(deck.id)
+        const zip = new JSZip()
+        const payload = {
+          name: deck.name,
+          game: 'monsterhunter',
+          exportedAt: new Date().toISOString(),
+          cards: (cards || []).map((c) => ({ id: c.id, name: c.name, snapshot: c.snapshot })),
+        }
+        zip.file('deck.json', JSON.stringify(payload, null, 2))
+        for (let i = 0; i < (cards || []).length; i++) {
+          const card = cards[i]
+          this.loadFromMHSnapshot(card.snapshot || {})
+          await this.$nextTick()
+          await new Promise((r) => setTimeout(r, 150))
+          const wrap = this.$refs.mhPreviewWrap
+          if (wrap) {
+            const canvas = await html2canvas(wrap, { scale: 2, useCORS: true })
+            const base64 = canvas.toDataURL('image/png').replace(/^data:image\/png;base64,/, '')
+            const fname = `${this.sanitizeFilename(card.name || 'card')}_${i + 1}.png`
+            zip.file(fname, base64, { base64: true })
+          }
+        }
+        const zipBlob = await zip.generateAsync({ type: 'blob' })
+        const zipUrl = URL.createObjectURL(zipBlob)
+        const a = document.createElement('a')
+        a.href = zipUrl
+        a.download = `${this.sanitizeFilename(deck.name)}.zip`
+        a.click()
+        URL.revokeObjectURL(zipUrl)
+      } catch (err) {
+        console.error(err)
+        this.$bvToast && this.$bvToast.toast(err.message || 'Erro ao gerar imagens.', { variant: 'danger' })
+      } finally {
+        this.mhDeckDownloading = null
+        this.activeTab = prevTab
+      }
+    },
+
+    async downloadMhDeckAsSilhouette(deck) {
+      if (!this.$ygoDb || !deck || !deck.id) return
+      if (typeof window === 'undefined' || !window.silhouette) {
+        this.$bvToast && this.$bvToast.toast('Exportação Silhuete disponível apenas no app desktop.', { variant: 'warning' })
+        return
+      }
+      this.mhDeckDownloading = deck.id
+      const prevTab = this.activeTab
+      this.activeTab = 1
+      await this.$nextTick()
+      await new Promise((r) => setTimeout(r, 300))
+      try {
+        const cards = await this.$ygoDb.getDeckCards(deck.id)
+        const images = []
+        for (let i = 0; i < (cards || []).length; i++) {
+          const card = cards[i]
+          this.loadFromMHSnapshot(card.snapshot || {})
+          await this.$nextTick()
+          await new Promise((r) => setTimeout(r, 150))
+          const wrap = this.$refs.mhPreviewWrap
+          if (wrap) {
+            const canvas = await html2canvas(wrap, { scale: 2, useCORS: true })
+            const base64 = canvas.toDataURL('image/png').replace(/^data:image\/png;base64,/, '')
+            const mhCardType = (card.snapshot && card.snapshot.mhCardType) || 'time-01'
+            images.push({ base64, backImageType: mhCardType })
+          }
+        }
+        const { pdfBase64, templateFileName, templateBase64 } = await window.silhouette.generatePdf({
+          images,
+          cardSize: this.mhDownloadCardSize,
+          paperSize: this.mhDownloadSilhouettePaper,
+          cardsTouch: this.mhDownloadCardsTouch,
+        })
+        const zip = new JSZip()
+        const baseName = this.sanitizeFilename(deck.name)
+        zip.file(`${baseName}.pdf`, pdfBase64, { base64: true })
+        if (templateBase64 && templateFileName) {
+          zip.file(templateFileName, templateBase64, { base64: true })
+        }
+        const zipBlob = await zip.generateAsync({ type: 'blob' })
+        const zipUrl = URL.createObjectURL(zipBlob)
+        const a = document.createElement('a')
+        a.href = zipUrl
+        a.download = `${baseName}-silhuete.zip`
+        a.click()
+        URL.revokeObjectURL(zipUrl)
+      } catch (err) {
+        console.error(err)
+        this.$bvToast && this.$bvToast.toast(err.message || 'Erro ao gerar PDF para Silhuete.', { variant: 'danger' })
+      } finally {
+        this.mhDeckDownloading = null
+        this.activeTab = prevTab
+      }
     },
 
     async loadDeckCards() {
@@ -3624,6 +4587,78 @@ export default {
       } finally {
         this._exportingCard = false
         this.batchDownloading = false
+        this.loadFromSnapshot(saveState.snapshot)
+        this.cardKey = saveState.cardKey
+        this.cardLang = saveState.cardLang
+        this.drawCard()
+      }
+    },
+
+    async downloadSilhouetteDeck() {
+      if (!this.selectedDeckCards.length || !this.selectedDeck || !window.silhouette) return
+      this.silhouetteDownloading = true
+      this.showSilhouetteModal = false
+      const saveState = {
+        snapshot: this.getCurrentCardSnapshot(),
+        cardKey: this.cardKey,
+        cardLang: this.cardLang,
+      }
+      this._exportingCard = true
+      try {
+        const images = []
+        for (let i = 0; i < this.selectedDeckCards.length; i++) {
+          const entry = this.selectedDeckCards[i]
+          const imgUrl = await this.getExportImageUrlForBatch(entry.cardKey)
+          if (imgUrl)
+            await this.ensureCardImage(entry.cardKey, imgUrl, { forCurrentCard: false })
+          this.loadFromSnapshot(entry.snapshot)
+          this.cardKey = entry.cardKey
+          const url = this.apiCardImageUrls[entry.cardKey] || imgUrl
+          await new Promise((resolve) => {
+            this._drawCardOnDrawn = resolve
+            this.drawCard(url)
+          })
+          const canvas = this.$refs.yugiohcard
+          if (canvas) {
+            const dataUrl = canvas.toDataURL('image/png')
+            const base64 = dataUrl.replace(/^data:image\/png;base64,/, '')
+            images.push({ base64 })
+          }
+          await new Promise((resolve) => setTimeout(resolve, 100))
+        }
+        const { pdfBase64, templateFileName, templateBase64 } = await window.silhouette.generatePdf({
+          images,
+          cardSize: this.silhouetteCardSize,
+          paperSize: this.silhouettePaperSize,
+          cardsTouch: this.silhouetteCardsTouch,
+        })
+        const baseName = this.sanitizeFilename(this.selectedDeck.name)
+        // PDF pronto para impressão — download direto no arquivo
+        const pdfBytes = Uint8Array.from(atob(pdfBase64), (c) => c.charCodeAt(0))
+        const pdfBlob = new Blob([pdfBytes], { type: 'application/pdf' })
+        const pdfUrl = URL.createObjectURL(pdfBlob)
+        const aPdf = document.createElement('a')
+        aPdf.href = pdfUrl
+        aPdf.download = `${baseName}.pdf`
+        aPdf.click()
+        URL.revokeObjectURL(pdfUrl)
+        // Arquivo de corte para a Silhouette — download direto
+        if (templateBase64 && templateFileName) {
+          const studioBytes = Uint8Array.from(atob(templateBase64), (c) => c.charCodeAt(0))
+          const studioBlob = new Blob([studioBytes])
+          const studioUrl = URL.createObjectURL(studioBlob)
+          const aStudio = document.createElement('a')
+          aStudio.href = studioUrl
+          aStudio.download = templateFileName
+          aStudio.click()
+          URL.revokeObjectURL(studioUrl)
+        }
+      } catch (err) {
+        console.error(err)
+        this.$bvToast && this.$bvToast.toast(err.message || 'Erro ao gerar PDF para Silhuete.', { variant: 'danger' })
+      } finally {
+        this._exportingCard = false
+        this.silhouetteDownloading = false
         this.loadFromSnapshot(saveState.snapshot)
         this.cardKey = saveState.cardKey
         this.cardLang = saveState.cardLang
@@ -3888,5 +4923,108 @@ select option {
 }
 .deck-thumb-remove:hover {
   background: #dc3545;
+}
+
+/* Miniaturas de cards MH no deck – posições fixas proporcionais ao card */
+.mh-deck-thumb {
+  height: 200px;
+  width: 138px;
+  background-size: cover;
+  background-position: center;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+.mh-deck-thumb-title {
+  position: absolute;
+  top: 8px;
+  left: 6px;
+  right: 6px;
+  font-family: 'EB Garamond', serif;
+  font-size: 10px;
+  font-weight: bold;
+  color: #000;
+  text-align: center;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-shadow: 0 0 2px #fff, 0 0 3px #fff;
+}
+.mh-deck-thumb-desc {
+  position: absolute;
+  top: 26px;
+  left: 6px;
+  right: 6px;
+  max-height: 42px;
+  font-family: 'EB Garamond', serif;
+  font-size: 7px;
+  color: #222;
+  text-align: center;
+  line-height: 1.25;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  text-shadow: 0 0 1px #fff;
+}
+.mh-deck-thumb-icon-wrap {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.mh-deck-thumb-icon {
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  object-position: center;
+}
+
+/* Monster Hunter card preview */
+.mh-card-preview {
+  font-family: 'EB Garamond', serif;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+.mh-text-box {
+  font-family: 'EB Garamond', serif;
+  color: #000;
+  text-align: center;
+  padding: 4px;
+  box-sizing: border-box;
+  word-wrap: break-word;
+  display: table;
+  width: 100%;
+  height: 100%;
+}
+.mh-text-box .mh-text-inner {
+  display: table-cell;
+  vertical-align: middle;
+  text-align: center;
+  white-space: pre-line;
+  line-height: 1.25;
+  margin: 0;
+  padding: 0;
+}
+.mh-number-box .mh-text-inner {
+  paint-order: stroke fill;
+  -webkit-text-stroke: 3px #000;
+  color: #fff;
+  text-shadow: 0 0 2px #000;
+  font-weight: bold;
+}
+.mh-inline-emoji {
+  height: 1em;
+  max-height: 1.2em;
+  width: auto;
+  vertical-align: middle;
+  display: inline-block;
 }
 </style>

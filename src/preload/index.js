@@ -50,3 +50,11 @@ contextBridge.exposeInMainWorld('cardArt', {
   get: (id, imageUrl) => ipcRenderer.invoke('cardArt:get', id, imageUrl),
   exists: (id) => ipcRenderer.invoke('cardArt:exists', id),
 })
+
+contextBridge.exposeInMainWorld('silhouette', {
+  /** Gera PDF para Silhouette/Cricut. Retorna { pdfBase64, templateFileName, templateBase64 }. */
+  generatePdf: (options) => ipcRenderer.invoke('silhouette:generatePdf', options),
+  getTemplate: (templateFileName) => ipcRenderer.invoke('silhouette:getTemplate', templateFileName),
+  /** Lista de tamanhos de card: [{ key, label, widthMm, heightMm }]. */
+  getCardSizeOptions: () => ipcRenderer.invoke('silhouette:getCardSizeOptions'),
+})
