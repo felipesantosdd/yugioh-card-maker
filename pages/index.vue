@@ -3,8 +3,11 @@
     <!-- Área do título -->
 
     <!-- Área de conteúdo principal -->
-    <main class="container-fluid mt-5 mb-3 h-100 py-3 py-md-5 px-0 px-sm-5">
-      <b-tabs v-model="activeTab" content-class="mt-3" class="px-2 px-sm-5">
+    <main
+      class="container-fluid mt-5 mb-3 h-100 py-3 py-md-5 px-0 px-sm-5"
+      style="background: red;"
+    >
+      <b-tabs v-model="activeTab" content-class="mt-3" class="px-2 px-sm-5" background: red>
         <b-tab :title="ui[uiLang].tab_yugioh">
           <!-- Barra de progresso ao atualizar banco local -->
           <div v-if="syncLoading" class="panel-bg shadow p-3 mb-3">

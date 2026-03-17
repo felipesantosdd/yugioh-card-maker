@@ -3,10 +3,10 @@
     <!-- Área do título -->
 
     <!-- Área de conteúdo principal -->
-    <main class="container-fluid mt-5 mb-3 py-3 py-md-5 px-0 main-fullheight">
+    <main class="container-fluid mb-3 py-3 py-md-5 px-0 main-fullheight">
       <b-tabs
         v-model="activeTab"
-        content-class="mt-3 tab-content-fullheight"
+        content-class=" tab-content-fullheight"
         class="px-2 tabs-fullheight"
       >
         <b-tab :title="ui[uiLang].tab_yugioh">
@@ -613,8 +613,8 @@
                         d-flex
                         justify-content-end
                         align-items-center
-                        mb-3
                         flex-shrink-0
+                        h-200%
                       "
                     >
                       <b-button
@@ -1120,272 +1120,296 @@
                     lazy
                   >
                     <!-- Busca por nome ou arquétipo -->
-                    <div class="search-panel-col flex-shrink-0">
-                      <b-row class="align-items-end">
-                        <b-col cols="12" md="auto" class="mb-2 mb-md-0">
-                          <label class="d-block mb-2">{{
-                            ui[uiLang].search_cards
-                          }}</label>
-                          <b-form-radio-group
-                            v-model="searchMode"
-                            buttons
-                            button-variant="outline-secondary"
-                            size="sm"
-                          >
-                            <b-form-radio value="archetype">{{
-                              ui[uiLang].search_by_archetype
-                            }}</b-form-radio>
-                            <b-form-radio value="name">{{
-                              ui[uiLang].search_by_name
-                            }}</b-form-radio>
-                          </b-form-radio-group>
-                        </b-col>
-                        <b-col
-                          cols="12"
-                          md
-                          class="
-                            mb-2 mb-md-0
-                            d-flex
-                            justify-content-end
-                            flex-wrap
-                          "
-                        >
-                          <div
-                            v-if="searchMode === 'archetype'"
-                            class="
-                              position-relative
-                              mr-1
-                              flex-grow-1 flex-md-grow-0
-                            "
-                            style="min-width: 180px; max-width: 320px"
-                          >
-                            <b-form-input
-                              v-model="searchByArchetype"
-                              :placeholder="
-                                ui[uiLang].search_placeholder_archetype
-                              "
-                              autocomplete="off"
-                              @focus="showArchetypeDropdown = true"
-                              @keyup.enter="
-                                filteredArchetypes.length
-                                  ? selectArchetype(filteredArchetypes[0])
-                                  : searchCards()
-                              "
-                              @input="showArchetypeDropdown = true"
-                              @blur="closeArchetypeDropdown"
-                            />
-                            <ul
-                              v-if="
-                                showArchetypeDropdown &&
-                                searchByArchetype.length >= 1
-                              "
-                              class="
-                                list-group
-                                position-absolute
-                                shadow
-                                mt-1
-                                w-100
-                                archetype-dropdown
-                              "
-                              style="max-height: 220px; overflow-y: auto"
-                            >
-                              <li
-                                v-for="(opt, idx) in filteredArchetypes.slice(
-                                  0,
-                                  15
-                                )"
-                                :key="idx"
-                                class="
-                                  list-group-item list-group-item-action
-                                  py-2
-                                "
-                                @click="selectArchetype(opt)"
-                              >
-                                {{ opt.archetype_name }}
-                              </li>
-                            </ul>
-                          </div>
-                          <div
-                            v-else
-                            class="
-                              position-relative
-                              mr-1
-                              flex-grow-1 flex-md-grow-0
-                            "
-                            style="min-width: 180px; max-width: 320px"
-                          >
-                            <b-form-input
-                              v-model="searchByName"
-                              :placeholder="ui[uiLang].search_placeholder_name"
-                              autocomplete="off"
-                              @focus="showNameDropdown = true"
-                              @keyup.enter="
-                                filteredCardsByName.length
-                                  ? selectCardFromName(filteredCardsByName[0])
-                                  : null
-                              "
-                              @input="showNameDropdown = true"
-                              @blur="closeNameDropdown"
-                            />
-                            <ul
-                              v-if="
-                                showNameDropdown && searchByName.length >= 1
-                              "
-                              class="
-                                list-group
-                                position-absolute
-                                shadow
-                                mt-1
-                                w-100
-                                archetype-dropdown
-                              "
-                              style="max-height: 220px; overflow-y: auto"
-                            >
-                              <li
-                                v-for="card in filteredCardsByName.slice(0, 15)"
-                                :key="card.id"
-                                class="
-                                  list-group-item list-group-item-action
-                                  py-2
-                                "
-                                @click="selectCardFromName(card)"
-                              >
-                                {{ getFilteredCardDisplayName(card) }}
-                              </li>
-                            </ul>
-                          </div>
-                        </b-col>
-                      </b-row>
-                    </div>
-                    <!-- Resultados da busca (classificados: arquétipo > nome > descrição) -->
-                    <div class="data-panel-search-scroll">
+                    <div class="search-tab-content debug-search-column">
                       <div
-                        v-if="searchResults.length > 0"
-                        class="panel-bg shadow p-3 search-results-panel"
-                      >
-                        <label class="d-block mb-2">{{
-                          ui[uiLang].search_results
-                        }}</label>
-                        <template v-if="searchResultsByArchetype.length > 0">
-                          <div class="small text-muted mb-1 mt-2">
-                            {{ getSearchSectionLabel('archetype') }}
-                          </div>
-                          <div class="search-results-grid mb-3">
-                            <img
-                              v-for="card in searchResultsByArchetype"
-                              :key="'arch-' + card.id"
-                              v-b-tooltip.hover.top="getDisplayName(card)"
-                              :src="getSearchResultImageSrc(card)"
-                              :alt="getDisplayName(card)"
-                              class="search-thumb rounded"
-                              loading="lazy"
-                              @click="applyCardFromSearch(card)"
-                              @error="onSearchResultImgError(card, $event)"
-                            />
-                          </div>
-                        </template>
-                        <template
-                          v-if="
-                            searchMode === 'name' &&
-                            searchResultsByName.length > 0
-                          "
-                        >
-                          <div class="small text-muted mb-1 mt-2">
-                            {{ getSearchSectionLabel('name') }}
-                          </div>
-                          <div class="search-results-grid mb-3">
-                            <img
-                              v-for="card in searchResultsByName"
-                              :key="'name-' + card.id"
-                              v-b-tooltip.hover.top="getDisplayName(card)"
-                              :src="getSearchResultImageSrc(card)"
-                              :alt="getDisplayName(card)"
-                              class="search-thumb rounded"
-                              loading="lazy"
-                              @click="applyCardFromSearch(card)"
-                              @error="onSearchResultImgError(card, $event)"
-                            />
-                          </div>
-                        </template>
-                        <template
-                          v-if="
-                            searchMode === 'name' &&
-                            searchResultsByDesc.length > 0
-                          "
-                        >
-                          <div class="small text-muted mb-1 mt-2">
-                            {{ getSearchSectionLabel('desc') }}
-                          </div>
-                          <div class="search-results-grid">
-                            <img
-                              v-for="card in searchResultsByDesc"
-                              :key="'desc-' + card.id"
-                              v-b-tooltip.hover.top="getDisplayName(card)"
-                              :src="getSearchResultImageSrc(card)"
-                              :alt="getDisplayName(card)"
-                              class="search-thumb rounded"
-                              loading="lazy"
-                              @click="applyCardFromSearch(card)"
-                              @error="onSearchResultImgError(card, $event)"
-                            />
-                          </div>
-                        </template>
-                        <template v-if="searchResultsCitedRelated.length > 0">
-                          <div class="small text-muted mb-1 mt-2">
-                            {{
-                              ui[uiLang].search_section_cited ||
-                              'Cards citados e relacionados'
-                            }}
-                          </div>
-                          <div class="search-results-grid">
-                            <img
-                              v-for="card in searchResultsCitedRelated"
-                              :key="'cited-' + card.id"
-                              v-b-tooltip.hover.top="getDisplayName(card)"
-                              :src="getSearchResultImageSrc(card)"
-                              :alt="getDisplayName(card)"
-                              class="search-thumb rounded"
-                              loading="lazy"
-                              @click="applyCardFromSearch(card)"
-                              @error="onSearchResultImgError(card, $event)"
-                            />
-                          </div>
-                        </template>
-                        <template
-                          v-if="
-                            searchMode === 'archetype' &&
-                            searchResultsRelated.length > 0
-                          "
-                        >
-                          <div class="small text-muted mb-1 mt-2">
-                            {{ getSearchSectionLabel('related') }}
-                          </div>
-                          <div class="search-results-grid">
-                            <img
-                              v-for="card in searchResultsRelated"
-                              :key="'rel-' + card.id"
-                              v-b-tooltip.hover.top="getDisplayName(card)"
-                              :src="getSearchResultImageSrc(card)"
-                              :alt="getDisplayName(card)"
-                              class="search-thumb rounded"
-                              loading="lazy"
-                              @click="applyCardFromSearch(card)"
-                              @error="onSearchResultImgError(card, $event)"
-                            />
-                          </div>
-                        </template>
-                      </div>
-                      <div
-                        v-else-if="searchTried && !searchLoading"
                         class="
-                          panel-bg
-                          shadow
-                          p-3
-                          text-muted text-center
-                          search-results-panel
+                          search-panel-col
+                          flex-shrink-0
+                          debug-search-controls
                         "
                       >
-                        {{ ui[uiLang].search_no_results }}
+                        <b-row class="align-items-end">
+                          <b-col cols="12" md="auto" class="mb-2 mb-md-0">
+                            <label class="d-block mb-2">{{
+                              ui[uiLang].search_cards
+                            }}</label>
+                            <b-form-radio-group
+                              v-model="searchMode"
+                              buttons
+                              button-variant="outline-secondary"
+                              size="sm"
+                            >
+                              <b-form-radio value="archetype">{{
+                                ui[uiLang].search_by_archetype
+                              }}</b-form-radio>
+                              <b-form-radio value="name">{{
+                                ui[uiLang].search_by_name
+                              }}</b-form-radio>
+                            </b-form-radio-group>
+                          </b-col>
+                          <b-col
+                            cols="12"
+                            md
+                            class="
+                              mb-2 mb-md-0
+                              d-flex
+                              justify-content-end
+                              flex-wrap
+                            "
+                          >
+                            <div
+                              v-if="searchMode === 'archetype'"
+                              class="
+                                position-relative
+                                mr-1
+                                flex-grow-1 flex-md-grow-0
+                              "
+                              style="min-width: 180px; max-width: 320px"
+                            >
+                              <b-form-input
+                                v-model="searchByArchetype"
+                                :placeholder="
+                                  ui[uiLang].search_placeholder_archetype
+                                "
+                                autocomplete="off"
+                                @focus="showArchetypeDropdown = true"
+                                @keyup.enter="
+                                  filteredArchetypes.length
+                                    ? selectArchetype(filteredArchetypes[0])
+                                    : searchCards()
+                                "
+                                @input="showArchetypeDropdown = true"
+                                @blur="closeArchetypeDropdown"
+                              />
+                              <ul
+                                v-if="
+                                  showArchetypeDropdown &&
+                                  searchByArchetype.length >= 1
+                                "
+                                class="
+                                  list-group
+                                  position-absolute
+                                  shadow
+                                  mt-1
+                                  w-100
+                                  archetype-dropdown
+                                "
+                                style="max-height: 220px; overflow-y: auto"
+                              >
+                                <li
+                                  v-for="(opt, idx) in filteredArchetypes.slice(
+                                    0,
+                                    15
+                                  )"
+                                  :key="idx"
+                                  class="
+                                    list-group-item list-group-item-action
+                                    py-2
+                                  "
+                                  @click="selectArchetype(opt)"
+                                >
+                                  {{ opt.archetype_name }}
+                                </li>
+                              </ul>
+                            </div>
+                            <div
+                              v-else
+                              class="
+                                position-relative
+                                mr-1
+                                flex-grow-1 flex-md-grow-0
+                              "
+                              style="min-width: 180px; max-width: 320px"
+                            >
+                              <b-form-input
+                                v-model="searchByName"
+                                :placeholder="
+                                  ui[uiLang].search_placeholder_name
+                                "
+                                autocomplete="off"
+                                @focus="showNameDropdown = true"
+                                @keyup.enter="
+                                  filteredCardsByName.length
+                                    ? selectCardFromName(filteredCardsByName[0])
+                                    : null
+                                "
+                                @input="showNameDropdown = true"
+                                @blur="closeNameDropdown"
+                              />
+                              <ul
+                                v-if="
+                                  showNameDropdown && searchByName.length >= 1
+                                "
+                                class="
+                                  list-group
+                                  position-absolute
+                                  shadow
+                                  mt-1
+                                  w-100
+                                  archetype-dropdown
+                                "
+                                style="max-height: 220px; overflow-y: auto"
+                              >
+                                <li
+                                  v-for="card in filteredCardsByName.slice(
+                                    0,
+                                    15
+                                  )"
+                                  :key="card.id"
+                                  class="
+                                    list-group-item list-group-item-action
+                                    py-2
+                                  "
+                                  @click="selectCardFromName(card)"
+                                >
+                                  {{ getFilteredCardDisplayName(card) }}
+                                </li>
+                              </ul>
+                            </div>
+                          </b-col>
+                        </b-row>
+                      </div>
+                      <!-- Resultados da busca (classificados: arquétipo > nome > descrição) -->
+                      <div
+                        class="data-panel-search-scroll debug-search-results"
+                      >
+                        <div
+                          v-if="searchResults.length > 0"
+                          class="panel-bg shadow p-3 search-results-panel"
+                        >
+                          <label class="d-block mb-2">{{
+                            ui[uiLang].search_results
+                          }}</label>
+                          <template v-if="searchResultsByArchetype.length > 0">
+                            <div class="small text-muted mb-1 mt-2">
+                              {{ getSearchSectionLabel('archetype') }} ({{
+                                searchResultsByArchetype.length
+                              }})
+                            </div>
+                            <div class="search-results-grid mb-3">
+                              <img
+                                v-for="card in searchResultsByArchetype"
+                                :key="'arch-' + card.id"
+                                v-b-tooltip.hover.top="getDisplayName(card)"
+                                :src="getSearchResultImageSrc(card)"
+                                :alt="getDisplayName(card)"
+                                class="search-thumb rounded"
+                                loading="lazy"
+                                @click="applyCardFromSearch(card)"
+                                @error="onSearchResultImgError(card, $event)"
+                              />
+                            </div>
+                          </template>
+                          <template
+                            v-if="
+                              searchMode === 'name' &&
+                              searchResultsByName.length > 0
+                            "
+                          >
+                            <div class="small text-muted mb-1 mt-2">
+                              {{ getSearchSectionLabel('name') }} ({{
+                                searchResultsByName.length
+                              }})
+                            </div>
+                            <div class="search-results-grid mb-3">
+                              <img
+                                v-for="card in searchResultsByName"
+                                :key="'name-' + card.id"
+                                v-b-tooltip.hover.top="getDisplayName(card)"
+                                :src="getSearchResultImageSrc(card)"
+                                :alt="getDisplayName(card)"
+                                class="search-thumb rounded"
+                                loading="lazy"
+                                @click="applyCardFromSearch(card)"
+                                @error="onSearchResultImgError(card, $event)"
+                              />
+                            </div>
+                          </template>
+                          <template
+                            v-if="
+                              searchMode === 'name' &&
+                              searchResultsByDesc.length > 0
+                            "
+                          >
+                            <div class="small text-muted mb-1 mt-2">
+                              {{ getSearchSectionLabel('desc') }} ({{
+                                searchResultsByDesc.length
+                              }})
+                            </div>
+                            <div class="search-results-grid">
+                              <img
+                                v-for="card in searchResultsByDesc"
+                                :key="'desc-' + card.id"
+                                v-b-tooltip.hover.top="getDisplayName(card)"
+                                :src="getSearchResultImageSrc(card)"
+                                :alt="getDisplayName(card)"
+                                class="search-thumb rounded"
+                                loading="lazy"
+                                @click="applyCardFromSearch(card)"
+                                @error="onSearchResultImgError(card, $event)"
+                              />
+                            </div>
+                          </template>
+                          <template v-if="searchResultsCitedRelated.length > 0">
+                            <div class="small text-muted mb-1 mt-2">
+                              {{
+                                ui[uiLang].search_section_cited ||
+                                'Cards citados e relacionados'
+                              }}
+                              ({{ searchResultsCitedRelated.length }})
+                            </div>
+                            <div class="search-results-grid">
+                              <img
+                                v-for="card in searchResultsCitedRelated"
+                                :key="'cited-' + card.id"
+                                v-b-tooltip.hover.top="getDisplayName(card)"
+                                :src="getSearchResultImageSrc(card)"
+                                :alt="getDisplayName(card)"
+                                class="search-thumb rounded"
+                                loading="lazy"
+                                @click="applyCardFromSearch(card)"
+                                @error="onSearchResultImgError(card, $event)"
+                              />
+                            </div>
+                          </template>
+                          <template
+                            v-if="
+                              searchMode === 'archetype' &&
+                              searchResultsRelated.length > 0
+                            "
+                          >
+                            <div class="small text-muted mb-1 mt-2">
+                              {{ getSearchSectionLabel('related') }} ({{
+                                searchResultsRelated.length
+                              }})
+                            </div>
+                            <div class="search-results-grid">
+                              <img
+                                v-for="card in searchResultsRelated"
+                                :key="'rel-' + card.id"
+                                v-b-tooltip.hover.top="getDisplayName(card)"
+                                :src="getSearchResultImageSrc(card)"
+                                :alt="getDisplayName(card)"
+                                class="search-thumb rounded"
+                                loading="lazy"
+                                @click="applyCardFromSearch(card)"
+                                @error="onSearchResultImgError(card, $event)"
+                              />
+                            </div>
+                          </template>
+                        </div>
+                        <div
+                          v-else-if="searchTried && !searchLoading"
+                          class="
+                            panel-bg
+                            shadow
+                            p-3
+                            text-muted text-center
+                            search-results-panel
+                          "
+                        >
+                          {{ ui[uiLang].search_no_results }}
+                        </div>
                       </div>
                     </div>
                   </b-tab>
@@ -2531,7 +2555,11 @@ import { mapMutations } from 'vuex'
 import html2canvas from 'html2canvas'
 import JSZip from 'jszip'
 import LoadingDialog from '../components/LoadingDialog.vue'
+import MhDecksPanel from '../components/index/MhDecksPanel.vue'
+import MhSearchTab from '../components/index/MhSearchTab.vue'
 import YgoImportDeckModal from '../components/YgoImportDeckModal.vue'
+import YgoDecksPanel from '../components/index/YgoDecksPanel.vue'
+import YgoSearchTab from '../components/index/YgoSearchTab.vue'
 import YgoTranslationModal from '../components/YgoTranslationModal.vue'
 import ui from '../../../static/lang.ui.json'
 import cardMeta from '../../../static/lang.card_meta.json'
@@ -2560,7 +2588,15 @@ const LINK_MARKER_TO_INDEX = {
 }
 
 export default {
-  components: { LoadingDialog, YgoImportDeckModal, YgoTranslationModal },
+  components: {
+    LoadingDialog,
+    MhDecksPanel,
+    MhSearchTab,
+    YgoDecksPanel,
+    YgoImportDeckModal,
+    YgoSearchTab,
+    YgoTranslationModal,
+  },
   data() {
     return {
       activeTab: 0,
@@ -2862,22 +2898,31 @@ export default {
       return this.searchResults.filter((c) => c.matchType === 'desc')
     },
     searchResultsRelated() {
+      return this.searchResults.filter((c) => c.matchType === 'related')
+    },
+    searchResultsCitedRelated() {
       return this.searchResults.filter(
         (c) => c.matchType === 'name' || c.matchType === 'desc'
       )
-    },
-    searchResultsCitedRelated() {
-      return this.searchResults.filter((c) => c.matchType === 'related')
     },
     cardSearchIndex() {
       return this.localCards.map((card) => {
         const descEn = this.normalizeSearchQuery(card.desc_en || '')
         const descPt = this.normalizeSearchQuery(card.desc_pt || '')
         const descRaw = this.normalizeSearchQuery(card.desc || '')
+        const archetype = this.normalizeSearchQuery(
+          card.archetype ||
+            card.archetype_name ||
+            (Array.isArray(card.archetypes) ? card.archetypes.join(' ') : '') ||
+            (Array.isArray(card.archetypeNames)
+              ? card.archetypeNames.join(' ')
+              : '') ||
+            ''
+        )
         return {
           card,
           id: String(card.id),
-          archetype: this.normalizeSearchQuery(card.archetype || ''),
+          archetype,
           nameEn: this.normalizeSearchQuery(card.name_en || card.name || ''),
           namePt: this.normalizeSearchQuery(card.name_pt || ''),
           descEn,
@@ -5159,9 +5204,9 @@ export default {
       }, 200)
     },
     selectCardFromName(card) {
-      this.searchByName = ''
+      this.searchByName = card.name_pt || card.name_en || card.name || ''
       this.showNameDropdown = false
-      this.applyCardFromSearch(card)
+      this.searchCards()
     },
 
     stripAccents(str) {
@@ -6711,22 +6756,22 @@ body,
   min-height: 0;
   max-height: 100%;
 }
+#data-panel,
+#mh-data-panel {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  container-type: inline-size;
+}
 .decks-panel-inner,
 #data-panel .panel-bg,
 #mh-data-panel .panel-bg {
+  flex: 1 1 auto;
   min-height: 0;
   max-height: 100%;
   overflow: hidden;
   width: 100%;
   max-width: 100%;
-}
-#data-panel > .panel-bg,
-#mh-data-panel > .panel-bg {
-  overflow: hidden !important;
-}
-#data-panel,
-#mh-data-panel {
-  container-type: inline-size;
 }
 #data-panel .tab-content,
 #mh-data-panel .tab-content {
@@ -6783,27 +6828,36 @@ body,
   overscroll-behavior: contain;
 }
 .data-panel-search-scroll {
+  display: flex;
+  flex-direction: column;
   overflow-y: auto;
   overflow-x: hidden;
-  min-height: 0;
-  max-height: 100%;
   flex: 1 1 auto;
   width: 100%;
   margin-top: 12px;
   padding-right: 6px;
-  overscroll-behavior: contain;
+  min-height: 200px;
 }
 .search-tab-layout {
   height: 100%;
 }
+.search-tab-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+}
 .search-results-panel {
-  min-height: 100%;
   display: flex;
   flex-direction: column;
 }
 .search-results-grid {
   display: flex;
   flex-wrap: wrap;
+  align-content: flex-start;
+  justify-content: space-around;
+  overflow-y: auto;
+  max-height: 100%;
   gap: 4px;
 }
 .data-panel-editor-scroll::-webkit-scrollbar {
@@ -6827,11 +6881,12 @@ body,
   background: rgba(255, 255, 255, 0.04);
 }
 .card-form-scroll {
-  display: block;
-  min-height: auto;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
   padding-right: 0;
   overflow: visible;
-  width: 100%;
 }
 .data-panel-fieldset {
   display: block;
@@ -6866,13 +6921,10 @@ nav {
   color: #121212 !important;
 }
 
-/* Painel de busca (aba Busca): fundo levemente vermelho para destacar a área */
+/* Painel de busca (aba Busca) */
 .search-panel-col {
   position: relative;
   z-index: 1050;
-  border-radius: 0.5rem;
-  padding: 0.5rem 0.75rem;
-  height: 100vh !important;
 }
 .archetype-dropdown {
   z-index: 1060;
