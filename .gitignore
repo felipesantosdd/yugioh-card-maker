@@ -104,3 +104,4 @@ release/
 
 # Windows null device artifact
 nul
+.aider*

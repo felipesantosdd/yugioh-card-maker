@@ -6,9 +6,11 @@
   "scripts": {
     "dev": "concurrently \"npm run dev:renderer\" \"npm run dev:electron\"",
     "dev:renderer": "webpack serve --mode development",
-    "dev:electron": "cross-env NODE_ENV=development electronmon .",
+    "dev:electron": "node scripts/wait-for-dev-server.js && cross-env NODE_ENV=development electronmon .",
     "build:renderer": "cross-env NODE_ENV=production webpack --mode production",
     "build": "npm run build:renderer && electron-builder",
+    "download:ygo-art": "node scripts/download-ygo-canvas-art.js",
+    "download:ygo-thumbs": "node scripts/download-ygo-thumbs.js",
     "postinstall": "electron-builder install-app-deps",
     "lint:js": "eslint --ext \".js,.vue\" --ignore-path .gitignore .",
     "lint": "npm run lint:js"

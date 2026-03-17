@@ -5,6 +5,29 @@ const CopyWebpackPlugin = require('copy-webpack-plugin')
 
 module.exports = (_env, argv) => {
   const isProd = argv.mode === 'production'
+  const plugins = [
+    new VueLoaderPlugin(),
+    new HtmlWebpackPlugin({
+      template: path.resolve(__dirname, 'src/renderer/index.html'),
+      filename: 'index.html',
+    }),
+  ]
+
+  if (isProd) {
+    plugins.push(
+      new CopyWebpackPlugin({
+        patterns: [
+          {
+            from: path.resolve(__dirname, 'static'),
+            to: path.resolve(__dirname, 'dist'),
+            globOptions: {
+              ignore: ['**/CNAME', '**/ygo/pics/**', '**/ygo/thumbs/**'],
+            },
+          },
+        ],
+      })
+    )
+  }
 
   return {
     mode: isProd ? 'production' : 'development',
@@ -57,29 +80,15 @@ module.exports = (_env, argv) => {
         },
       ],
     },
-    plugins: [
-      new VueLoaderPlugin(),
-      new HtmlWebpackPlugin({
-        template: path.resolve(__dirname, 'src/renderer/index.html'),
-        filename: 'index.html',
-      }),
-      new CopyWebpackPlugin({
-        patterns: [
-          {
-            from: path.resolve(__dirname, 'static'),
-            to: path.resolve(__dirname, 'dist'),
-            globOptions: {
-              ignore: ['**/CNAME'],
-            },
-          },
-        ],
-      }),
-    ],
+    plugins,
     devServer: {
       port: 9080,
       hot: true,
       static: {
         directory: path.resolve(__dirname, 'static'),
+        watch: {
+          ignored: ['**/ygo/pics/**', '**/ygo/thumbs/**'],
+        },
       },
     },
     devtool: isProd ? false : 'eval-source-map',

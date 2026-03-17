@@ -41,13 +41,18 @@ contextBridge.exposeInMainWorld('ygoDb', {
 
   // Deck cards
   getDeckCards: (deckId) => ipcRenderer.invoke('ygoDb:getDeckCards', deckId),
-  addCardToDeck: (deckId, cardId, cardData) => ipcRenderer.invoke('ygoDb:addCardToDeck', deckId, cardId, cardData),
+  getDeckCardsByGame: (game) => ipcRenderer.invoke('ygoDb:getDeckCardsByGame', game),
+  addCardToDeck: (deckId, cardId, cardData, insertAfterSortOrder) => ipcRenderer.invoke('ygoDb:addCardToDeck', deckId, cardId, cardData, insertAfterSortOrder),
   updateDeckCard: (id, cardData) => ipcRenderer.invoke('ygoDb:updateDeckCard', id, cardData),
+  updateDeckCardsBulk: (updates) => ipcRenderer.invoke('ygoDb:updateDeckCardsBulk', updates),
   removeDeckCard: (id) => ipcRenderer.invoke('ygoDb:removeDeckCard', id),
+  replaceDeckCards: (deckId, cards) => ipcRenderer.invoke('ygoDb:replaceDeckCards', deckId, cards),
+  importDeckWithCards: (name, game, cards) => ipcRenderer.invoke('ygoDb:importDeckWithCards', name, game, cards),
 })
 
 contextBridge.exposeInMainWorld('cardArt', {
   get: (id, imageUrl) => ipcRenderer.invoke('cardArt:get', id, imageUrl),
+  getUrl: (id, imageUrl) => ipcRenderer.invoke('cardArt:getUrl', id, imageUrl),
   exists: (id) => ipcRenderer.invoke('cardArt:exists', id),
 })
 

@@ -1,3 +1,4 @@
+const crypto = require('crypto')
 const path = require('path')
 const { app } = require('electron')
 
@@ -5,6 +6,26 @@ const MS_PER_DAY = 24 * 60 * 60 * 1000
 const SCHEMA_VERSION = 2
 
 let db = null
+
+function createAppId(prefix) {
+  if (crypto.randomUUID) return `${prefix}_${crypto.randomUUID()}`
+  return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`
+}
+
+function touchDeckStatement(d) {
+  return d.prepare("UPDATE decks SET updated_at = datetime('now') WHERE id = ?")
+}
+
+function normalizeDeckCardData(cardData) {
+  const {
+    id: _unused,
+    deck_id: _unused2,
+    sort_order: _unused3,
+    created_at: _unused4,
+    ...rest
+  } = cardData || {}
+  return rest
+}
 
 function getDbPath() {
   return path.join(app.getPath('userData'), 'yugioh-card-maker.db')
@@ -264,7 +285,7 @@ function getDecks(game) {
 
 function createDeck(name, game) {
   const d = open()
-  const id = `deck_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`
+  const id = createAppId('deck')
   d.prepare('INSERT INTO decks (id, name, game) VALUES (?, ?, ?)').run(id, name, game || 'yugioh')
   return id
 }
@@ -295,36 +316,163 @@ function getDeckCards(deckId) {
   }))
 }
 
-function addCardToDeck(deckId, cardId, cardData) {
+function addCardToDeck(deckId, cardId, cardData, insertAfterSortOrder) {
   const d = open()
-  const id = `dc_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`
-  const maxOrder = d.prepare('SELECT MAX(sort_order) as mx FROM deck_cards WHERE deck_id = ?').get(deckId)
-  const order = (maxOrder && maxOrder.mx != null ? maxOrder.mx : -1) + 1
-  const { id: _unused, deck_id: _unused2, sort_order: _unused3, created_at: _unused4, ...rest } = cardData
-  d.prepare('INSERT INTO deck_cards (id, deck_id, card_id, card_data, sort_order) VALUES (?, ?, ?, ?, ?)').run(
-    id, deckId, cardId || null, JSON.stringify(rest), order
-  )
-  d.prepare("UPDATE decks SET updated_at = datetime('now') WHERE id = ?").run(deckId)
-  return id
+  const insertOne = d.transaction(() => {
+    const id = createAppId('dc')
+    let order
+    if (typeof insertAfterSortOrder === 'number' && insertAfterSortOrder >= -1) {
+      order = insertAfterSortOrder + 1
+      d.prepare('UPDATE deck_cards SET sort_order = sort_order + 1 WHERE deck_id = ? AND sort_order > ?').run(deckId, insertAfterSortOrder)
+    } else {
+      const maxOrder = d.prepare('SELECT MAX(sort_order) as mx FROM deck_cards WHERE deck_id = ?').get(deckId)
+      order = (maxOrder && maxOrder.mx != null ? maxOrder.mx : -1) + 1
+    }
+    d.prepare('INSERT INTO deck_cards (id, deck_id, card_id, card_data, sort_order) VALUES (?, ?, ?, ?, ?)').run(
+      id,
+      deckId,
+      cardId || null,
+      JSON.stringify(normalizeDeckCardData(cardData)),
+      order
+    )
+    touchDeckStatement(d).run(deckId)
+    return id
+  })
+  return insertOne()
 }
 
 function updateDeckCard(id, cardData) {
   const d = open()
-  const { id: _unused, deck_id: _unused2, sort_order: _unused3, created_at: _unused4, ...rest } = cardData
-  d.prepare('UPDATE deck_cards SET card_data = ? WHERE id = ?').run(JSON.stringify(rest), id)
-  const row = d.prepare('SELECT deck_id FROM deck_cards WHERE id = ?').get(id)
-  if (row) {
-    d.prepare("UPDATE decks SET updated_at = datetime('now') WHERE id = ?").run(row.deck_id)
-  }
+  const tx = d.transaction(() => {
+    d.prepare('UPDATE deck_cards SET card_data = ? WHERE id = ?').run(
+      JSON.stringify(normalizeDeckCardData(cardData)),
+      id
+    )
+    const row = d.prepare('SELECT deck_id FROM deck_cards WHERE id = ?').get(id)
+    if (row) {
+      touchDeckStatement(d).run(row.deck_id)
+    }
+  })
+  tx()
 }
 
 function removeDeckCard(id) {
   const d = open()
-  const row = d.prepare('SELECT deck_id FROM deck_cards WHERE id = ?').get(id)
-  d.prepare('DELETE FROM deck_cards WHERE id = ?').run(id)
-  if (row) {
-    d.prepare("UPDATE decks SET updated_at = datetime('now') WHERE id = ?").run(row.deck_id)
-  }
+  const tx = d.transaction(() => {
+    const row = d
+      .prepare('SELECT deck_id, sort_order FROM deck_cards WHERE id = ?')
+      .get(id)
+    d.prepare('DELETE FROM deck_cards WHERE id = ?').run(id)
+    if (row) {
+      d.prepare(`
+        UPDATE deck_cards
+        SET sort_order = sort_order - 1
+        WHERE deck_id = ? AND sort_order > ?
+      `).run(row.deck_id, row.sort_order)
+      touchDeckStatement(d).run(row.deck_id)
+    }
+  })
+  tx()
+}
+
+function updateDeckCardsBulk(updates) {
+  const d = open()
+  if (!Array.isArray(updates) || updates.length === 0) return 0
+  const updateStmt = d.prepare('UPDATE deck_cards SET card_data = ? WHERE id = ?')
+  const getDeckStmt = d.prepare('SELECT deck_id FROM deck_cards WHERE id = ?')
+  const touchStmt = touchDeckStatement(d)
+  const touchedDecks = new Set()
+
+  const tx = d.transaction(() => {
+    for (const entry of updates) {
+      if (!entry || !entry.id) continue
+      updateStmt.run(JSON.stringify(normalizeDeckCardData(entry.cardData)), entry.id)
+      const row = getDeckStmt.get(entry.id)
+      if (row?.deck_id) touchedDecks.add(row.deck_id)
+    }
+    for (const deckId of touchedDecks) touchStmt.run(deckId)
+  })
+  tx()
+  return touchedDecks.size
+}
+
+function replaceDeckCards(deckId, cards) {
+  const d = open()
+  const list = Array.isArray(cards) ? cards : []
+  const insertStmt = d.prepare(`
+    INSERT INTO deck_cards (id, deck_id, card_id, card_data, sort_order)
+    VALUES (?, ?, ?, ?, ?)
+  `)
+  const deleteStmt = d.prepare('DELETE FROM deck_cards WHERE deck_id = ?')
+  const touchStmt = touchDeckStatement(d)
+
+  const tx = d.transaction(() => {
+    deleteStmt.run(deckId)
+    list.forEach((item, index) => {
+      const id =
+        item && item.id && !String(item.id).startsWith('pending_')
+          ? String(item.id)
+          : createAppId('dc')
+      insertStmt.run(
+        id,
+        deckId,
+        item?.card_id ?? item?.cardId ?? null,
+        JSON.stringify(normalizeDeckCardData(item)),
+        typeof item?.sort_order === 'number' ? item.sort_order : index
+      )
+    })
+    touchStmt.run(deckId)
+  })
+
+  tx()
+}
+
+function importDeckWithCards(name, game, cards) {
+  const d = open()
+  const deckId = createAppId('deck')
+  const insertDeckStmt = d.prepare(
+    'INSERT INTO decks (id, name, game) VALUES (?, ?, ?)'
+  )
+  const insertCardStmt = d.prepare(`
+    INSERT INTO deck_cards (id, deck_id, card_id, card_data, sort_order)
+    VALUES (?, ?, ?, ?, ?)
+  `)
+
+  const tx = d.transaction(() => {
+    insertDeckStmt.run(deckId, name, game || 'yugioh')
+    ;(Array.isArray(cards) ? cards : []).forEach((item, index) => {
+      insertCardStmt.run(
+        createAppId('dc'),
+        deckId,
+        item?.card_id ?? item?.cardId ?? null,
+        JSON.stringify(normalizeDeckCardData(item)),
+        typeof item?.sort_order === 'number' ? item.sort_order : index
+      )
+    })
+  })
+
+  tx()
+  return deckId
+}
+
+/** Retorna todos os deck_cards de decks do jogo (ex.: 'monsterhunter') para busca global. */
+function getDeckCardsByGame(game) {
+  const d = open()
+  const rows = d.prepare(`
+    SELECT dc.id, dc.deck_id, dc.card_id, dc.card_data, dc.sort_order, dc.created_at
+    FROM deck_cards dc
+    INNER JOIN decks d ON dc.deck_id = d.id
+    WHERE d.game = ?
+    ORDER BY dc.sort_order ASC, dc.created_at ASC
+  `).all(game)
+  return rows.map((r) => ({
+    id: r.id,
+    deck_id: r.deck_id,
+    card_id: r.card_id,
+    sort_order: r.sort_order,
+    created_at: r.created_at,
+    ...JSON.parse(r.card_data),
+  }))
 }
 
 function getSyncMeta(key) {
@@ -353,7 +501,11 @@ module.exports = {
   updateDeck,
   deleteDeck,
   getDeckCards,
+  getDeckCardsByGame,
   addCardToDeck,
   updateDeckCard,
+  updateDeckCardsBulk,
   removeDeckCard,
+  replaceDeckCards,
+  importDeckWithCards,
 }

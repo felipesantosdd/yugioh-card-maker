@@ -53,7 +53,15 @@ function computeGridFit(usable, card, bleed) {
 }
 
 /** page_manager.select_best_margins — idêntico ao Python. */
-function selectBestMargins(pageWidth, pageHeight, cardWidth, cardHeight, bleed, inset, cornerLen) {
+function selectBestMargins(
+  pageWidth,
+  pageHeight,
+  cardWidth,
+  cardHeight,
+  bleed,
+  inset,
+  cornerLen
+) {
   const strategies = [
     [inset, inset],
     [inset + cornerLen, inset],
@@ -82,12 +90,25 @@ function selectBestMargins(pageWidth, pageHeight, cardWidth, cardHeight, bleed, 
     }
   }
 
-  if (!best) throw new Error('No valid layout fits without intruding into corner exclusion zones.')
+  if (!best)
+    throw new Error(
+      'No valid layout fits without intruding into corner exclusion zones.'
+    )
   return best
 }
 
 /** page_manager.compute_card_positions — posições em pixels. */
-function computeCardPositions(cols, rows, cardWidth, cardHeight, bleed, marginX, marginY, usableWidth, usableHeight) {
+function computeCardPositions(
+  cols,
+  rows,
+  cardWidth,
+  cardHeight,
+  bleed,
+  marginX,
+  marginY,
+  usableWidth,
+  usableHeight
+) {
   const gridWidth = cols * cardWidth + (cols + 1) * bleed
   const gridHeight = rows * cardHeight + (rows + 1) * bleed
   const startX = Math.round(marginX + (usableWidth - gridWidth) / 2 + bleed)
@@ -107,11 +128,14 @@ function generateLayout(config, paperSizeKey, cardSizeKey) {
   const ppi = config.ppi || PPI_DEFAULT
   const cardDef = config.card_sizes[cardSizeKey]
   const paperDef = config.paper_sizes[paperSizeKey]
-  const layoutDef = config.layouts[paperSizeKey] && config.layouts[paperSizeKey][cardSizeKey]
-  if (!cardDef || !paperDef || !layoutDef) throw new Error(`Layout não encontrado: ${paperSizeKey} + ${cardSizeKey}`)
+  const layoutDef =
+    config.layouts[paperSizeKey] && config.layouts[paperSizeKey][cardSizeKey]
+  if (!cardDef || !paperDef || !layoutDef)
+    throw new Error(`Layout não encontrado: ${paperSizeKey} + ${cardSizeKey}`)
 
   const defaultReg = config.defaults.registration
-  const effectiveInset = (layoutDef.registration && layoutDef.registration.inset) || defaultReg.inset
+  const effectiveInset =
+    (layoutDef.registration && layoutDef.registration.inset) || defaultReg.inset
   const totalExclusionMm = sizeToMm(defaultReg.length) + REG_PADDING_MM
 
   const paperWidthPx = sizeToPixel(paperDef.width, ppi)
@@ -122,13 +146,31 @@ function generateLayout(config, paperSizeKey, cardSizeKey) {
   const insetPx = sizeToPixel(effectiveInset, ppi)
   const cornerLenPx = sizeToPixel(`${totalExclusionMm}mm`, ppi)
 
-  const [pageWidthPx, pageHeightPx] = normalizePageSize(layoutDef.orientation, paperWidthPx, paperHeightPx)
+  const [pageWidthPx, pageHeightPx] = normalizePageSize(
+    layoutDef.orientation,
+    paperWidthPx,
+    paperHeightPx
+  )
 
   const [cols, rows, marginX, marginY, usableW, usableH] = selectBestMargins(
-    pageWidthPx, pageHeightPx, cardWidthPx, cardHeightPx, bleedPx, insetPx, cornerLenPx
+    pageWidthPx,
+    pageHeightPx,
+    cardWidthPx,
+    cardHeightPx,
+    bleedPx,
+    insetPx,
+    cornerLenPx
   )
   const { xPos, yPos } = computeCardPositions(
-    cols, rows, cardWidthPx, cardHeightPx, bleedPx, marginX, marginY, usableW, usableH
+    cols,
+    rows,
+    cardWidthPx,
+    cardHeightPx,
+    bleedPx,
+    marginX,
+    marginY,
+    usableW,
+    usableH
   )
 
   return {
@@ -146,9 +188,18 @@ function generateLayout(config, paperSizeKey, cardSizeKey) {
     rows,
     cols,
     regInsetMm: sizeToMm(effectiveInset),
-    regThicknessMm: sizeToMm((layoutDef.registration && layoutDef.registration.thickness) || defaultReg.thickness),
-    regLengthMm: sizeToMm((layoutDef.registration && layoutDef.registration.length) || defaultReg.length),
-    registration: layoutDef.registration && layoutDef.registration.mark ? layoutDef.registration.mark : REGISTRATION_THREE,
+    regThicknessMm: sizeToMm(
+      (layoutDef.registration && layoutDef.registration.thickness) ||
+        defaultReg.thickness
+    ),
+    regLengthMm: sizeToMm(
+      (layoutDef.registration && layoutDef.registration.length) ||
+        defaultReg.length
+    ),
+    registration:
+      layoutDef.registration && layoutDef.registration.mark
+        ? layoutDef.registration.mark
+        : REGISTRATION_THREE,
   }
 }
 
@@ -189,10 +240,7 @@ function drawRegistrationMarks(doc, pageWidthMm, pageHeightMm, opts) {
 async function resizeCardImage(inputBuffer, widthMm, heightMm, ppi) {
   const wPx = Math.round((widthMm / 25.4) * ppi)
   const hPx = Math.round((heightMm / 25.4) * ppi)
-  return sharp(inputBuffer)
-    .resize(wPx, hPx, { fit: 'fill' })
-    .png()
-    .toBuffer()
+  return sharp(inputBuffer).resize(wPx, hPx, { fit: 'fill' }).png().toBuffer()
 }
 
 /** Nome do arquivo template para Silhouette Studio (corte). */
@@ -205,7 +253,11 @@ function loadMhBackImageBase64(backImageType) {
   if (!backImageType || typeof backImageType !== 'string') return null
   const safe = backImageType.replace(/[^a-zA-Z0-9_-]/g, '')
   if (!safe) return null
-  const p = path.join(__dirname, '../../static/images/pic/mh/layout', `${safe}-back.png`)
+  const p = path.join(
+    __dirname,
+    '../../static/images/pic/mh/layout',
+    `${safe}-back.png`
+  )
   try {
     return fs.readFileSync(p).toString('base64')
   } catch (_) {
@@ -216,19 +268,31 @@ function loadMhBackImageBase64(backImageType) {
 /**
  * Gera PDF e retorna { pdfBase64, templateFileName }.
  * templateFileName é o arquivo .studio3 que deve ser aberto na máquina para o corte.
- * @param {Object} [options] - options.cardsTouch: se true, desenha os cards invadindo o gap (1,25 mm) para se tocarem e reduzir falha de impressão.
+ * @param {Object} [options]
+ *  - options.cardsTouch: se true, desenha os cards invadindo o gap (1,25 mm) para se tocarem e reduzir falha de impressão.
+ *  - options.includeImages: se false, não desenha as imagens dos cards, apenas os retângulos de corte (útil para imprimir apenas o gabarito).
  */
-async function generateSilhouettePdf(images, cardSizeKey, paperSizeKey, options = {}) {
+async function generateSilhouettePdf(
+  images,
+  cardSizeKey,
+  paperSizeKey,
+  options = {}
+) {
   const config = loadLayoutConfig()
   const layout = generateLayout(config, paperSizeKey, cardSizeKey)
   const cardsTouch = options.cardsTouch === true
-  const bleedMm = cardsTouch ? (layout.bleedMm || CARD_DISTANCE_MM) : 0
+  const includeImages = options.includeImages !== false
+  const bleedMm = cardsTouch ? layout.bleedMm || CARD_DISTANCE_MM : 0
   const drawWidthMm = layout.cardWidthMm + bleedMm
   const drawHeightMm = layout.cardHeightMm + bleedMm
   const offsetMm = cardsTouch ? bleedMm / 2 : 0
 
   const layoutDef = config.layouts[paperSizeKey][cardSizeKey]
-  const templateFileName = getTemplateFileName(paperSizeKey, cardSizeKey, layoutDef.version || 1)
+  const templateFileName = getTemplateFileName(
+    paperSizeKey,
+    cardSizeKey,
+    layoutDef.version || 1
+  )
 
   const format = [layout.pageWidthMm, layout.pageHeightMm]
   const orientation = layout.orientation === 'landscape' ? 'l' : 'p'
@@ -258,15 +322,26 @@ async function generateSilhouettePdf(images, cardSizeKey, paperSizeKey, options 
     for (let r = 0; r < layout.rows && imageIndex < images.length; r++) {
       for (let c = 0; c < layout.cols && imageIndex < images.length; c++) {
         const item = images[imageIndex]
-        const base64 = item.base64 || item
-        const buffer = Buffer.from(base64, 'base64')
-        const resized = await resizeCardImage(buffer, drawWidthMm, drawHeightMm, ppi)
-        const dataUrl = `data:image/png;base64,${resized.toString('base64')}`
         const x = layout.xPosMm[c] - offsetMm
         const y = layout.yPosMm[r] - offsetMm
-        doc.addImage(dataUrl, 'PNG', x, y, drawWidthMm, drawHeightMm)
+        if (includeImages) {
+          const base64 = item.base64 || item
+          const buffer = Buffer.from(base64, 'base64')
+          const resized = await resizeCardImage(
+            buffer,
+            drawWidthMm,
+            drawHeightMm,
+            ppi
+          )
+          const dataUrl = `data:image/png;base64,${resized.toString('base64')}`
+          doc.addImage(dataUrl, 'PNG', x, y, drawWidthMm, drawHeightMm)
+        } else {
+          // Apenas retângulo no lugar do card (gabarito sem imagem)
+          doc.rect(x, y, drawWidthMm, drawHeightMm)
+        }
         let backBase64 = item.backBase64 || null
-        if (!backBase64 && item.backImageType) backBase64 = loadMhBackImageBase64(item.backImageType)
+        if (!backBase64 && item.backImageType)
+          backBase64 = loadMhBackImageBase64(item.backImageType)
         backsForPage.push(backBase64)
         imageIndex++
       }
@@ -287,15 +362,32 @@ async function generateSilhouettePdf(images, cardSizeKey, paperSizeKey, options 
       const cols = layout.cols
       for (let r = 0; r < rows; r++) {
         for (let c = 0; c < cols; c++) {
-          const slot = (rows - 1 - r) * cols + c
+          // Flip duplex na borda longa:
+          // - linha espelhada verticalmente (rows-1-r): ao virar a folha pelo topo,
+          //   o que era linha 0 da frente vira linha (rows-1) do verso.
+          // - coluna espelhada horizontalmente (cols-1-c): ao virar a folha,
+          //   esquerda vira direita.
+          const slot = (rows - 1 - r) * cols + (cols - 1 - c)
           const backBase64 = backsForPage[slot]
-          if (backBase64) {
+
+          // Posição física na página (sem rotação de imagem)
+          const x = layout.xPosMm[c] - offsetMm
+          const y = layout.yPosMm[r] - offsetMm
+
+          if (includeImages && backBase64) {
             const buffer = Buffer.from(backBase64, 'base64')
-            const resized = await resizeCardImage(buffer, drawWidthMm, drawHeightMm, ppi)
-            const dataUrl = `data:image/png;base64,${resized.toString('base64')}`
-            const x = layout.xPosMm[c] - offsetMm
-            const y = layout.yPosMm[r] - offsetMm
-            doc.addImage(dataUrl, 'PNG', x, y, drawWidthMm, drawHeightMm)
+            const resized = await resizeCardImage(
+              buffer,
+              drawWidthMm,
+              drawHeightMm,
+              ppi
+            )
+            const dataUrl = `data:image/png;base64,${resized.toString(
+              'base64'
+            )}`
+            doc.addImage(dataUrl, 'PNG', x, y, drawWidthMm, drawHeightMm) // sem rotação!
+          } else if (!includeImages) {
+            doc.rect(x, y, drawWidthMm, drawHeightMm)
           }
         }
       }
@@ -316,7 +408,11 @@ async function generateSilhouettePdf(images, cardSizeKey, paperSizeKey, options 
 
 /** Retorna o buffer do arquivo .studio3 para o template (para incluir no ZIP). */
 function getTemplateBuffer(templateFileName) {
-  const p = path.join(__dirname, '../../static/silhouette-templates', templateFileName)
+  const p = path.join(
+    __dirname,
+    '../../static/silhouette-templates',
+    templateFileName
+  )
   return fs.readFileSync(p)
 }
 
@@ -327,7 +423,8 @@ function getCardSizeOptions() {
   for (const [key, def] of Object.entries(config.card_sizes || {})) {
     const wMm = sizeToMm(def.width)
     const hMm = sizeToMm(def.height)
-    const label = def.label || `${key} (${Math.round(wMm)}×${Math.round(hMm)} mm)`
+    const label =
+      def.label || `${key} (${Math.round(wMm)}×${Math.round(hMm)} mm)`
     list.push({ key, label, widthMm: wMm, heightMm: hMm })
   }
   return list

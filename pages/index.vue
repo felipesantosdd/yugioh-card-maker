@@ -56,7 +56,11 @@
                     <div
                       v-if="searchMode === 'archetype'"
                       class="position-relative mr-1 flex-grow-1 flex-md-grow-0"
-                      style="min-width: 180px; max-width: 320px"
+                      style="
+                        min-width: 180px;
+                        max-width: 320px;
+                        background-color: #ea4624;
+                      "
                     >
                       <b-form-input
                         v-model="searchByArchetype"

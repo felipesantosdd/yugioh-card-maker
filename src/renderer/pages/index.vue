@@ -3,8 +3,12 @@
     <!-- Área do título -->
 
     <!-- Área de conteúdo principal -->
-    <main class="container-fluid mt-5 mb-3 h-100 py-3 py-md-5 px-0 px-sm-5">
-      <b-tabs v-model="activeTab" content-class="mt-3" class="px-2 px-sm-5">
+    <main class="container-fluid mt-5 mb-3 py-3 py-md-5 px-0 main-fullheight">
+      <b-tabs
+        v-model="activeTab"
+        content-class="mt-3 tab-content-fullheight"
+        class="px-2 tabs-fullheight"
+      >
         <b-tab :title="ui[uiLang].tab_yugioh">
           <!-- Barra de progresso ao atualizar banco local -->
           <div v-if="syncLoading" class="panel-bg shadow p-3 mb-3">
@@ -34,149 +38,43 @@
               ↻ Forçar atualização do banco
             </button>
           </div>
-          <!-- Busca por nome ou arquétipo -->
-          <b-row class="mb-3 justify-content-center">
-            <b-col cols="12" class="px-2 px-sm-5 search-panel-col">
-              <div class="panel-bg shadow p-3">
-                <b-row class="align-items-end">
-                  <b-col cols="12" md="auto" class="mb-2 mb-md-0">
-                    <label class="d-block mb-2">{{
-                      ui[uiLang].search_cards
-                    }}</label>
-                    <b-form-radio-group
-                      v-model="searchMode"
-                      buttons
-                      button-variant="outline-secondary"
-                      size="sm"
-                    >
-                      <b-form-radio value="archetype">{{
-                        ui[uiLang].search_by_archetype
-                      }}</b-form-radio>
-                      <b-form-radio value="name">{{
-                        ui[uiLang].search_by_name
-                      }}</b-form-radio>
-                    </b-form-radio-group>
-                  </b-col>
-                  <b-col
-                    cols="12"
-                    md
-                    class="mb-2 mb-md-0 d-flex justify-content-end flex-wrap"
-                  >
-                    <div
-                      v-if="searchMode === 'archetype'"
-                      class="position-relative mr-1 flex-grow-1 flex-md-grow-0"
-                      style="min-width: 180px; max-width: 320px"
-                    >
-                      <b-form-input
-                        v-model="searchByArchetype"
-                        :placeholder="ui[uiLang].search_placeholder_archetype"
-                        autocomplete="off"
-                        @focus="showArchetypeDropdown = true"
-                        @keyup.enter="
-                          filteredArchetypes.length
-                            ? selectArchetype(filteredArchetypes[0])
-                            : searchCards()
-                        "
-                        @input="showArchetypeDropdown = true"
-                        @blur="closeArchetypeDropdown"
-                      />
-                      <ul
-                        v-if="
-                          showArchetypeDropdown && searchByArchetype.length >= 1
-                        "
-                        class="
-                          list-group
-                          position-absolute
-                          shadow
-                          mt-1
-                          w-100
-                          archetype-dropdown
-                        "
-                        style="max-height: 220px; overflow-y: auto"
-                      >
-                        <li
-                          v-for="(opt, idx) in filteredArchetypes.slice(0, 15)"
-                          :key="idx"
-                          class="list-group-item list-group-item-action py-2"
-                          @click="selectArchetype(opt)"
-                        >
-                          {{ opt.archetype_name }}
-                        </li>
-                      </ul>
-                    </div>
-                    <div
-                      v-else
-                      class="position-relative mr-1 flex-grow-1 flex-md-grow-0"
-                      style="min-width: 180px; max-width: 320px"
-                    >
-                      <b-form-input
-                        v-model="searchByName"
-                        :placeholder="ui[uiLang].search_placeholder_name"
-                        autocomplete="off"
-                        @focus="showNameDropdown = true"
-                        @keyup.enter="
-                          filteredCardsByName.length
-                            ? selectCardFromName(filteredCardsByName[0])
-                            : null
-                        "
-                        @input="showNameDropdown = true"
-                        @blur="closeNameDropdown"
-                      />
-                      <ul
-                        v-if="showNameDropdown && searchByName.length >= 1"
-                        class="
-                          list-group
-                          position-absolute
-                          shadow
-                          mt-1
-                          w-100
-                          archetype-dropdown
-                        "
-                        style="max-height: 220px; overflow-y: auto"
-                      >
-                        <li
-                          v-for="card in filteredCardsByName.slice(0, 15)"
-                          :key="card.id"
-                          class="list-group-item list-group-item-action py-2"
-                          @click="selectCardFromName(card)"
-                        >
-                          {{ getFilteredCardDisplayName(card) }}
-                        </li>
-                      </ul>
-                    </div>
-                  </b-col>
-                </b-row>
-              </div>
-            </b-col>
-          </b-row>
-
-          <b-row class="h-100 justify-content-center align-content-center">
-            <!-- Área de desenho do cartão -->
+          <b-row class="row-three-cols align-items-stretch">
+            <!-- Coluna esquerda: canvas do cartão -->
             <b-col
               id="card-panel"
               cols="12"
-              md="6"
+              md="4"
               lg="4"
-              class="mt-3 mt-sm-5 mt-md-0"
+              class="mt-3 mt-sm-5 mt-md-0 col-panel d-flex flex-column"
             >
               <div
+                class="col-panel-inner d-flex flex-column flex-grow-1"
                 :class="{
                   'padding-transition': true,
-                  'sticky-top': true,
                   'pt-5': pageScrolling > 10,
                 }"
               >
                 <div
+                  class="d-flex flex-column flex-grow-1 min-h-0"
                   :class="{
                     'padding-transition': true,
                     'pt-5': pageScrolling > 10,
                   }"
                 >
-                  <div class="panel-bg shadow p-3">
+                  <div
+                    class="
+                      panel-bg
+                      shadow
+                      p-3
+                      d-flex
+                      flex-column flex-grow-1
+                      min-h-0
+                    "
+                  >
                     <div
                       id="yugiohcard-wrap"
                       ref="yugiohcard-wrap"
-                      class="card-body position-relative"
+                      class="card-body position-relative flex-grow-1 min-h-0"
                       @mousemove="move"
                       @mouseleave="leave"
                     >
@@ -209,1079 +107,1533 @@
                         </div>
                       </div>
                     </div>
+                    <!-- Barra: -1 | quantidade | Editar | +1 | Novo -->
+                    <div
+                      class="
+                        card-deck-actions
+                        mt-3
+                        pt-3
+                        border-top border-secondary
+                      "
+                    >
+                      <div
+                        class="
+                          d-flex
+                          align-items-center
+                          justify-content-center
+                          flex-wrap
+                        "
+                      >
+                        <span class="text-light small gap-2">
+                          {{ currentCardQuantityInDeck }} no deck
+                        </span>
+                        <b-button
+                          size="md"
+                          variant="outline-light"
+                          :disabled="
+                            !selectedDeckId || currentCardQuantityInDeck === 0
+                          "
+                          title="Remover uma cópia do deck"
+                          @click="removeOneFromDeck"
+                        >
+                          <fa :icon="['fas', 'minus']" />
+                        </b-button>
+                        <b-button
+                          size="md"
+                          variant="outline-warning"
+                          :disabled="
+                            !selectedDeckId || currentCardQuantityInDeck === 0
+                          "
+                          :title="
+                            deckEditLock
+                              ? 'Habilitar edição deste card'
+                              : 'Editando'
+                          "
+                          @click="unlockDeckEdit"
+                        >
+                          {{
+                            deckEditLock
+                              ? ui[uiLang].edit || 'Editar'
+                              : 'Editando'
+                          }}
+                        </b-button>
+                        <b-button
+                          size="md"
+                          variant="outline-info"
+                          title="Novo card (zerar canvas)"
+                          @click="load_default_data"
+                        >
+                          Novo
+                        </b-button>
+                        <b-button
+                          size="md"
+                          variant="outline-light"
+                          :disabled="
+                            !selectedDeckId || !cardKey || !editingDeckCardId
+                          "
+                          title="Adicionar uma cópia ao deck"
+                          @click="addCopyToDeck"
+                        >
+                          <fa :icon="['fas', 'plus']" />
+                        </b-button>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
             </b-col>
-            <!-- Área de dados do cartão -->
+            <!-- Coluna central: Meus Decks e cards do deck -->
+            <b-col
+              id="decks-panel"
+              cols="12"
+              md="4"
+              lg="4"
+              class="mt-3 mt-sm-5 mt-md-0 col-panel d-flex flex-column"
+            >
+              <div
+                class="
+                  panel-bg
+                  shadow
+                  p-3
+                  d-flex
+                  flex-column flex-grow-1
+                  min-h-0
+                  decks-panel-inner
+                "
+              >
+                <!-- Vista: lista de decks como cards -->
+                <template v-if="centerColumnView === 'decks'">
+                  <div
+                    class="
+                      d-flex
+                      align-items-center
+                      justify-content-between
+                      mb-3
+                      flex-shrink-0
+                    "
+                  >
+                    <label class="mb-0">{{
+                      ui[uiLang].my_decks || 'Meus Decks'
+                    }}</label>
+                    <b-button
+                      size="sm"
+                      variant="outline-info"
+                      class="mr-2"
+                      @click="openImportDeckModal"
+                    >
+                      <fa :icon="['fas', 'file-import']" />
+                      Importar
+                    </b-button>
+                    <b-button
+                      size="sm"
+                      variant="outline-success"
+                      @click="
+                        newDeckGame = 'yugioh'
+                        showNewDeckModal = true
+                      "
+                    >
+                      <fa :icon="['fas', 'plus']" />
+                      {{ ui[uiLang].new_deck || 'Novo Deck' }}
+                    </b-button>
+                  </div>
+                  <div
+                    class="d-flex align-items-end flex-wrap mb-3"
+                    style="gap: 8px"
+                  >
+                    <div class="flex-grow-1 min-w-0">
+                      <label class="small text-muted d-block mb-1"
+                        >Buscar deck</label
+                      >
+                      <b-form-input
+                        v-model="deckSearchQuery"
+                        size="sm"
+                        placeholder="Buscar por nome"
+                      />
+                    </div>
+                    <div style="min-width: 180px">
+                      <label class="small text-muted d-block mb-1"
+                        >Ordenar por</label
+                      >
+                      <b-form-select
+                        v-model="deckSortBy"
+                        size="sm"
+                        :options="[
+                          { value: 'updated_at', text: 'Ultima edicao' },
+                          { value: 'created_at', text: 'Data de criacao' },
+                          { value: 'name', text: 'Nome' },
+                        ]"
+                      />
+                    </div>
+                  </div>
+                  <div
+                    v-if="filteredUserDecks.length > 0"
+                    class="
+                      d-flex
+                      flex-wrap
+                      deck-cards-scroll
+                      overflow-y-auto
+                      flex-grow-1
+                      align-content-start
+                    "
+                    style="gap: 10px; min-height: 0"
+                  >
+                    <div
+                      v-for="deck in filteredUserDecks"
+                      :key="deck.id"
+                      class="
+                        deck-card-item
+                        rounded
+                        text-center
+                        position-relative
+                      "
+                      style="cursor: pointer; width: 120px; flex-shrink: 0"
+                      @click="selectDeck(deck)"
+                    >
+                      <div
+                        class="
+                          deck-card-thumb-wrap
+                          rounded
+                          overflow-hidden
+                          bg-secondary
+                          mb-1
+                        "
+                      >
+                        <img
+                          v-if="deckFirstCardImages[deck.id]"
+                          :src="deckFirstCardImages[deck.id]"
+                          :alt="deck.name"
+                          class="deck-card-thumb"
+                        />
+                        <div
+                          v-else
+                          class="
+                            deck-card-thumb deck-card-thumb-placeholder
+                            d-flex
+                            align-items-center
+                            justify-content-center
+                            text-white
+                            small
+                          "
+                        >
+                          <fa :icon="['fas', 'folder']" />
+                        </div>
+                      </div>
+                      <div
+                        class="text-white small text-truncate px-1"
+                        :title="deck.name"
+                      >
+                        {{ deck.name }}
+                      </div>
+                    </div>
+                  </div>
+                  <p v-else class="text-muted small mb-0 flex-shrink-0">
+                    {{
+                      deckSearchQuery.trim()
+                        ? 'Nenhum deck encontrado para a busca.'
+                        : ui[uiLang].no_decks || 'Nenhum deck criado.'
+                    }}
+                  </p>
+                </template>
+
+                <!-- Vista: cards do deck selecionado + toolbar -->
+                <template
+                  v-else-if="centerColumnView === 'deck-cards' && selectedDeck"
+                >
+                  <div class="d-flex flex-column flex-grow-1 min-h-0">
+                    <!-- Toolbar: nome à esquerda, botões à direita -->
+                    <div class="decks-toolbar flex-shrink-0 mb-2">
+                      <div
+                        class="
+                          d-flex
+                          align-items-center
+                          justify-content-between
+                          flex-nowrap
+                        "
+                        style="gap: 8px"
+                      >
+                        <span
+                          class="
+                            text-light
+                            font-weight-bold
+                            text-truncate
+                            flex-grow-1
+                            min-w-0
+                            mr-2
+                          "
+                        >
+                          {{ selectedDeck.name }} ({{
+                            selectedDeckCards.length
+                          }})
+                        </span>
+                        <div
+                          class="
+                            d-flex
+                            align-items-center
+                            flex-shrink-0 flex-wrap
+                          "
+                          style="gap: 4px; justify-content: flex-end"
+                        >
+                          <b-button
+                            size="sm"
+                            variant="outline-secondary"
+                            title="Editar nome"
+                            @click="openEditDeckModal(selectedDeck)"
+                          >
+                            <fa :icon="['fas', 'pen']" />
+                          </b-button>
+                          <b-button
+                            size="sm"
+                            variant="outline-light"
+                            @click="goBackToDeckList"
+                          >
+                            <fa :icon="['fas', 'arrow-left']" class="mr-1" />
+                            Voltar
+                          </b-button>
+                          <b-button
+                            size="sm"
+                            variant="outline-warning"
+                            :disabled="!cardKey || isCurrentCardInDeck"
+                            :title="
+                              isCurrentCardInDeck
+                                ? 'Card já está no deck'
+                                : 'Adicionar card atual ao deck'
+                            "
+                            @click="addToDeckCurrent"
+                          >
+                            <fa :icon="['fas', 'plus']" class="mr-1" />
+                            {{ ui[uiLang].add_to_deck || 'Adicionar ao deck' }}
+                          </b-button>
+                          <b-button
+                            size="sm"
+                            variant="outline-success"
+                            :disabled="!deckDirtyYgo"
+                            title="Salvar alterações do deck (adicionados/removidos)"
+                            @click="saveDeckStateYgo"
+                          >
+                            <fa :icon="['fas', 'save']" class="mr-1" />
+                            Salvar
+                          </b-button>
+                          <b-button
+                            v-if="deckDirtyYgo"
+                            size="sm"
+                            variant="outline-secondary"
+                            title="Descartar alterações do deck"
+                            @click="discardDeckStateYgo"
+                          >
+                            Descartar
+                          </b-button>
+                          <b-button
+                            size="sm"
+                            variant="outline-info"
+                            :disabled="batchDownloading"
+                            @click="batchDownloadDeck"
+                          >
+                            {{
+                              batchDownloading
+                                ? ui[uiLang].batch_downloading || 'Baixando...'
+                                : ui[uiLang].batch_download || 'Baixar'
+                            }}
+                          </b-button>
+                          <b-button
+                            v-if="hasSilhouetteSupport"
+                            size="sm"
+                            variant="outline-success"
+                            :disabled="silhouetteDownloading"
+                            @click="openSilhouetteModal"
+                          >
+                            {{ ui[uiLang].silhouette_download || 'Silhuete' }}
+                          </b-button>
+                          <b-button
+                            size="sm"
+                            variant="outline-danger"
+                            title="Excluir deck"
+                            @click="deleteDeck(selectedDeck.id)"
+                          >
+                            <fa :icon="['fas', 'trash']" />
+                          </b-button>
+                        </div>
+                      </div>
+                    </div>
+                    <!-- Lista de cards do deck (scroll quando não couber tudo) -->
+                    <div
+                      v-if="selectedDeckCards.length > 0"
+                      class="
+                        deck-sections-scroll
+                        overflow-y-auto
+                        flex-grow-1
+                        min-h-0
+                      "
+                    >
+                      <div class="deck-section mb-3">
+                        <div class="deck-section-label">
+                          Main Deck ({{ mainDeckCards.length }})
+                        </div>
+                        <div class="deck-grid deck-cards-scroll">
+                          <div
+                            v-for="item in mainDeckCards"
+                            :key="item.id"
+                            v-b-tooltip.hover.top="item.name"
+                            class="deck-thumb-wrap position-relative"
+                            :class="
+                              editingDeckCardId === item.id
+                                ? 'deck-thumb-active'
+                                : ''
+                            "
+                            @click="loadDeckCardForEdit(item)"
+                          >
+                            <img
+                              v-if="getDeckCardImageSrc(item)"
+                              :src="getDeckCardImageSrc(item)"
+                              :alt="item.name"
+                              class="deck-thumb rounded"
+                            />
+                            <div
+                              v-else
+                              class="
+                                deck-thumb
+                                rounded
+                                bg-secondary
+                                d-flex
+                                align-items-center
+                                justify-content-center
+                                text-white
+                                small
+                              "
+                            >
+                              ?
+                            </div>
+                            <button
+                              class="deck-thumb-remove"
+                              title="Remover"
+                              @click.stop="removeDeckCard(item.id)"
+                            >
+                              ×
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                      <div
+                        v-if="extraDeckCards.length > 0"
+                        class="deck-section"
+                      >
+                        <div
+                          class="deck-section-label deck-section-label-extra"
+                        >
+                          Extra Deck ({{ extraDeckCards.length }})
+                        </div>
+                        <div
+                          class="deck-grid deck-cards-scroll deck-grid-extra"
+                        >
+                          <div
+                            v-for="item in extraDeckCards"
+                            :key="item.id"
+                            v-b-tooltip.hover.top="item.name"
+                            class="deck-thumb-wrap position-relative"
+                            :class="
+                              editingDeckCardId === item.id
+                                ? 'deck-thumb-active'
+                                : ''
+                            "
+                            @click="loadDeckCardForEdit(item)"
+                          >
+                            <img
+                              v-if="getDeckCardImageSrc(item)"
+                              :src="getDeckCardImageSrc(item)"
+                              :alt="item.name"
+                              class="deck-thumb rounded"
+                            />
+                            <div
+                              v-else
+                              class="
+                                deck-thumb
+                                rounded
+                                bg-secondary
+                                d-flex
+                                align-items-center
+                                justify-content-center
+                                text-white
+                                small
+                              "
+                            >
+                              ?
+                            </div>
+                            <button
+                              class="deck-thumb-remove"
+                              title="Remover"
+                              @click.stop="removeDeckCard(item.id)"
+                            >
+                              Ã—
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <p v-else class="text-muted small mb-0 flex-shrink-0">
+                      {{
+                        ui[uiLang].deck_empty ||
+                        'Deck vazio. Busque um card e adicione.'
+                      }}
+                    </p>
+                  </div>
+                </template>
+              </div>
+            </b-col>
+            <!-- Coluna direita: formulário do cartão -->
             <b-col
               id="data-panel"
               cols="12"
-              md="6"
-              lg="8"
-              class="mt-3 mt-sm-5 mt-md-0"
+              md="4"
+              lg="4"
+              class="mt-3 mt-sm-5 mt-md-0 col-panel d-flex flex-column"
             >
-              <div class="panel-bg shadow p-3">
-                <!-- Banner de campos bloqueados -->
-                <div
-                  v-if="isFieldsLocked"
-                  class="
-                    alert alert-info
-                    py-2
-                    mb-3
-                    small
-                    d-flex
-                    align-items-center
-                    justify-content-between
-                  "
-                >
-                  <span>
-                    <fa :icon="['fas', 'lock']" class="mr-1" />
-                    {{
-                      ui[uiLang].fields_locked ||
-                      'Card do banco de dados (somente leitura). Adicione a um deck para editar.'
-                    }}
-                  </span>
-                  <span>
-                    <b-button
-                      v-if="baseCardNeedsTranslation"
-                      size="sm"
-                      variant="warning"
-                      class="mr-2"
-                      @click="openTranslationModal"
-                    >
-                      <fa :icon="['fas', 'language']" class="mr-1" />
-                      {{ ui[uiLang].translate || 'Traduzir' }}
-                    </b-button>
-                  </span>
-                </div>
-                <fieldset :disabled="isFieldsLocked">
-                  <div class="card-body">
-                    <!-- Autenticidade, Raridade, Cor -->
-                    <b-row class="mb-3">
-                      <!-- Etiqueta de autenticidade -->
-                      <b-col cols="6" lg="3" class="px-2">
-                        <div class="form-check px-0">
-                          <label>{{ ui[uiLang].square_foil_stamp }}</label>
-                          <b-form-checkbox
-                            v-model="holo"
-                            :class="{ 'checkbox-wrap': true, active: holo }"
-                            button
-                            >{{
-                              holo ? ui[uiLang].on : ui[uiLang].off
-                            }}</b-form-checkbox
-                          >
-                        </div>
-                      </b-col>
-                      <!-- Etiqueta de autenticação -->
-                      <b-col cols="6" lg="3" class="px-2">
-                        <label>{{ ui[uiLang].rarity }}</label>
-                        <b-form-select
-                          v-model="cardRare"
-                          :options="cardRareOpts"
-                        ></b-form-select>
-                      </b-col>
-                      <!-- Cor do nome do card -->
-                      <b-col cols="6" lg="3" class="px-2">
-                        <label>{{ ui[uiLang].title_color }}</label>
-                        <b-form-input
-                          v-model="titleColor"
-                          type="color"
-                        ></b-form-input>
-                      </b-col>
-                    </b-row>
-
-                    <!-- Codigo do card -->
-                    <b-row class="my-3">
-                      <b-col cols="6" lg="4" class="px-2">
-                        <div class="form-check px-0">
-                          <label>{{ ui[uiLang].card_secret }}</label>
-                          <b-form-checkbox
-                            v-model="cardLoadYgoProEnabled"
-                            :class="{
-                              'checkbox-wrap': true,
-                              active: cardLoadYgoProEnabled,
-                            }"
-                            button
-                            >{{
-                              ui[uiLang].auto_fill_card_data
-                            }}</b-form-checkbox
-                          >
-                        </div>
-                      </b-col>
-                      <b-col cols="6" lg="8" class="px-2">
-                        <label
-                          ><small>{{
-                            ui[uiLang].card_secret_note
-                          }}</small></label
-                        >
-                        <b-form-input
-                          v-model="cardKey"
-                          type="number"
-                          maxlength="8"
-                          :placeholder="ui[uiLang].plz_input_card_secret"
-                        />
-                        <small v-if="apiCardLoading" class="text-muted">{{
-                          ui[uiLang].search_loading
-                        }}</small>
-                        <small v-else-if="apiCardError" class="text-danger">{{
-                          apiCardError
-                        }}</small>
-                      </b-col>
-                    </b-row>
-
-                    <!-- Nome do card -->
-                    <b-row class="my-3">
-                      <b-col class="px-2">
-                        <label>{{ ui[uiLang].card_name }}</label>
-                        <b-form-input v-model="cardTitle"></b-form-input>
-                      </b-col>
-                    </b-row>
-
-                    <!-- Imagem do card -->
-                    <b-row class="my-3">
-                      <b-col class="px-2">
-                        <b-form-file
-                          v-model="cardImg"
-                          :state="Boolean(cardImg)"
-                          :placeholder="ui[uiLang].upload_image"
-                          browse="✚"
-                          accept="image/*"
-                          :drop-placeholder="ui[uiLang].drag_and_drop"
-                        ></b-form-file>
-                      </b-col>
-                    </b-row>
-
-                    <!-- Tipo do card, Face do card, Efeito do card -->
-                    <b-row class="my-3">
-                      <!-- Tipo de card -->
-                      <b-col cols="6" lg="3" class="px-2">
-                        <label>{{ ui[uiLang].card_type }}</label>
-                        <b-form-select
-                          v-model="cardType"
-                          :options="cardTypeOpts"
-                        ></b-form-select>
-                      </b-col>
-
-                      <!-- Face do card -->
-                      <b-col cols="6" lg="3" class="px-2">
-                        <label>{{ ui[uiLang].card_subtype }}</label>
-                        <b-form-select
-                          v-model="cardSubtype"
-                          :options="cardSubtypeOpts[cardType]"
-                        ></b-form-select>
-                      </b-col>
-
-                      <!-- Efeito -->
-                      <b-col
-                        v-show="cardType === 'Monster'"
-                        cols="6"
-                        lg="3"
-                        class="px-2"
-                      >
-                        <label>{{ ui[uiLang].card_effect }}</label>
-                        <b-form-select
-                          v-model="cardEff1"
-                          :options="cardEff1Opts"
-                        ></b-form-select>
-                      </b-col>
-                      <b-col
-                        v-show="cardType === 'Monster'"
-                        cols="6"
-                        lg="3"
-                        class="px-2"
-                      >
-                        <label>&emsp;</label>
-                        <b-form-select
-                          v-model="cardEff2"
-                          :options="cardEff2Opts"
-                        ></b-form-select>
-                      </b-col>
-                    </b-row>
-
-                    <!-- Atributo, Tipo -->
-                    <b-row v-show="cardType === 'Monster'" class="my-3">
-                      <!-- 屬性 -->
-                      <b-col cols="12" lg="6" class="px-2">
-                        <label>{{ ui[uiLang].card_attribute }}</label>
-                        <b-form-select
-                          v-model="cardAttr"
-                          :options="cardAttrOpts"
-                        ></b-form-select>
-                      </b-col>
-
-                      <!-- Tipo de Card -->
-                      <b-col
-                        v-show="cardType === 'Monster'"
-                        cols="6"
-                        lg="3"
-                        class="px-2"
-                      >
-                        <div class="form-check px-0">
-                          <label>{{ ui[uiLang].card_race_type }}</label>
-                          <b-form-checkbox
-                            v-model="cardCustomRaceEnabled"
-                            :class="{
-                              'checkbox-wrap': true,
-                              active: cardCustomRaceEnabled,
-                            }"
-                            button
-                            >{{ ui[uiLang].custom }}</b-form-checkbox
-                          >
-                        </div>
-                      </b-col>
-                      <!-- Tipo - Seleção de Tipo -->
-                      <b-col
-                        v-show="!cardCustomRaceEnabled"
-                        cols="6"
-                        lg="3"
-                        class="px-2"
-                      >
-                        <label>&emsp;</label>
-                        <b-form-select
-                          v-model="cardRace"
-                          :options="cardRaceOpts"
-                        ></b-form-select>
-                      </b-col>
-                      <!-- Tipo - Entrada Personalizada -->
-                      <b-col
-                        v-show="cardCustomRaceEnabled"
-                        cols="6"
-                        lg="3"
-                        class="px-2"
-                      >
-                        <label>&emsp;</label>
-                        <b-form-input
-                          v-model="cardCustomRace"
-                          type="text"
-                          maxlength="8"
-                          :placeholder="ui[uiLang].plz_input_race_type"
-                        />
-                      </b-col>
-                    </b-row>
-
-                    <!-- Balanço de Pêndulo, Invocação Especial, Nível -->
-                    <b-row class="my-3">
-                      <!-- Balanço de Pêndulo -->
-                      <b-col
-                        v-show="canPendulumEnabled"
-                        cols="6"
-                        lg="4"
-                        class="px-2"
-                      >
-                        <div class="form-check px-0">
-                          <label>&emsp;</label>
-                          <b-form-checkbox
-                            v-model="Pendulum"
-                            :class="{ 'checkbox-wrap': true, active: Pendulum }"
-                            button
-                            >{{ ui[uiLang].pendulum }}</b-form-checkbox
-                          >
-                        </div>
-                      </b-col>
-
-                      <!-- Invocação Especial -->
-                      <b-col
-                        v-show="cardType === 'Monster'"
-                        cols="6"
-                        lg="4"
-                        class="px-2"
-                      >
-                        <div class="form-check px-0">
-                          <label>&emsp;</label>
-                          <b-form-checkbox
-                            v-model="Special"
-                            :class="{ 'checkbox-wrap': true, active: Special }"
-                            button
-                            >{{ ui[uiLang].special_summon }}</b-form-checkbox
-                          >
-                        </div>
-                      </b-col>
-
-                      <!-- Nível -->
-                      <b-col
-                        v-show="cardType === 'Monster' && !isLinkMonster"
-                        cols="12"
-                        lg="4"
-                        class="px-2"
-                      >
-                        <label>{{ ui[uiLang].lavel_and_rank }}</label>
-                        <b-form-select
-                          v-model="cardLevel"
-                          :options="cardLevelOpts"
-                        ></b-form-select>
-                      </b-col>
-                    </b-row>
-
-                    <!-- Área de Efeito de Pêndulo -->
-                    <b-row v-show="Pendulum" class="my-3">
-                      <b-col cols="12">
-                        <h4 class="text-light text-center">
-                          {{ ui[uiLang].pendulum_area }}
-                        </h4>
-                      </b-col>
-                      <b-col cols="12">
-                        <b-row class="mb-3">
-                          <b-col cols="4" class="px-2">
-                            <label>{{ ui[uiLang].pendulum_blue }}</label>
-                            <b-form-input
-                              v-model="cardBLUE"
-                              type="number"
-                              min="0"
-                              max="12"
-                            ></b-form-input>
-                          </b-col>
-
-                          <b-col cols="4" class="px-2">
-                            <label>{{ ui[uiLang].pendulum_red }}</label>
-                            <b-form-input
-                              v-model="cardRED"
-                              type="number"
-                              min="0"
-                              max="12"
-                            ></b-form-input>
-                          </b-col>
-
-                          <b-col cols="4" class="px-2">
-                            <label>{{ ui[uiLang].text_size }}</label>
-                            <b-form-input
-                              v-model="pendulumSize"
-                              type="number"
-                            ></b-form-input>
-                          </b-col>
-                        </b-row>
-
-                        <b-row class="my-3">
-                          <b-col class="px-2">
-                            <label>{{ ui[uiLang].card_info_text }}</label>
-                            <b-form-textarea
-                              v-model="cardPendulumInfo"
-                              rows="5"
-                            ></b-form-textarea>
-                          </b-col>
-                        </b-row>
-                      </b-col>
-                    </b-row>
-
-                    <!-- Área de Ataque/Defesa -->
-                    <b-row class="my-3">
-                      <!-- Ataque -->
-                      <b-col
-                        v-show="cardType === 'Monster'"
-                        cols="4"
-                        class="px-2"
-                      >
-                        <label>{{ ui[uiLang].attack }}</label>
-                        <b-form-input
-                          v-model="cardATK"
-                          type="text"
-                          maxlength="6"
-                        ></b-form-input>
-                      </b-col>
-
-                      <!-- Defesa -->
-                      <b-col
-                        v-show="cardType === 'Monster' && !isLinkMonster"
-                        cols="4"
-                        class="px-2"
-                      >
-                        <label>{{ ui[uiLang].defence }}</label>
-                        <b-form-input
-                          v-model="cardDEF"
-                          type="text"
-                          maxlength="6"
-                        ></b-form-input>
-                      </b-col>
-
-                      <!-- Link -->
-                      <b-col v-show="isLinkMonster" cols="4" class="px-2">
-                        <label>{{ ui[uiLang].link }}</label>
-                        <table>
-                          <tr v-for="row in [0, 1, 2]" :key="row">
-                            <td v-for="col in [1, 2, 3]" :key="col">
-                              <b-form-checkbox
-                                v-if="row * 3 + col !== 5"
-                                v-model="links[row * 3 + col].val"
-                                :class="{
-                                  'checkbox-wrap': true,
-                                  active: links[row * 3 + col].val,
-                                }"
-                                button
-                                >{{
-                                  links[row * 3 + col].symbol
-                                }}</b-form-checkbox
-                              >
-                            </td>
-                          </tr>
-                        </table>
-                      </b-col>
-
-                      <!-- Tamanho do texto e posição (top) -->
-                      <b-col cols="2" class="px-2">
-                        <label>{{ ui[uiLang].text_size }}</label>
-                        <b-form-input
-                          v-model.number="infoSize"
-                          type="number"
-                        ></b-form-input>
-                      </b-col>
-                      <b-col cols="2" class="px-2">
-                        <label>{{ ui[uiLang].text_position }}</label>
-                        <b-form-input
-                          v-model.number="infoPosition"
-                          type="number"
-                          placeholder="0"
-                        ></b-form-input>
-                      </b-col>
-                    </b-row>
-
-                    <!-- Descrição do cartão -->
-                    <b-row class="my-3">
-                      <b-col class="px-2">
-                        <label>{{ ui[uiLang].card_info_text }}</label>
-                        <b-form-textarea
-                          v-model="cardInfo"
-                          rows="5"
-                        ></b-form-textarea>
-                      </b-col>
-                    </b-row>
-                  </div>
-                </fieldset>
-                <!-- Área de botões (fora do fieldset para não serem desabilitados) -->
-                <b-row class="my-3 mx-0">
-                  <b-col class="px-2">
-                    <button
-                      type="button"
-                      class="my-2 btn btn-success"
-                      @click="download_img"
-                    >
-                      {{ ui[uiLang].download }}
-                    </button>
-                    <b-button
-                      v-if="cardKey && selectedDeckId && !isCurrentCardInDeck"
-                      class="my-2 ml-2"
-                      variant="outline-primary"
-                      @click="addToDeckCurrent"
-                    >
-                      {{ ui[uiLang].add_to_deck || 'Adicionar ao Deck' }}
-                    </b-button>
-                    <b-button
-                      v-if="hasUnsavedLayoutChanges"
-                      class="my-2 ml-2"
-                      variant="success"
-                      @click="saveDeckCardChanges"
-                    >
-                      {{ ui[uiLang].save_changes }}
-                    </b-button>
-                    <label style="color: #ccc"
-                      >&emsp;{{ ui[uiLang].auto_gen_note }}</label
-                    >
-                  </b-col>
-                  <b-col cols="6" class="px-2 text-right">
-                    <button
-                      type="button"
-                      class="my-2 btn btn-danger"
-                      @click="load_default_data"
-                    >
-                      {{ ui[uiLang].reset_to_default }}
-                    </button>
-                  </b-col>
-                </b-row>
-              </div>
-
-              <!-- Resultados da busca (classificados: arquétipo > nome > descrição) -->
               <div
-                v-if="searchResults.length > 0"
-                class="panel-bg shadow p-3 mt-3"
+                class="
+                  panel-bg
+                  shadow
+                  p-3
+                  d-flex
+                  flex-column flex-grow-1
+                  min-h-0
+                  overflow-y-auto
+                "
               >
-                <label class="d-block mb-2">{{
-                  ui[uiLang].search_results
-                }}</label>
-                <template v-if="searchResultsByArchetype.length > 0">
-                  <div class="small text-muted mb-1 mt-2">
-                    {{ getSearchSectionLabel('archetype') }}
-                  </div>
-                  <div
-                    class="d-flex flex-wrap mb-3"
-                    style="max-height: 320px; overflow-y: auto; gap: 4px"
-                  >
-                    <img
-                      v-for="card in searchResultsByArchetype"
-                      :key="'arch-' + card.id"
-                      v-b-tooltip.hover.top="getDisplayName(card)"
-                      :src="getSearchResultImageSrc(card)"
-                      :alt="getDisplayName(card)"
-                      class="search-thumb rounded"
-                      loading="lazy"
-                      @click="applyCardFromSearch(card)"
-                      @error="onSearchResultImgError(card, $event)"
-                    />
-                  </div>
-                </template>
-                <template
-                  v-if="searchMode === 'name' && searchResultsByName.length > 0"
+                <b-tabs
+                  v-model="dataPanelTabYgo"
+                  content-class="mt-2 flex-grow-1 min-h-0 d-flex flex-column"
+                  class="d-flex flex-column min-h-0 data-panel-tabs"
                 >
-                  <div class="small text-muted mb-1 mt-2">
-                    {{ getSearchSectionLabel('name') }}
-                  </div>
-                  <div
-                    class="d-flex flex-wrap mb-3"
-                    style="max-height: 320px; overflow-y: auto; gap: 4px"
-                  >
-                    <img
-                      v-for="card in searchResultsByName"
-                      :key="'name-' + card.id"
-                      v-b-tooltip.hover.top="getDisplayName(card)"
-                      :src="getSearchResultImageSrc(card)"
-                      :alt="getDisplayName(card)"
-                      class="search-thumb rounded"
-                      loading="lazy"
-                      @click="applyCardFromSearch(card)"
-                      @error="onSearchResultImgError(card, $event)"
-                    />
-                  </div>
-                </template>
-                <template
-                  v-if="searchMode === 'name' && searchResultsByDesc.length > 0"
-                >
-                  <div class="small text-muted mb-1 mt-2">
-                    {{ getSearchSectionLabel('desc') }}
-                  </div>
-                  <div
-                    class="d-flex flex-wrap"
-                    style="max-height: 320px; overflow-y: auto; gap: 4px"
-                  >
-                    <img
-                      v-for="card in searchResultsByDesc"
-                      :key="'desc-' + card.id"
-                      v-b-tooltip.hover.top="getDisplayName(card)"
-                      :src="getSearchResultImageSrc(card)"
-                      :alt="getDisplayName(card)"
-                      class="search-thumb rounded"
-                      loading="lazy"
-                      @click="applyCardFromSearch(card)"
-                      @error="onSearchResultImgError(card, $event)"
-                    />
-                  </div>
-                </template>
-                <template v-if="searchResultsCitedRelated.length > 0">
-                  <div class="small text-muted mb-1 mt-2">
-                    {{
-                      ui[uiLang].search_section_cited ||
-                      'Cards citados e relacionados'
-                    }}
-                  </div>
-                  <div
-                    class="d-flex flex-wrap"
-                    style="max-height: 320px; overflow-y: auto; gap: 4px"
-                  >
-                    <img
-                      v-for="card in searchResultsCitedRelated"
-                      :key="'cited-' + card.id"
-                      v-b-tooltip.hover.top="getDisplayName(card)"
-                      :src="getSearchResultImageSrc(card)"
-                      :alt="getDisplayName(card)"
-                      class="search-thumb rounded"
-                      loading="lazy"
-                      @click="applyCardFromSearch(card)"
-                      @error="onSearchResultImgError(card, $event)"
-                    />
-                  </div>
-                </template>
-                <template
-                  v-if="
-                    searchMode === 'archetype' &&
-                    searchResultsRelated.length > 0
-                  "
-                >
-                  <div class="small text-muted mb-1 mt-2">
-                    {{ getSearchSectionLabel('related') }}
-                  </div>
-                  <div
-                    class="d-flex flex-wrap"
-                    style="max-height: 320px; overflow-y: auto; gap: 4px"
-                  >
-                    <img
-                      v-for="card in searchResultsRelated"
-                      :key="'rel-' + card.id"
-                      v-b-tooltip.hover.top="getDisplayName(card)"
-                      :src="getSearchResultImageSrc(card)"
-                      :alt="getDisplayName(card)"
-                      class="search-thumb rounded"
-                      loading="lazy"
-                      @click="applyCardFromSearch(card)"
-                      @error="onSearchResultImgError(card, $event)"
-                    />
-                  </div>
-                </template>
-              </div>
-              <div
-                v-else-if="searchTried && !searchLoading"
-                class="panel-bg shadow p-3 mt-3 text-muted text-center"
-              >
-                {{ ui[uiLang].search_no_results }}
-              </div>
-
-              <!-- Cards relacionados ao card selecionado -->
-              <div
-                v-if="viewingBaseCard && relatedCards.length > 0"
-                class="panel-bg shadow p-3 mt-3"
-              >
-                <label class="d-block mb-2">{{
-                  ui[uiLang].related_to_selected
-                }}</label>
-                <div
-                  class="d-flex flex-wrap"
-                  style="max-height: 320px; overflow-y: auto; gap: 4px"
-                >
-                  <img
-                    v-for="card in relatedCards"
-                    :key="'rel-sel-' + card.id"
-                    v-b-tooltip.hover.top="getDisplayName(card)"
-                    :src="getSearchResultImageSrc(card)"
-                    :alt="getDisplayName(card)"
-                    class="search-thumb rounded"
-                    loading="lazy"
-                    @click="applyCardFromSearch(card)"
-                    @error="onSearchResultImgError(card, $event)"
-                  />
-                </div>
-              </div>
-
-              <!-- Meus Decks -->
-              <div class="panel-bg shadow p-3 mt-3">
-                <div
-                  class="d-flex align-items-center justify-content-between mb-2"
-                >
-                  <label class="mb-0">{{
-                    ui[uiLang].my_decks || 'Meus Decks'
-                  }}</label>
-                  <b-button
-                    size="sm"
-                    variant="outline-success"
-                    @click="
-                      newDeckGame = 'yugioh'
-                      showNewDeckModal = true
-                    "
-                  >
-                    <fa :icon="['fas', 'plus']" />
-                    {{ ui[uiLang].new_deck || 'Novo Deck' }}
-                  </b-button>
-                </div>
-
-                <!-- Lista de decks -->
-                <div v-if="userDecks.length > 0" class="mb-3">
-                  <div
-                    v-for="deck in userDecks"
-                    :key="deck.id"
-                    class="
-                      d-flex
-                      align-items-center
-                      justify-content-between
-                      border
-                      rounded
-                      p-2
-                      mb-1
-                    "
-                    :class="
-                      selectedDeckId === deck.id
-                        ? 'border-primary bg-dark'
-                        : 'bg-dark'
-                    "
-                    style="cursor: pointer"
-                    @click="selectDeck(deck)"
-                  >
-                    <span class="text-white small">
-                      <fa
-                        :icon="['fas', 'folder']"
-                        class="mr-1"
-                        :class="
-                          selectedDeckId === deck.id
-                            ? 'text-primary'
-                            : 'text-muted'
-                        "
-                      />
-                      {{ deck.name }}
-                    </span>
-                    <div>
-                      <b-button
-                        size="sm"
-                        variant="outline-secondary"
-                        class="mr-1"
-                        title="Editar nome"
-                        @click.stop="openEditDeckModal(deck)"
-                      >
-                        <fa :icon="['fas', 'pen']" />
-                      </b-button>
-                      <b-button
-                        size="sm"
-                        variant="outline-danger"
-                        @click.stop="deleteDeck(deck.id)"
-                      >
-                        <fa :icon="['fas', 'trash']" />
-                      </b-button>
-                    </div>
-                  </div>
-                </div>
-                <p v-else class="text-muted small mb-2">
-                  {{ ui[uiLang].no_decks || 'Nenhum deck criado.' }}
-                </p>
-
-                <!-- Cards do deck selecionado -->
-                <div v-if="selectedDeck">
-                  <div
-                    class="
-                      d-flex
-                      align-items-center
-                      justify-content-between
-                      mb-2
-                    "
-                  >
-                    <label class="mb-0 text-light small">
-                      <fa :icon="['fas', 'folder-open']" class="mr-1" />
-                      {{ selectedDeck.name }} ({{ selectedDeckCards.length }})
-                    </label>
-                    <div v-if="selectedDeckCards.length > 0" class="d-flex align-items-center">
-                      <b-button
-                        size="sm"
-                        variant="outline-info"
-                        class="mr-2"
-                        :disabled="batchDownloading"
-                        @click="batchDownloadDeck"
-                      >
-                        {{
-                          batchDownloading
-                            ? ui[uiLang].batch_downloading || 'Baixando...'
-                            : ui[uiLang].batch_download || 'Baixar Todos'
-                        }}
-                      </b-button>
-                      <b-button
-                        v-if="typeof window !== 'undefined' && window.silhouette"
-                        size="sm"
-                        variant="outline-success"
-                        :disabled="silhouetteDownloading"
-                        @click="openSilhouetteModal"
-                      >
-                        {{
-                          silhouetteDownloading
-                            ? (ui[uiLang].silhouette_downloading || 'Gerando PDF…')
-                            : (ui[uiLang].silhouette_download || 'Baixar para Silhuete (Cricut)')
-                        }}
-                      </b-button>
-                    </div>
-                  </div>
-                  <div
-                    v-if="selectedDeckCards.length > 0"
-                    class="d-flex flex-wrap"
-                    style="max-height: 280px; overflow-y: auto; gap: 4px"
+                  <b-tab
+                    :title="ui[uiLang].tab_create_edit || 'Criar/Editar'"
+                    class="d-flex flex-column min-h-0"
+                    lazy
                   >
                     <div
-                      v-for="item in selectedDeckCards"
-                      :key="item.id"
-                      v-b-tooltip.hover.top="item.name"
-                      class="deck-thumb-wrap position-relative"
-                      :class="
-                        editingDeckCardId === item.id ? 'deck-thumb-active' : ''
+                      v-if="currentBaseCard"
+                      class="
+                        d-flex
+                        justify-content-end
+                        align-items-center
+                        mb-3
+                        flex-shrink-0
                       "
-                      @click="loadDeckCardForEdit(item)"
                     >
-                      <img
-                        v-if="getDeckCardImageSrc(item)"
-                        :src="getDeckCardImageSrc(item)"
-                        :alt="item.name"
-                        class="deck-thumb rounded"
-                      />
+                      <b-button
+                        size="sm"
+                        :variant="
+                          baseCardNeedsTranslation
+                            ? 'warning'
+                            : 'outline-warning'
+                        "
+                        @click="openTranslationModal"
+                      >
+                        <fa :icon="['fas', 'language']" class="mr-1" />
+                        {{ ui[uiLang].translate || 'Traduzir' }}
+                      </b-button>
+                    </div>
+                    <!-- Banner de campos bloqueados -->
+                    <div
+                      v-if="isFieldsLocked"
+                      class="
+                        alert alert-info
+                        py-2
+                        mb-3
+                        small
+                        d-flex
+                        align-items-center
+                        justify-content-between
+                      "
+                    >
+                      <span>
+                        <fa :icon="['fas', 'lock']" class="mr-1" />
+                        {{
+                          ui[uiLang].fields_locked ||
+                          'Card do banco de dados (somente leitura). Adicione a um deck para editar.'
+                        }}
+                      </span>
+                      <span></span>
+                    </div>
+                    <div
+                      class="
+                        data-panel-editor-scroll
+                        d-flex
+                        flex-column flex-grow-1
+                        min-h-0
+                      "
+                    >
+                      <fieldset
+                        :disabled="isFieldsLocked || deckEditLock"
+                        class="d-flex flex-column data-panel-fieldset"
+                      >
+                        <div
+                          class="card-body card-form-scroll"
+                          :class="{ 'form-faded': deckEditLock }"
+                        >
+                          <!-- Autenticidade, Raridade, Cor -->
+                          <b-row class="mb-3">
+                            <!-- Etiqueta de autenticidade -->
+                            <b-col cols="6" lg="3" class="px-2">
+                              <div class="form-check px-0">
+                                <label>{{
+                                  ui[uiLang].square_foil_stamp
+                                }}</label>
+                                <b-form-checkbox
+                                  v-model="holo"
+                                  :class="{
+                                    'checkbox-wrap': true,
+                                    active: holo,
+                                  }"
+                                  button
+                                  >{{
+                                    holo ? ui[uiLang].on : ui[uiLang].off
+                                  }}</b-form-checkbox
+                                >
+                              </div>
+                            </b-col>
+                            <!-- Etiqueta de autenticação -->
+                            <b-col cols="6" lg="3" class="px-2">
+                              <label>{{ ui[uiLang].rarity }}</label>
+                              <b-form-select
+                                v-model="cardRare"
+                                :options="cardRareOpts"
+                              ></b-form-select>
+                            </b-col>
+                            <!-- Cor do nome do card -->
+                            <b-col cols="6" lg="3" class="px-2">
+                              <label>{{ ui[uiLang].title_color }}</label>
+                              <b-form-input
+                                v-model="titleColor"
+                                type="color"
+                              ></b-form-input>
+                            </b-col>
+                          </b-row>
+
+                          <!-- Codigo do card -->
+                          <b-row class="my-3">
+                            <b-col cols="6" lg="4" class="px-2">
+                              <div class="form-check px-0">
+                                <label>{{ ui[uiLang].card_secret }}</label>
+                                <b-form-checkbox
+                                  v-model="cardLoadYgoProEnabled"
+                                  :class="{
+                                    'checkbox-wrap': true,
+                                    active: cardLoadYgoProEnabled,
+                                  }"
+                                  button
+                                  >{{
+                                    ui[uiLang].auto_fill_card_data
+                                  }}</b-form-checkbox
+                                >
+                              </div>
+                            </b-col>
+                            <b-col cols="6" lg="8" class="px-2">
+                              <label
+                                ><small>{{
+                                  ui[uiLang].card_secret_note
+                                }}</small></label
+                              >
+                              <b-form-input
+                                v-model="cardKey"
+                                type="number"
+                                maxlength="8"
+                                :placeholder="ui[uiLang].plz_input_card_secret"
+                              />
+                              <small v-if="apiCardLoading" class="text-muted">{{
+                                ui[uiLang].search_loading
+                              }}</small>
+                              <small
+                                v-else-if="apiCardError"
+                                class="text-danger"
+                                >{{ apiCardError }}</small
+                              >
+                            </b-col>
+                          </b-row>
+
+                          <!-- Nome do card -->
+                          <b-row class="my-3">
+                            <b-col class="px-2">
+                              <label>{{ ui[uiLang].card_name }}</label>
+                              <b-form-input v-model="cardTitle"></b-form-input>
+                            </b-col>
+                          </b-row>
+
+                          <!-- Imagem do card -->
+                          <b-row class="my-3">
+                            <b-col class="px-2">
+                              <b-form-file
+                                v-model="cardImg"
+                                :state="Boolean(cardImg)"
+                                :placeholder="ui[uiLang].upload_image"
+                                browse="✚"
+                                accept="image/*"
+                                :drop-placeholder="ui[uiLang].drag_and_drop"
+                              ></b-form-file>
+                            </b-col>
+                          </b-row>
+
+                          <!-- Tipo do card, Face do card, Efeito do card -->
+                          <b-row class="my-3">
+                            <!-- Tipo de card -->
+                            <b-col cols="6" lg="3" class="px-2">
+                              <label>{{ ui[uiLang].card_type }}</label>
+                              <b-form-select
+                                v-model="cardType"
+                                :options="cardTypeOpts"
+                              ></b-form-select>
+                            </b-col>
+
+                            <!-- Face do card -->
+                            <b-col cols="6" lg="3" class="px-2">
+                              <label>{{ ui[uiLang].card_subtype }}</label>
+                              <b-form-select
+                                v-model="cardSubtype"
+                                :options="cardSubtypeOpts[cardType]"
+                              ></b-form-select>
+                            </b-col>
+
+                            <!-- Efeito -->
+                            <b-col
+                              v-show="cardType === 'Monster'"
+                              cols="6"
+                              lg="3"
+                              class="px-2"
+                            >
+                              <label>{{ ui[uiLang].card_effect }}</label>
+                              <b-form-select
+                                v-model="cardEff1"
+                                :options="cardEff1Opts"
+                              ></b-form-select>
+                            </b-col>
+                            <b-col
+                              v-show="cardType === 'Monster'"
+                              cols="6"
+                              lg="3"
+                              class="px-2"
+                            >
+                              <label>&emsp;</label>
+                              <b-form-select
+                                v-model="cardEff2"
+                                :options="cardEff2Opts"
+                              ></b-form-select>
+                            </b-col>
+                          </b-row>
+
+                          <!-- Atributo, Tipo -->
+                          <b-row v-show="cardType === 'Monster'" class="my-3">
+                            <!-- 屬性 -->
+                            <b-col cols="12" lg="6" class="px-2">
+                              <label>{{ ui[uiLang].card_attribute }}</label>
+                              <b-form-select
+                                v-model="cardAttr"
+                                :options="cardAttrOpts"
+                              ></b-form-select>
+                            </b-col>
+
+                            <!-- Tipo de Card -->
+                            <b-col
+                              v-show="cardType === 'Monster'"
+                              cols="6"
+                              lg="3"
+                              class="px-2"
+                            >
+                              <div class="form-check px-0">
+                                <label>{{ ui[uiLang].card_race_type }}</label>
+                                <b-form-checkbox
+                                  v-model="cardCustomRaceEnabled"
+                                  :class="{
+                                    'checkbox-wrap': true,
+                                    active: cardCustomRaceEnabled,
+                                  }"
+                                  button
+                                  >{{ ui[uiLang].custom }}</b-form-checkbox
+                                >
+                              </div>
+                            </b-col>
+                            <!-- Tipo - Seleção de Tipo -->
+                            <b-col
+                              v-show="!cardCustomRaceEnabled"
+                              cols="6"
+                              lg="3"
+                              class="px-2"
+                            >
+                              <label>&emsp;</label>
+                              <b-form-select
+                                v-model="cardRace"
+                                :options="cardRaceOpts"
+                              ></b-form-select>
+                            </b-col>
+                            <!-- Tipo - Entrada Personalizada -->
+                            <b-col
+                              v-show="cardCustomRaceEnabled"
+                              cols="6"
+                              lg="3"
+                              class="px-2"
+                            >
+                              <label>&emsp;</label>
+                              <b-form-input
+                                v-model="cardCustomRace"
+                                type="text"
+                                maxlength="8"
+                                :placeholder="ui[uiLang].plz_input_race_type"
+                              />
+                            </b-col>
+                          </b-row>
+
+                          <!-- Balanço de Pêndulo, Invocação Especial, Nível -->
+                          <b-row class="my-3">
+                            <!-- Balanço de Pêndulo -->
+                            <b-col
+                              v-show="canPendulumEnabled"
+                              cols="6"
+                              lg="4"
+                              class="px-2"
+                            >
+                              <div class="form-check px-0">
+                                <label>&emsp;</label>
+                                <b-form-checkbox
+                                  v-model="Pendulum"
+                                  :class="{
+                                    'checkbox-wrap': true,
+                                    active: Pendulum,
+                                  }"
+                                  button
+                                  >{{ ui[uiLang].pendulum }}</b-form-checkbox
+                                >
+                              </div>
+                            </b-col>
+
+                            <!-- Invocação Especial -->
+                            <b-col
+                              v-show="cardType === 'Monster'"
+                              cols="6"
+                              lg="4"
+                              class="px-2"
+                            >
+                              <div class="form-check px-0">
+                                <label>&emsp;</label>
+                                <b-form-checkbox
+                                  v-model="Special"
+                                  :class="{
+                                    'checkbox-wrap': true,
+                                    active: Special,
+                                  }"
+                                  button
+                                  >{{
+                                    ui[uiLang].special_summon
+                                  }}</b-form-checkbox
+                                >
+                              </div>
+                            </b-col>
+
+                            <!-- Nível -->
+                            <b-col
+                              v-show="cardType === 'Monster' && !isLinkMonster"
+                              cols="12"
+                              lg="4"
+                              class="px-2"
+                            >
+                              <label>{{ ui[uiLang].lavel_and_rank }}</label>
+                              <b-form-select
+                                v-model="cardLevel"
+                                :options="cardLevelOpts"
+                              ></b-form-select>
+                            </b-col>
+                          </b-row>
+
+                          <!-- Área de Efeito de Pêndulo -->
+                          <b-row v-show="Pendulum" class="my-3">
+                            <b-col cols="12">
+                              <h4 class="text-light text-center">
+                                {{ ui[uiLang].pendulum_area }}
+                              </h4>
+                            </b-col>
+                            <b-col cols="12">
+                              <b-row class="mb-3">
+                                <b-col cols="4" class="px-2">
+                                  <label>{{ ui[uiLang].pendulum_blue }}</label>
+                                  <b-form-input
+                                    v-model="cardBLUE"
+                                    type="number"
+                                    min="0"
+                                    max="12"
+                                  ></b-form-input>
+                                </b-col>
+
+                                <b-col cols="4" class="px-2">
+                                  <label>{{ ui[uiLang].pendulum_red }}</label>
+                                  <b-form-input
+                                    v-model="cardRED"
+                                    type="number"
+                                    min="0"
+                                    max="12"
+                                  ></b-form-input>
+                                </b-col>
+
+                                <b-col cols="4" class="px-2">
+                                  <label>{{ ui[uiLang].text_size }}</label>
+                                  <b-form-input
+                                    v-model="pendulumSize"
+                                    type="number"
+                                  ></b-form-input>
+                                </b-col>
+                              </b-row>
+
+                              <b-row class="my-3">
+                                <b-col class="px-2">
+                                  <label>{{
+                                    ui[uiLang].pendulum_effect_label ||
+                                    'Efeito de Pêndulo'
+                                  }}</label>
+                                  <b-form-textarea
+                                    v-model="cardPendulumInfo"
+                                    rows="5"
+                                  ></b-form-textarea>
+                                </b-col>
+                              </b-row>
+                            </b-col>
+                          </b-row>
+
+                          <!-- Área de Ataque/Defesa -->
+                          <b-row class="my-3">
+                            <!-- Ataque -->
+                            <b-col
+                              v-show="cardType === 'Monster'"
+                              cols="4"
+                              class="px-2"
+                            >
+                              <label>{{ ui[uiLang].attack }}</label>
+                              <b-form-input
+                                v-model="cardATK"
+                                type="text"
+                                maxlength="6"
+                              ></b-form-input>
+                            </b-col>
+
+                            <!-- Defesa -->
+                            <b-col
+                              v-show="cardType === 'Monster' && !isLinkMonster"
+                              cols="4"
+                              class="px-2"
+                            >
+                              <label>{{ ui[uiLang].defence }}</label>
+                              <b-form-input
+                                v-model="cardDEF"
+                                type="text"
+                                maxlength="6"
+                              ></b-form-input>
+                            </b-col>
+
+                            <!-- Link -->
+                            <b-col v-show="isLinkMonster" cols="4" class="px-2">
+                              <label>{{ ui[uiLang].link }}</label>
+                              <table>
+                                <tr v-for="row in [0, 1, 2]" :key="row">
+                                  <td v-for="col in [1, 2, 3]" :key="col">
+                                    <b-form-checkbox
+                                      v-if="row * 3 + col !== 5"
+                                      v-model="links[row * 3 + col].val"
+                                      :class="{
+                                        'checkbox-wrap': true,
+                                        active: links[row * 3 + col].val,
+                                      }"
+                                      button
+                                      >{{
+                                        links[row * 3 + col].symbol
+                                      }}</b-form-checkbox
+                                    >
+                                  </td>
+                                </tr>
+                              </table>
+                            </b-col>
+
+                            <!-- Tamanho do texto e posição (top) -->
+                            <b-col cols="2" class="px-2">
+                              <label>{{ ui[uiLang].text_size }}</label>
+                              <b-form-input
+                                v-model.number="infoSize"
+                                type="number"
+                              ></b-form-input>
+                            </b-col>
+                            <b-col cols="2" class="px-2">
+                              <label>{{ ui[uiLang].text_position }}</label>
+                              <b-form-input
+                                v-model.number="infoPosition"
+                                type="number"
+                                placeholder="0"
+                              ></b-form-input>
+                            </b-col>
+                          </b-row>
+
+                          <!-- Descrição do cartão (ou Efeito de Monstro quando Pêndulo) -->
+                          <b-row class="my-3">
+                            <b-col class="px-2">
+                              <label>{{
+                                Pendulum
+                                  ? ui[uiLang].monster_effect_label ||
+                                    'Efeito de Monstro'
+                                  : ui[uiLang].card_info_text
+                              }}</label>
+                              <b-form-textarea
+                                v-model="cardInfo"
+                                rows="5"
+                              ></b-form-textarea>
+                            </b-col>
+                          </b-row>
+                        </div>
+                      </fieldset>
+                      <!-- Área de botões do form: apenas Salvar (alterações do card) e Download, Redefinir -->
+                      <b-row class="my-3 mx-0 flex-shrink-0">
+                        <b-col class="px-2">
+                          <button
+                            type="button"
+                            class="my-2 btn btn-success"
+                            @click="download_img"
+                          >
+                            {{ ui[uiLang].download }}
+                          </button>
+                          <b-button
+                            v-if="hasUnsavedLayoutChanges"
+                            class="my-2 ml-2"
+                            variant="success"
+                            @click="saveDeckCardChanges"
+                          >
+                            {{ ui[uiLang].save_changes }}
+                          </b-button>
+                          <label style="color: #ccc"
+                            >&emsp;{{ ui[uiLang].auto_gen_note }}</label
+                          >
+                        </b-col>
+                        <b-col cols="6" class="px-2 text-right">
+                          <button
+                            type="button"
+                            class="my-2 btn btn-danger"
+                            @click="load_default_data"
+                          >
+                            {{ ui[uiLang].reset_to_default }}
+                          </button>
+                        </b-col>
+                      </b-row>
+                    </div>
+                  </b-tab>
+                  <b-tab
+                    :title="ui[uiLang].tab_search || 'Busca'"
+                    class="d-flex flex-column min-h-0 search-tab-layout"
+                    lazy
+                  >
+                    <!-- Busca por nome ou arquétipo -->
+                    <div class="search-panel-col flex-shrink-0">
+                      <b-row class="align-items-end">
+                        <b-col cols="12" md="auto" class="mb-2 mb-md-0">
+                          <label class="d-block mb-2">{{
+                            ui[uiLang].search_cards
+                          }}</label>
+                          <b-form-radio-group
+                            v-model="searchMode"
+                            buttons
+                            button-variant="outline-secondary"
+                            size="sm"
+                          >
+                            <b-form-radio value="archetype">{{
+                              ui[uiLang].search_by_archetype
+                            }}</b-form-radio>
+                            <b-form-radio value="name">{{
+                              ui[uiLang].search_by_name
+                            }}</b-form-radio>
+                          </b-form-radio-group>
+                        </b-col>
+                        <b-col
+                          cols="12"
+                          md
+                          class="
+                            mb-2 mb-md-0
+                            d-flex
+                            justify-content-end
+                            flex-wrap
+                          "
+                        >
+                          <div
+                            v-if="searchMode === 'archetype'"
+                            class="
+                              position-relative
+                              mr-1
+                              flex-grow-1 flex-md-grow-0
+                            "
+                            style="min-width: 180px; max-width: 320px"
+                          >
+                            <b-form-input
+                              v-model="searchByArchetype"
+                              :placeholder="
+                                ui[uiLang].search_placeholder_archetype
+                              "
+                              autocomplete="off"
+                              @focus="showArchetypeDropdown = true"
+                              @keyup.enter="
+                                filteredArchetypes.length
+                                  ? selectArchetype(filteredArchetypes[0])
+                                  : searchCards()
+                              "
+                              @input="showArchetypeDropdown = true"
+                              @blur="closeArchetypeDropdown"
+                            />
+                            <ul
+                              v-if="
+                                showArchetypeDropdown &&
+                                searchByArchetype.length >= 1
+                              "
+                              class="
+                                list-group
+                                position-absolute
+                                shadow
+                                mt-1
+                                w-100
+                                archetype-dropdown
+                              "
+                              style="max-height: 220px; overflow-y: auto"
+                            >
+                              <li
+                                v-for="(opt, idx) in filteredArchetypes.slice(
+                                  0,
+                                  15
+                                )"
+                                :key="idx"
+                                class="
+                                  list-group-item list-group-item-action
+                                  py-2
+                                "
+                                @click="selectArchetype(opt)"
+                              >
+                                {{ opt.archetype_name }}
+                              </li>
+                            </ul>
+                          </div>
+                          <div
+                            v-else
+                            class="
+                              position-relative
+                              mr-1
+                              flex-grow-1 flex-md-grow-0
+                            "
+                            style="min-width: 180px; max-width: 320px"
+                          >
+                            <b-form-input
+                              v-model="searchByName"
+                              :placeholder="ui[uiLang].search_placeholder_name"
+                              autocomplete="off"
+                              @focus="showNameDropdown = true"
+                              @keyup.enter="
+                                filteredCardsByName.length
+                                  ? selectCardFromName(filteredCardsByName[0])
+                                  : null
+                              "
+                              @input="showNameDropdown = true"
+                              @blur="closeNameDropdown"
+                            />
+                            <ul
+                              v-if="
+                                showNameDropdown && searchByName.length >= 1
+                              "
+                              class="
+                                list-group
+                                position-absolute
+                                shadow
+                                mt-1
+                                w-100
+                                archetype-dropdown
+                              "
+                              style="max-height: 220px; overflow-y: auto"
+                            >
+                              <li
+                                v-for="card in filteredCardsByName.slice(0, 15)"
+                                :key="card.id"
+                                class="
+                                  list-group-item list-group-item-action
+                                  py-2
+                                "
+                                @click="selectCardFromName(card)"
+                              >
+                                {{ getFilteredCardDisplayName(card) }}
+                              </li>
+                            </ul>
+                          </div>
+                        </b-col>
+                      </b-row>
+                    </div>
+                    <!-- Resultados da busca (classificados: arquétipo > nome > descrição) -->
+                    <div class="data-panel-search-scroll">
                       <div
-                        v-else
+                        v-if="searchResults.length > 0"
+                        class="panel-bg shadow p-3 search-results-panel"
+                      >
+                        <label class="d-block mb-2">{{
+                          ui[uiLang].search_results
+                        }}</label>
+                        <template v-if="searchResultsByArchetype.length > 0">
+                          <div class="small text-muted mb-1 mt-2">
+                            {{ getSearchSectionLabel('archetype') }}
+                          </div>
+                          <div class="search-results-grid mb-3">
+                            <img
+                              v-for="card in searchResultsByArchetype"
+                              :key="'arch-' + card.id"
+                              v-b-tooltip.hover.top="getDisplayName(card)"
+                              :src="getSearchResultImageSrc(card)"
+                              :alt="getDisplayName(card)"
+                              class="search-thumb rounded"
+                              loading="lazy"
+                              @click="applyCardFromSearch(card)"
+                              @error="onSearchResultImgError(card, $event)"
+                            />
+                          </div>
+                        </template>
+                        <template
+                          v-if="
+                            searchMode === 'name' &&
+                            searchResultsByName.length > 0
+                          "
+                        >
+                          <div class="small text-muted mb-1 mt-2">
+                            {{ getSearchSectionLabel('name') }}
+                          </div>
+                          <div class="search-results-grid mb-3">
+                            <img
+                              v-for="card in searchResultsByName"
+                              :key="'name-' + card.id"
+                              v-b-tooltip.hover.top="getDisplayName(card)"
+                              :src="getSearchResultImageSrc(card)"
+                              :alt="getDisplayName(card)"
+                              class="search-thumb rounded"
+                              loading="lazy"
+                              @click="applyCardFromSearch(card)"
+                              @error="onSearchResultImgError(card, $event)"
+                            />
+                          </div>
+                        </template>
+                        <template
+                          v-if="
+                            searchMode === 'name' &&
+                            searchResultsByDesc.length > 0
+                          "
+                        >
+                          <div class="small text-muted mb-1 mt-2">
+                            {{ getSearchSectionLabel('desc') }}
+                          </div>
+                          <div class="search-results-grid">
+                            <img
+                              v-for="card in searchResultsByDesc"
+                              :key="'desc-' + card.id"
+                              v-b-tooltip.hover.top="getDisplayName(card)"
+                              :src="getSearchResultImageSrc(card)"
+                              :alt="getDisplayName(card)"
+                              class="search-thumb rounded"
+                              loading="lazy"
+                              @click="applyCardFromSearch(card)"
+                              @error="onSearchResultImgError(card, $event)"
+                            />
+                          </div>
+                        </template>
+                        <template v-if="searchResultsCitedRelated.length > 0">
+                          <div class="small text-muted mb-1 mt-2">
+                            {{
+                              ui[uiLang].search_section_cited ||
+                              'Cards citados e relacionados'
+                            }}
+                          </div>
+                          <div class="search-results-grid">
+                            <img
+                              v-for="card in searchResultsCitedRelated"
+                              :key="'cited-' + card.id"
+                              v-b-tooltip.hover.top="getDisplayName(card)"
+                              :src="getSearchResultImageSrc(card)"
+                              :alt="getDisplayName(card)"
+                              class="search-thumb rounded"
+                              loading="lazy"
+                              @click="applyCardFromSearch(card)"
+                              @error="onSearchResultImgError(card, $event)"
+                            />
+                          </div>
+                        </template>
+                        <template
+                          v-if="
+                            searchMode === 'archetype' &&
+                            searchResultsRelated.length > 0
+                          "
+                        >
+                          <div class="small text-muted mb-1 mt-2">
+                            {{ getSearchSectionLabel('related') }}
+                          </div>
+                          <div class="search-results-grid">
+                            <img
+                              v-for="card in searchResultsRelated"
+                              :key="'rel-' + card.id"
+                              v-b-tooltip.hover.top="getDisplayName(card)"
+                              :src="getSearchResultImageSrc(card)"
+                              :alt="getDisplayName(card)"
+                              class="search-thumb rounded"
+                              loading="lazy"
+                              @click="applyCardFromSearch(card)"
+                              @error="onSearchResultImgError(card, $event)"
+                            />
+                          </div>
+                        </template>
+                      </div>
+                      <div
+                        v-else-if="searchTried && !searchLoading"
                         class="
-                          deck-thumb
-                          rounded
-                          bg-secondary
-                          d-flex
-                          align-items-center
-                          justify-content-center
-                          text-white
-                          small
+                          panel-bg
+                          shadow
+                          p-3
+                          text-muted text-center
+                          search-results-panel
                         "
                       >
-                        ?
+                        {{ ui[uiLang].search_no_results }}
                       </div>
-                      <button
-                        class="deck-thumb-remove"
-                        title="Remover"
-                        @click.stop="removeDeckCard(item.id)"
-                      >
-                        ×
-                      </button>
                     </div>
-                  </div>
-                  <p v-else class="text-muted small mb-0">
-                    {{
-                      ui[uiLang].deck_empty ||
-                      'Deck vazio. Busque um card e adicione.'
-                    }}
-                  </p>
-                </div>
+                  </b-tab>
+                </b-tabs>
               </div>
             </b-col>
           </b-row>
 
-          <!-- Área do rodapé -->
-          <footer class="container-fluid mb-5 px-0 px-md-5">
-            <b-row class="justify-content-center align-content-center">
-              <b-col id="footer-panel" cols="12">
-                <div class="card-body text-center text-white">
-                  Linziyou
-                  <a
-                    class="text-white text-decoration-none"
-                    href="https://github.com/linziyou0601"
-                    data-size="large"
-                    aria-label="Ver projeto no GitHub"
-                  >
-                    <fa :icon="['fab', 'github']" /> GitHub
-                  </a>
-                </div>
-                <div class="card-body text-center text-white">
-                  Felipesantosdd
-                  <a
-                    class="text-white text-decoration-none"
-                    href="https://github.com/felipesantosdd"
-                    data-size="large"
-                    aria-label="Ver projeto no GitHub"
-                  >
-                    <fa :icon="['fab', 'github']" /> GitHub
-                  </a>
-                </div>
-              </b-col>
-            </b-row>
-          </footer>
+          <!-- Footer removido temporariamente -->
         </b-tab>
         <b-tab :title="ui[uiLang].tab_monster_hunter">
-          <b-row class="h-100 justify-content-center align-content-center">
-            <!-- Canvas à esquerda (igual card-panel do YGO) -->
+          <b-row class="row-three-cols align-items-stretch">
+            <!-- Coluna esquerda: canvas MH -->
             <b-col
               id="mh-card-panel"
               cols="12"
-              md="6"
+              md="4"
               lg="4"
-              class="mt-3 mt-sm-5 mt-md-0"
+              class="mt-3 mt-sm-5 mt-md-0 col-panel d-flex flex-column"
             >
-              <div class="panel-bg shadow p-3">
-                <!-- Wrapper com mesmo conceito do canvas YGO: 1000×1450, escala para caber no painel -->
+              <div class="col-panel-inner d-flex flex-column flex-grow-1">
                 <div
-                  ref="mhPreviewWrap"
-                  class="mh-card-preview-wrap mx-auto"
-                  :style="{
-                    width: '100%',
-                    maxWidth: '1000px',
-                    height: 1450 * mhPreviewScale + 'px',
-                  }"
+                  class="
+                    panel-bg
+                    shadow
+                    p-3
+                    d-flex
+                    flex-column flex-grow-1
+                    min-h-0
+                  "
+                  style="padding: 20px"
                 >
+                  <!-- Wrapper com mesmo conceito do canvas YGO: 1000×1450, escala para caber no painel -->
                   <div
-                    class="mh-card-preview position-relative"
-                    :style="mhCardPreviewStyle"
+                    ref="mhPreviewWrap"
+                    class="mh-card-preview-wrap mx-auto"
+                    :style="{
+                      width: '100%',
+                      maxWidth: '1000px',
+                      height: 1450 * mhPreviewScale + 'px',
+                    }"
                   >
-                    <!-- Título: top 60, left 100, 800x150, fontSize 74, com bg -->
+                    <div
+                      class="mh-card-preview position-relative"
+                      :style="mhCardPreviewStyle"
+                    >
+                      <!-- Título: top 60, left 100, 800x150, fontSize 74, com bg -->
+                      <div
+                        class="
+                          position-absolute
+                          mh-text-box
+                          text-center text-black
+                          overflow-hidden
+                          font-weight-bold
+                        "
+                        :style="{
+                          top: (mhTitleTop ?? 60) + 'px',
+                          left: (mhTitleLeft ?? 100) + 'px',
+                          width: (mhTitleWidth ?? 800) + 'px',
+                          height: (mhTitleHeight ?? 150) + 'px',
+                          fontSize: (mhTitleFontSize ?? 74) + 'px',
+                          fontWeight: 'bold',
+                          backgroundColor: 'transparent',
+                        }"
+                      >
+                        <span
+                          class="mh-text-inner"
+                          v-html="mhTextWithEmojis(mhTitle)"
+                        ></span>
+                      </div>
+                      <!-- Descrição 1: top 240, left 100, 800x420, fontSize 46, com bg -->
+                      <div
+                        class="
+                          position-absolute
+                          mh-text-box
+                          text-center text-black
+                          overflow-hidden
+                        "
+                        :style="{
+                          top: (mhBox1Top ?? 240) + 'px',
+                          left: (mhBox1Left ?? 100) + 'px',
+                          width: (mhBox1Width ?? 800) + 'px',
+                          height: (mhBox1Height ?? 420) + 'px',
+                          fontSize: (mhBox1FontSize ?? 46) + 'px',
+                          backgroundColor: 'transparent',
+                        }"
+                      >
+                        <span
+                          class="mh-text-inner"
+                          v-html="mhTextWithEmojis(mhDesc1)"
+                        ></span>
+                      </div>
+                      <!-- Descrição 2: top 730, left 100, 800x500, fontSize 46, com bg -->
+                      <div
+                        class="
+                          position-absolute
+                          mh-text-box
+                          text-center text-black
+                          overflow-hidden
+                        "
+                        :style="{
+                          top: (mhBox2Top ?? 730) + 'px',
+                          left: (mhBox2Left ?? 100) + 'px',
+                          width: (mhBox2Width ?? 800) + 'px',
+                          height: (mhBox2Height ?? 500) + 'px',
+                          fontSize: (mhBox2FontSize ?? 46) + 'px',
+                          backgroundColor: 'transparent',
+                        }"
+                      >
+                        <span
+                          class="mh-text-inner"
+                          v-html="mhTextWithEmojis(mhDesc2)"
+                        ></span>
+                      </div>
+                      <!-- Número (só no layout time-02) -->
+                      <div
+                        v-if="mhCardType === 'time-02'"
+                        class="position-absolute mh-text-box mh-number-box"
+                        :style="{
+                          top: (mhNumberTop ?? 1220) + 'px',
+                          left: (mhNumberLeft ?? 49) + 'px',
+                          width: (mhNumberWidth ?? 170) + 'px',
+                          height: (mhNumberHeight ?? 170) + 'px',
+                          fontSize: (mhNumberFontSize ?? 120) + 'px',
+                          color: '#fff',
+                          WebkitTextStroke: '1px #000',
+                          backgroundColor: mhNumberBg
+                            ? 'rgba(255,255,255,0.9)'
+                            : 'transparent',
+                          padding: '4px',
+                        }"
+                      >
+                        <span class="mh-text-inner">{{
+                          mhNumberValue != null &&
+                          mhNumberValue !== '' &&
+                          Number(mhNumberValue) >= 1
+                            ? mhNumberValue
+                            : 1
+                        }}</span>
+                      </div>
+                      <img
+                        :src="'images/pic/mh/icons/' + mhIconColor + '.png'"
+                        alt=""
+                        class="position-absolute"
+                        :style="mhIconStyle"
+                        @error="$event.target.style.display = 'none'"
+                      />
+                    </div>
+                  </div>
+                  <!-- Barra MH: -1 | quantidade | Editar | +1 | Novo -->
+                  <div
+                    class="
+                      card-deck-actions
+                      mt-3
+                      pt-3
+                      border-top border-secondary
+                    "
+                  >
                     <div
                       class="
-                        position-absolute
-                        mh-text-box
-                        text-center text-black
-                        overflow-hidden
-                        font-weight-bold
+                        d-flex
+                        align-items-center
+                        justify-content-center
+                        flex-wrap
                       "
-                      :style="{
-                        top: (mhTitleTop ?? 60) + 'px',
-                        left: (mhTitleLeft ?? 100) + 'px',
-                        width: (mhTitleWidth ?? 800) + 'px',
-                        height: (mhTitleHeight ?? 150) + 'px',
-                        fontSize: (mhTitleFontSize ?? 74) + 'px',
-                        fontWeight: 'bold',
-                        backgroundColor: 'transparent',
-                      }"
                     >
-                      <span
-                        class="mh-text-inner"
-                        v-html="mhTextWithEmojis(mhTitle)"
-                      ></span>
+                      <span class="text-light small"
+                        >{{ mhCurrentCardQuantityInDeck }} no deck</span
+                      >
+                      <b-button
+                        size="md"
+                        variant="outline-light"
+                        :disabled="
+                          !mhSelectedDeckId || mhCurrentCardQuantityInDeck === 0
+                        "
+                        title="Remover uma cópia do deck"
+                        @click="removeOneFromMhDeck"
+                      >
+                        <fa :icon="['fas', 'minus']" />
+                      </b-button>
+                      <b-button
+                        size="md"
+                        variant="outline-warning"
+                        :disabled="
+                          !mhSelectedDeckId || mhCurrentCardQuantityInDeck === 0
+                        "
+                        :title="
+                          mhDeckEditLock
+                            ? 'Habilitar edição deste card'
+                            : 'Editando'
+                        "
+                        @click="unlockMhDeckEdit"
+                      >
+                        {{
+                          mhDeckEditLock
+                            ? ui[uiLang].edit || 'Editar'
+                            : 'Editando'
+                        }}
+                      </b-button>
+                      <b-button
+                        size="md"
+                        variant="outline-light"
+                        :disabled="!mhSelectedDeckId || !editingMhDeckCardId"
+                        title="Adicionar uma cópia ao deck"
+                        @click="addCopyToMhDeck"
+                      >
+                        <fa :icon="['fas', 'plus']" />
+                      </b-button>
+                      <b-button
+                        size="md"
+                        variant="outline-info"
+                        title="Novo card (zerar canvas)"
+                        @click="loadNewMHCard"
+                      >
+                        {{ ui[uiLang].mh_new_card || 'Novo' }}
+                      </b-button>
                     </div>
-                    <!-- Descrição 1: top 240, left 100, 800x420, fontSize 46, com bg -->
-                    <div
-                      class="
-                        position-absolute
-                        mh-text-box
-                        text-center text-black
-                        overflow-hidden
-                      "
-                      :style="{
-                        top: (mhBox1Top ?? 240) + 'px',
-                        left: (mhBox1Left ?? 100) + 'px',
-                        width: (mhBox1Width ?? 800) + 'px',
-                        height: (mhBox1Height ?? 420) + 'px',
-                        fontSize: (mhBox1FontSize ?? 46) + 'px',
-                        backgroundColor: 'transparent',
-                      }"
-                    >
-                      <span
-                        class="mh-text-inner"
-                        v-html="mhTextWithEmojis(mhDesc1)"
-                      ></span>
-                    </div>
-                    <!-- Descrição 2: top 730, left 100, 800x500, fontSize 46, com bg -->
-                    <div
-                      class="
-                        position-absolute
-                        mh-text-box
-                        text-center text-black
-                        overflow-hidden
-                      "
-                      :style="{
-                        top: (mhBox2Top ?? 730) + 'px',
-                        left: (mhBox2Left ?? 100) + 'px',
-                        width: (mhBox2Width ?? 800) + 'px',
-                        height: (mhBox2Height ?? 500) + 'px',
-                        fontSize: (mhBox2FontSize ?? 46) + 'px',
-                        backgroundColor: 'transparent',
-                      }"
-                    >
-                      <span
-                        class="mh-text-inner"
-                        v-html="mhTextWithEmojis(mhDesc2)"
-                      ></span>
-                    </div>
-                    <!-- Número (só no layout time-02) -->
-                    <div
-                      v-if="mhCardType === 'time-02'"
-                      class="position-absolute mh-text-box mh-number-box"
-                      :style="{
-                        top: (mhNumberTop ?? 1220) + 'px',
-                        left: (mhNumberLeft ?? 49) + 'px',
-                        width: (mhNumberWidth ?? 170) + 'px',
-                        height: (mhNumberHeight ?? 170) + 'px',
-                        fontSize: (mhNumberFontSize ?? 120) + 'px',
-                        color: '#fff',
-                        WebkitTextStroke: '1px #000',
-                        backgroundColor: mhNumberBg
-                          ? 'rgba(255,255,255,0.9)'
-                          : 'transparent',
-                        padding: '4px',
-                      }"
-                    >
-                      <span class="mh-text-inner">{{
-                        (mhNumberValue != null && mhNumberValue !== '' && Number(mhNumberValue) >= 1)
-                          ? mhNumberValue
-                          : 1
-                      }}</span>
-                    </div>
-                    <img
-                      :src="'images/pic/mh/icons/' + mhIconColor + '.png'"
-                      alt=""
-                      class="position-absolute"
-                      :style="mhIconStyle"
-                      @error="$event.target.style.display = 'none'"
-                    />
                   </div>
                 </div>
               </div>
             </b-col>
-            <!-- Formulário à direita em div separada (igual data-panel do YGO) -->
+            <!-- Coluna central: Meus Decks MH e cards do deck -->
             <b-col
-              id="mh-data-panel"
+              id="mh-decks-panel"
               cols="12"
-              md="6"
-              lg="8"
-              class="mt-3 mt-sm-5 mt-md-0"
+              md="4"
+              lg="4"
+              class="mt-3 mt-sm-5 mt-md-0 col-panel d-flex flex-column"
             >
-              <div class="panel-bg shadow p-3">
-                <b-form-group :label="ui[uiLang].mh_title">
-                  <b-form-input
-                    v-model="mhTitle"
-                    :placeholder="ui[uiLang].mh_title"
-                  />
-                </b-form-group>
-                <b-form-group :label="ui[uiLang].mh_card_type">
-                  <b-form-select
-                    v-model="mhCardType"
-                    :options="mhCardTypeOpts"
-                  />
-                </b-form-group>
-                <b-form-group :label="ui[uiLang].mh_desc1" label-size="sm">
-                  <b-form-textarea v-model="mhDesc1" rows="4" class="small" />
-                </b-form-group>
-                <b-form-group :label="ui[uiLang].mh_desc2" label-size="sm">
-                  <b-form-textarea v-model="mhDesc2" rows="4" class="small" />
-                </b-form-group>
-                <template v-if="mhCardType === 'time-02'">
-                  <b-form-group
-                    :label="ui[uiLang].mh_number_value"
-                    label-size="sm"
-                  >
-                    <b-form-input
-                      v-model.number="mhNumberValue"
-                      type="number"
-                      min="1"
-                      placeholder="1"
-                      class="small"
-                      style="max-width: 120px"
-                    />
-                  </b-form-group>
-                </template>
-                <b-form-group :label="ui[uiLang].mh_icon_color">
-                  <b-form-select
-                    v-model="mhIconColor"
-                    size="sm"
-                    style="max-width: 120px"
-                  >
-                    <option value="time-01">
-                      {{ ui[uiLang].mh_icon_blue }}
-                    </option>
-                    <option value="time-02">
-                      {{ ui[uiLang].mh_icon_red }}
-                    </option>
-                  </b-form-select>
-                </b-form-group>
-                <div class="d-flex flex-wrap align-items-center mb-2">
-                  <b-button
-                    variant="outline-light"
-                    size="sm"
-                    class="mr-3"
-                    @click="loadNewMHCard"
-                  >
-                    <fa :icon="['fas', 'plus']" class="mr-1" />
-                    {{ ui[uiLang].mh_new_card || 'Novo card' }}
-                  </b-button>
-                  <b-button
-                    variant="primary"
-                    size="sm"
-                    :disabled="
-                      !mhSelectedDeckId ||
-                      (editingMhDeckCardId && !hasUnsavedMHChanges)
-                    "
-                    :title="
-                      !mhSelectedDeckId
-                        ? ui[uiLang].mh_my_decks || 'Selecione um deck abaixo'
-                        : editingMhDeckCardId && !hasUnsavedMHChanges
-                          ? (ui[uiLang].no_changes || 'Nenhuma alteração')
-                          : ''
-                    "
-                    @click="saveOrAddMhCard"
-                  >
-                    <fa :icon="['fas', 'save']" class="mr-1" />
-                    {{
-                      editingMhDeckCardId
-                        ? (ui[uiLang].save_changes || 'Salvar alterações')
-                        : (ui[uiLang].mh_save_to_deck || 'Salvar no deck')
-                    }}
-                  </b-button>
-                </div>
-
-                <!-- Meus Decks (Monster Hunter) -->
-                <div class="mt-4 pt-3 border-top border-secondary">
+              <div
+                class="
+                  panel-bg
+                  shadow
+                  p-3
+                  d-flex
+                  flex-column flex-grow-1
+                  min-h-0
+                  decks-panel-inner
+                "
+              >
+                <template v-if="mhCenterColumnView === 'decks'">
                   <div
                     class="
                       d-flex
                       align-items-center
                       justify-content-between
-                      mb-2
+                      mb-3
+                      flex-shrink-0
                     "
                   >
                     <label class="mb-0">{{
@@ -1299,92 +1651,198 @@
                       {{ ui[uiLang].new_deck || 'Novo Deck' }}
                     </b-button>
                   </div>
-                  <div v-if="mhUserDecks.length > 0" class="mb-3">
+                  <div
+                    v-if="mhUserDecks.length > 0"
+                    class="
+                      d-flex
+                      flex-wrap
+                      deck-cards-scroll
+                      overflow-y-auto
+                      flex-grow-1
+                      align-content-start
+                    "
+                    style="gap: 10px; min-height: 0"
+                  >
                     <div
                       v-for="deck in mhUserDecks"
                       :key="deck.id"
                       class="
-                        d-flex
-                        align-items-center
-                        justify-content-between
-                        border
+                        deck-card-item
                         rounded
-                        p-2
-                        mb-1
+                        text-center
+                        position-relative
                       "
-                      :class="
-                        mhSelectedDeckId === deck.id
-                          ? 'border-primary bg-dark'
-                          : 'bg-dark'
-                      "
-                      style="cursor: pointer"
+                      style="cursor: pointer; width: 120px; flex-shrink: 0"
                       @click="selectMhDeck(deck)"
                     >
-                      <span class="text-white small">
-                        <fa
-                          :icon="['fas', 'folder']"
-                          class="mr-1"
-                          :class="
-                            mhSelectedDeckId === deck.id
-                              ? 'text-primary'
-                              : 'text-muted'
+                      <div
+                        class="
+                          deck-card-thumb-wrap
+                          rounded
+                          overflow-hidden
+                          bg-secondary
+                          mb-1
+                        "
+                      >
+                        <div
+                          class="
+                            deck-card-thumb deck-card-thumb-placeholder
+                            d-flex
+                            align-items-center
+                            justify-content-center
+                            text-white
+                            small
                           "
-                        />
+                        >
+                          <fa :icon="['fas', 'layer-group']" />
+                        </div>
+                      </div>
+                      <div
+                        class="text-white small text-truncate px-1"
+                        :title="deck.name"
+                      >
                         {{ deck.name }}
-                      </span>
-                      <div>
-                        <b-button
-                          size="sm"
-                          variant="outline-secondary"
-                          class="mr-1"
-                          title="Editar nome"
-                          @click.stop="openEditMhDeckModal(deck)"
-                        >
-                          <fa :icon="['fas', 'pen']" />
-                        </b-button>
-                        <b-button
-                          size="sm"
-                          variant="outline-info"
-                          class="mr-1"
-                          :title="ui[uiLang].download || 'Baixar deck'"
-                          :disabled="mhDeckDownloading === deck.id"
-                          @click.stop="openMhDownloadModal(deck)"
-                        >
-                          <fa
-                            :icon="['fas', 'file-archive']"
-                            :class="{ 'fa-spin': mhDeckDownloading === deck.id }"
-                          />
-                        </b-button>
-                        <b-button
-                          size="sm"
-                          variant="outline-danger"
-                          @click.stop="deleteMhDeck(deck.id)"
-                        >
-                          <fa :icon="['fas', 'trash']" />
-                        </b-button>
                       </div>
                     </div>
                   </div>
-                  <p v-else class="text-muted small mb-2">
+                  <p v-else class="text-muted small mb-0 flex-shrink-0">
                     {{ ui[uiLang].no_decks || 'Nenhum deck criado.' }}
                   </p>
-                  <div v-if="mhSelectedDeck" class="mt-2">
-                    <label class="mb-2 text-light small d-block">
-                      <fa :icon="['fas', 'folder-open']" class="mr-1" />
-                      {{ mhSelectedDeck.name }} ({{
-                        mhSelectedDeckCards.length
-                      }})
-                    </label>
+                </template>
+                <template
+                  v-else-if="
+                    mhCenterColumnView === 'deck-cards' && mhSelectedDeck
+                  "
+                >
+                  <div class="d-flex flex-column flex-grow-1 min-h-0">
+                    <div class="decks-toolbar flex-shrink-0 mb-2">
+                      <div
+                        class="
+                          d-flex
+                          align-items-center
+                          justify-content-between
+                          flex-nowrap
+                        "
+                        style="gap: 8px"
+                      >
+                        <span
+                          class="
+                            text-light
+                            font-weight-bold
+                            text-truncate
+                            flex-grow-1
+                            min-w-0
+                            mr-2
+                          "
+                        >
+                          {{ mhSelectedDeck.name }} ({{
+                            mhSelectedDeckCards.length
+                          }})
+                        </span>
+                        <div
+                          class="
+                            d-flex
+                            align-items-center
+                            flex-shrink-0 flex-wrap
+                          "
+                          style="gap: 4px; justify-content: flex-end"
+                        >
+                          <b-button
+                            size="sm"
+                            variant="outline-secondary"
+                            title="Editar nome"
+                            @click="openEditMhDeckModal(mhSelectedDeck)"
+                          >
+                            <fa :icon="['fas', 'pen']" />
+                          </b-button>
+                          <b-button
+                            size="sm"
+                            variant="outline-light"
+                            @click="goBackToMhDeckList"
+                          >
+                            <fa :icon="['fas', 'arrow-left']" class="mr-1" />
+                            Voltar
+                          </b-button>
+                          <b-button
+                            size="sm"
+                            variant="outline-warning"
+                            :disabled="
+                              !mhSelectedDeckId ||
+                              (editingMhDeckCardId && !hasUnsavedMHChanges)
+                            "
+                            :title="
+                              editingMhDeckCardId
+                                ? 'Salvar alterações do card'
+                                : 'Adicionar card atual ao deck'
+                            "
+                            @click="saveOrAddMhCard"
+                          >
+                            <fa :icon="['fas', 'plus']" class="mr-1" />
+                            {{ ui[uiLang].add_to_deck || 'Adicionar ao deck' }}
+                          </b-button>
+                          <b-button
+                            size="sm"
+                            variant="outline-success"
+                            :disabled="!deckDirtyMh"
+                            title="Salvar alterações do deck (adicionados/removidos)"
+                            @click="saveDeckStateMh"
+                          >
+                            <fa :icon="['fas', 'save']" class="mr-1" />
+                            Salvar
+                          </b-button>
+                          <b-button
+                            v-if="deckDirtyMh"
+                            size="sm"
+                            variant="outline-secondary"
+                            title="Descartar alterações do deck"
+                            @click="discardDeckStateMh"
+                          >
+                            Descartar
+                          </b-button>
+                          <b-button
+                            size="sm"
+                            variant="outline-info"
+                            :disabled="mhDeckDownloading === mhSelectedDeck.id"
+                            :title="ui[uiLang].download || 'Baixar deck'"
+                            @click="openMhDownloadModal(mhSelectedDeck)"
+                          >
+                            <fa
+                              :icon="['fas', 'file-archive']"
+                              :class="{
+                                'fa-spin':
+                                  mhDeckDownloading === mhSelectedDeck.id,
+                              }"
+                            />
+                            Baixar
+                          </b-button>
+                          <b-button
+                            size="sm"
+                            variant="outline-danger"
+                            title="Excluir deck"
+                            @click="deleteMhDeck(mhSelectedDeck.id)"
+                          >
+                            <fa :icon="['fas', 'trash']" />
+                          </b-button>
+                        </div>
+                      </div>
+                    </div>
                     <div
                       v-if="mhSelectedDeckCards.length > 0"
-                      class="d-flex flex-wrap"
-                      style="max-height: 280px; overflow-y: auto; gap: 4px"
+                      class="
+                        deck-grid deck-cards-scroll
+                        overflow-y-auto
+                        flex-grow-1
+                      "
                     >
                       <div
-                        v-for="item in mhSelectedDeckCards"
+                        v-for="item in sortedMhSelectedDeckCards"
                         :key="item.id"
                         v-b-tooltip.hover.top="item.name || 'Card'"
-                        class="deck-thumb-wrap position-relative"
+                        class="
+                          deck-thumb-wrap
+                          position-relative
+                          mh-deck-thumb-wrap
+                        "
                         :class="
                           editingMhDeckCardId === item.id
                             ? 'deck-thumb-active'
@@ -1445,8 +1903,260 @@
                         </button>
                       </div>
                     </div>
+                    <p v-else class="text-muted small mb-0 flex-shrink-0">
+                      {{
+                        ui[uiLang].deck_empty ||
+                        'Deck vazio. Busque um card e adicione.'
+                      }}
+                    </p>
                   </div>
-                </div>
+                </template>
+              </div>
+            </b-col>
+            <!-- Coluna direita: formulário MH + busca -->
+            <b-col
+              id="mh-data-panel"
+              cols="12"
+              md="4"
+              lg="4"
+              class="mt-3 mt-sm-5 mt-md-0 col-panel d-flex flex-column"
+            >
+              <div
+                class="
+                  panel-bg
+                  shadow
+                  p-3
+                  d-flex
+                  flex-column flex-grow-1
+                  min-h-0
+                  overflow-y-auto
+                "
+              >
+                <b-tabs
+                  v-model="dataPanelTabMh"
+                  content-class="mt-2 flex-grow-1 min-h-0 d-flex flex-column"
+                  class="d-flex flex-column min-h-0 data-panel-tabs"
+                >
+                  <b-tab
+                    :title="ui[uiLang].tab_create_edit || 'Criar/Editar'"
+                    class="d-flex flex-column min-h-0"
+                  >
+                    <div
+                      class="
+                        data-panel-editor-scroll
+                        d-flex
+                        flex-column flex-grow-1
+                        min-h-0
+                      "
+                    >
+                      <fieldset
+                        :disabled="mhDeckEditLock"
+                        class="data-panel-fieldset"
+                      >
+                        <div
+                          class="card-form-scroll"
+                          :class="{ 'form-faded': mhDeckEditLock }"
+                        >
+                          <b-form-group :label="ui[uiLang].mh_title">
+                            <b-form-input
+                              v-model="mhTitle"
+                              :placeholder="ui[uiLang].mh_title"
+                            />
+                          </b-form-group>
+                          <b-form-group :label="ui[uiLang].mh_card_type">
+                            <b-form-select
+                              v-model="mhCardType"
+                              :options="mhCardTypeOpts"
+                            />
+                          </b-form-group>
+                          <b-form-group
+                            :label="ui[uiLang].mh_desc1"
+                            label-size="sm"
+                          >
+                            <b-form-textarea
+                              v-model="mhDesc1"
+                              rows="4"
+                              class="small"
+                            />
+                          </b-form-group>
+                          <b-form-group
+                            :label="ui[uiLang].mh_desc2"
+                            label-size="sm"
+                          >
+                            <b-form-textarea
+                              v-model="mhDesc2"
+                              rows="4"
+                              class="small"
+                            />
+                          </b-form-group>
+                          <template v-if="mhCardType === 'time-02'">
+                            <b-form-group
+                              :label="ui[uiLang].mh_number_value"
+                              label-size="sm"
+                            >
+                              <b-form-input
+                                v-model.number="mhNumberValue"
+                                type="number"
+                                min="1"
+                                placeholder="1"
+                                class="small"
+                                style="max-width: 120px"
+                              />
+                            </b-form-group>
+                          </template>
+                          <b-form-group :label="ui[uiLang].mh_icon_color">
+                            <b-form-select
+                              v-model="mhIconColor"
+                              size="sm"
+                              style="max-width: 120px"
+                            >
+                              <option value="time-01">
+                                {{ ui[uiLang].mh_icon_blue }}
+                              </option>
+                              <option value="time-02">
+                                {{ ui[uiLang].mh_icon_red }}
+                              </option>
+                            </b-form-select>
+                          </b-form-group>
+                          <div class="d-flex flex-wrap align-items-center mb-2">
+                            <b-button
+                              variant="primary"
+                              size="sm"
+                              :disabled="
+                                !mhSelectedDeckId ||
+                                (editingMhDeckCardId && !hasUnsavedMHChanges)
+                              "
+                              :title="
+                                !mhSelectedDeckId
+                                  ? ui[uiLang].mh_my_decks ||
+                                    'Selecione um deck abaixo'
+                                  : editingMhDeckCardId && !hasUnsavedMHChanges
+                                  ? ui[uiLang].no_changes || 'Nenhuma alteração'
+                                  : ''
+                              "
+                              @click="saveOrAddMhCard"
+                            >
+                              <fa :icon="['fas', 'save']" class="mr-1" />
+                              {{ ui[uiLang].save_changes || 'Salvar' }}
+                            </b-button>
+                          </div>
+                        </div>
+                      </fieldset>
+                    </div>
+                  </b-tab>
+                  <b-tab
+                    :title="ui[uiLang].tab_search || 'Busca'"
+                    class="d-flex flex-column min-h-0"
+                  >
+                    <div class="search-panel-col mb-3 flex-shrink-0">
+                      <label class="d-block mb-2">{{
+                        ui[uiLang].search_cards
+                      }}</label>
+                      <b-form-input
+                        v-model="mhSearchQuery"
+                        :placeholder="ui[uiLang].search_placeholder_name"
+                        class="mb-3"
+                        autocomplete="off"
+                      />
+                    </div>
+                    <div
+                      v-if="mhSearchFilteredCards.length > 0"
+                      class="
+                        d-flex
+                        flex-wrap
+                        overflow-y-auto
+                        flex-grow-1
+                        min-h-0
+                      "
+                      style="gap: 6px"
+                    >
+                      <div
+                        v-for="card in mhSearchFilteredCards"
+                        :key="card.id"
+                        v-b-tooltip.hover.top="
+                          card.name ||
+                          (card.snapshot && card.snapshot.mhTitle) ||
+                          'Card'
+                        "
+                        class="mh-search-thumb-wrap position-relative"
+                        @click="selectMhCardFromSearch(card)"
+                      >
+                        <div
+                          class="mh-deck-thumb rounded position-relative"
+                          :style="{
+                            backgroundImage: `url('images/pic/mh/layout/${
+                              (card.snapshot && card.snapshot.mhCardType) ||
+                              'time-01'
+                            }.png')`,
+                          }"
+                        >
+                          <div class="mh-deck-thumb-title">
+                            {{
+                              card.name ||
+                              (card.snapshot && card.snapshot.mhTitle) ||
+                              'Card'
+                            }}
+                          </div>
+                          <div
+                            class="mh-deck-thumb-desc"
+                            :title="
+                              (card.snapshot && card.snapshot.mhDesc1) || ''
+                            "
+                          >
+                            {{
+                              card.snapshot && card.snapshot.mhDesc1
+                                ? (card.snapshot.mhDesc1 + '').slice(0, 28) +
+                                  '…'
+                                : ''
+                            }}
+                          </div>
+                          <div class="mh-deck-thumb-icon-wrap">
+                            <img
+                              :src="
+                                'images/pic/mh/icons/' +
+                                ((card.snapshot && card.snapshot.mhIconColor) ||
+                                  'time-01') +
+                                '.png'
+                              "
+                              alt=""
+                              class="mh-deck-thumb-icon"
+                              @error="$event.target.style.display = 'none'"
+                            />
+                          </div>
+                        </div>
+                        <div
+                          class="text-light text-center mt-1"
+                          style="
+                            font-size: 9px;
+                            line-height: 1.1;
+                            max-width: 72px;
+                            overflow: hidden;
+                            white-space: nowrap;
+                            text-overflow: ellipsis;
+                          "
+                        >
+                          {{
+                            card.name ||
+                            (card.snapshot && card.snapshot.mhTitle) ||
+                            'Card'
+                          }}
+                        </div>
+                      </div>
+                    </div>
+                    <p
+                      v-else-if="mhSearchQuery.trim()"
+                      class="text-muted small mb-0 flex-shrink-0"
+                    >
+                      {{ ui[uiLang].search_no_results }}
+                    </p>
+                    <p v-else class="text-muted small mb-0 flex-shrink-0">
+                      {{
+                        ui[uiLang].mh_my_decks ||
+                        'Digite para buscar por nome nos cards criados.'
+                      }}
+                    </p>
+                  </b-tab>
+                </b-tabs>
               </div>
             </b-col>
           </b-row>
@@ -1480,6 +2190,46 @@
         </b-button>
       </template>
     </b-modal>
+
+    <!-- Modal: Aplicar arte só nesta cópia ou em todas? (YGO) -->
+    <b-modal
+      v-model="showArtApplyModal"
+      title="Imagem do card alterada"
+      ok-title=""
+      cancel-title=""
+      hide-footer
+      centered
+    >
+      <p class="mb-3">
+        Aplicar esta arte só nesta cópia ou em todas as cópias deste card no
+        deck?
+      </p>
+      <div class="d-flex justify-content-end" style="gap: 8px">
+        <b-button variant="secondary" @click="showArtApplyModal = false"
+          >Cancelar</b-button
+        >
+        <b-button variant="outline-primary" @click="onArtApplyThis"
+          >Só esta cópia</b-button
+        >
+        <b-button variant="primary" @click="onArtApplyAll"
+          >Todas as cópias</b-button
+        >
+      </div>
+    </b-modal>
+
+    <ygo-import-deck-modal
+      v-model="showImportDeckModal"
+      :deck-name="importDeckName"
+      :deck-text="importDeckText"
+      :feedback="importDeckFeedback"
+      :loading="importDeckLoading"
+      :preview="importDeckPreview"
+      :ui="ui"
+      :ui-lang="uiLang"
+      @update:deckName="importDeckName = $event"
+      @update:deckText="importDeckText = $event"
+      @submit="importYgoDeck"
+    />
 
     <!-- Modal: Novo Deck -->
     <b-modal
@@ -1558,7 +2308,9 @@
     <!-- Modal: Baixar para Silhuete (PDF + arquivo de corte) - deck YGO -->
     <b-modal
       v-model="showSilhouetteModal"
-      :title="ui[uiLang].silhouette_modal_title || 'Folha para impressão e corte'"
+      :title="
+        ui[uiLang].silhouette_modal_title || 'Folha para impressão e corte'
+      "
       ok-title=""
       cancel-title=""
       hide-footer
@@ -1566,9 +2318,12 @@
       @show="loadSilhouetteCardSizeOptions"
     >
       <p class="text-muted small mb-3">
-        Gera um PDF com as cartas na folha e o arquivo .studio3 para abrir na Silhouette Studio e fazer o corte.
+        Gera um PDF com as cartas na folha e o arquivo .studio3 para abrir na
+        Silhouette Studio e fazer o corte.
       </p>
-      <b-form-group :label="ui[uiLang].mh_download_card_size || 'Tamanho do card'">
+      <b-form-group
+        :label="ui[uiLang].mh_download_card_size || 'Tamanho do card'"
+      >
         <b-form-select
           v-model="silhouetteCardSize"
           :options="silhouetteCardSizeOptions"
@@ -1577,20 +2332,50 @@
           size="sm"
         />
       </b-form-group>
-      <b-form-group :label="ui[uiLang].silhouette_paper_size || 'Tamanho da folha'">
-        <b-form-radio-group v-model="silhouettePaperSize" name="silhouette-paper">
-          <b-form-radio value="letter">{{ ui[uiLang].silhouette_letter || 'Letter (EUA)' }}</b-form-radio>
-          <b-form-radio value="a4">{{ ui[uiLang].silhouette_a4 || 'A4' }}</b-form-radio>
+      <b-form-group
+        :label="ui[uiLang].silhouette_paper_size || 'Tamanho da folha'"
+      >
+        <b-form-radio-group
+          v-model="silhouettePaperSize"
+          name="silhouette-paper"
+        >
+          <b-form-radio value="letter">{{
+            ui[uiLang].silhouette_letter || 'Letter (EUA)'
+          }}</b-form-radio>
+          <b-form-radio value="a4">{{
+            ui[uiLang].silhouette_a4 || 'A4'
+          }}</b-form-radio>
         </b-form-radio-group>
       </b-form-group>
       <b-form-group>
         <b-form-checkbox v-model="silhouetteCardsTouch">
-          {{ ui[uiLang].silhouette_cards_touch || 'Cards se tocam (reduz falha de impressão)' }}
+          {{
+            ui[uiLang].silhouette_cards_touch ||
+            'Cards se tocam (reduz falha de impressão)'
+          }}
         </b-form-checkbox>
-        <small class="text-muted d-block mt-1">Desenha os cards invadindo o espaço entre eles; se a impressão entortar, a sobra não vira margem branca.</small>
+        <small class="text-muted d-block mt-1"
+          >Desenha os cards invadindo o espaço entre eles; se a impressão
+          entortar, a sobra não vira margem branca.</small
+        >
+      </b-form-group>
+      <b-form-group>
+        <b-form-checkbox v-model="silhouetteIncludeImages">
+          {{
+            ui[uiLang].silhouette_include_images || 'PDF com imagem dos cards'
+          }}
+        </b-form-checkbox>
+        <small class="text-muted d-block mt-1"
+          >Desmarque para gerar apenas o gabarito (retângulos) sem a arte dos
+          cards.</small
+        >
       </b-form-group>
       <div class="text-right">
-        <b-button variant="secondary" class="mr-2" @click="showSilhouetteModal = false">
+        <b-button
+          variant="secondary"
+          class="mr-2"
+          @click="showSilhouetteModal = false"
+        >
           {{ ui[uiLang].cancel || 'Cancelar' }}
         </b-button>
         <b-button
@@ -1598,66 +2383,37 @@
           :disabled="silhouetteDownloading"
           @click="downloadSilhouetteDeck"
         >
-          {{ silhouetteDownloading ? (ui[uiLang].silhouette_downloading || 'Gerando PDF…') : (ui[uiLang].silhouette_generate || 'Gerar PDF e arquivo de corte') }}
+          {{
+            silhouetteDownloading
+              ? ui[uiLang].silhouette_downloading || 'Gerando PDF…'
+              : ui[uiLang].silhouette_generate || 'Gerar PDF e arquivo de corte'
+          }}
         </b-button>
       </div>
     </b-modal>
 
-    <!-- Modal: Tradução PT-BR -->
-    <b-modal
+    <ygo-translation-modal
       v-model="showTranslationModal"
-      :title="ui[uiLang].translate_title || 'Traduzir Card para PT-BR'"
-      ok-title=""
-      cancel-title=""
-      hide-footer
-      centered
-      size="lg"
-    >
-      <b-form @submit.prevent="saveTranslation">
-        <b-form-group :label="ui[uiLang].card_name_pt || 'Nome em Português'">
-          <b-form-input
-            v-model="translationName"
-            :placeholder="
-              ui[uiLang].card_name_pt_placeholder || 'Nome traduzido'
-            "
-          />
-        </b-form-group>
-        <b-form-group
-          :label="ui[uiLang].card_desc_pt || 'Descrição em Português'"
-        >
-          <b-form-textarea
-            v-model="translationDesc"
-            rows="6"
-            :placeholder="
-              ui[uiLang].card_desc_pt_placeholder ||
-              'Efeito/descrição traduzida'
-            "
-          />
-        </b-form-group>
-        <div class="text-muted small mb-3">
-          {{
-            ui[uiLang].translate_note ||
-            'Esta tradução será salva no banco local. Quando uma tradução oficial for disponibilizada pela API, ela substituirá a sua.'
-          }}
-        </div>
-        <div class="text-right">
-          <b-button
-            variant="secondary"
-            class="mr-2"
-            @click="showTranslationModal = false"
-            >{{ ui[uiLang].cancel || 'Cancelar' }}</b-button
-          >
-          <b-button type="submit" variant="success">{{
-            ui[uiLang].save || 'Salvar'
-          }}</b-button>
-        </div>
-      </b-form>
-    </b-modal>
+      :translation-name="translationName"
+      :translation-desc="translationDesc"
+      :translation-pendulum-desc="translationPendulumDesc"
+      :is-pendulum="currentBaseCard && isCurrentCardPendulum"
+      :ui="ui"
+      :ui-lang="uiLang"
+      @update:translationName="translationName = $event"
+      @update:translationDesc="translationDesc = $event"
+      @update:translationPendulumDesc="translationPendulumDesc = $event"
+      @submit="saveTranslation"
+    />
 
     <!-- Modal: Download deck MH — formato PNG ou Silhuete -->
     <b-modal
       v-model="showMhDownloadModal"
-      :title="mhDownloadDeck ? (mhDownloadDeck.name + ' — Formato de download') : 'Baixar deck'"
+      :title="
+        mhDownloadDeck
+          ? mhDownloadDeck.name + ' — Formato de download'
+          : 'Baixar deck'
+      "
       ok-title=""
       cancel-title=""
       hide-footer
@@ -1665,14 +2421,30 @@
       @hidden="mhDownloadDeck = null"
     >
       <template v-if="mhDownloadDeck">
-        <b-form-group :label="ui[uiLang].mh_download_format || 'Em que formato deseja os cards?'">
-          <b-form-radio-group v-model="mhDownloadFormat" name="mh-download-format">
-            <b-form-radio value="png">{{ ui[uiLang].mh_download_png || 'PNG — imagens dos cards + deck.json (ZIP)' }}</b-form-radio>
-            <b-form-radio value="silhouette">{{ ui[uiLang].mh_download_silhouette || 'Silhuete — PDF para impressão + arquivo de corte (ZIP)' }}</b-form-radio>
+        <b-form-group
+          :label="
+            ui[uiLang].mh_download_format || 'Em que formato deseja os cards?'
+          "
+        >
+          <b-form-radio-group
+            v-model="mhDownloadFormat"
+            name="mh-download-format"
+          >
+            <b-form-radio value="png">{{
+              ui[uiLang].mh_download_png ||
+              'PNG — imagens dos cards + deck.json (ZIP)'
+            }}</b-form-radio>
+            <b-form-radio value="silhouette">{{
+              ui[uiLang].mh_download_silhouette ||
+              'Silhuete — PDF para impressão + arquivo de corte (ZIP)'
+            }}</b-form-radio>
           </b-form-radio-group>
         </b-form-group>
         <template v-if="mhDownloadFormat === 'silhouette'">
-          <b-form-group :label="ui[uiLang].mh_download_card_size || 'Tamanho do card'" class="mt-3">
+          <b-form-group
+            :label="ui[uiLang].mh_download_card_size || 'Tamanho do card'"
+            class="mt-3"
+          >
             <b-form-select
               v-model="mhDownloadCardSize"
               :options="silhouetteCardSizeOptions"
@@ -1680,24 +2452,53 @@
               text-field="label"
               size="sm"
             />
-            <div v-if="silhouetteCardSizeOptions.length === 0 && window.silhouette" class="text-muted small mt-1">
+            <div
+              v-if="
+                silhouetteCardSizeOptions.length === 0 && hasSilhouetteSupport
+              "
+              class="text-muted small mt-1"
+            >
               Carregando…
             </div>
           </b-form-group>
-          <b-form-group :label="ui[uiLang].mh_download_paper || 'Papel de impressão'">
-            <b-form-radio-group v-model="mhDownloadSilhouettePaper" name="mh-silhouette-paper">
-              <b-form-radio value="letter">{{ ui[uiLang].silhouette_letter || 'Letter (EUA)' }}</b-form-radio>
-              <b-form-radio value="a4">{{ ui[uiLang].silhouette_a4 || 'A4' }}</b-form-radio>
+          <b-form-group
+            :label="ui[uiLang].mh_download_paper || 'Papel de impressão'"
+          >
+            <b-form-radio-group
+              v-model="mhDownloadSilhouettePaper"
+              name="mh-silhouette-paper"
+            >
+              <b-form-radio value="letter">{{
+                ui[uiLang].silhouette_letter || 'Letter (EUA)'
+              }}</b-form-radio>
+              <b-form-radio value="a4">{{
+                ui[uiLang].silhouette_a4 || 'A4'
+              }}</b-form-radio>
             </b-form-radio-group>
           </b-form-group>
           <b-form-group>
             <b-form-checkbox v-model="mhDownloadCardsTouch">
-              {{ ui[uiLang].silhouette_cards_touch || 'Cards se tocam (reduz falha de impressão)' }}
+              {{
+                ui[uiLang].silhouette_cards_touch ||
+                'Cards se tocam (reduz falha de impressão)'
+              }}
+            </b-form-checkbox>
+          </b-form-group>
+          <b-form-group>
+            <b-form-checkbox v-model="mhDownloadIncludeImages">
+              {{
+                ui[uiLang].silhouette_include_images ||
+                'PDF com imagem dos cards'
+              }}
             </b-form-checkbox>
           </b-form-group>
         </template>
         <div class="text-right mt-3">
-          <b-button variant="secondary" class="mr-2" @click="showMhDownloadModal = false">
+          <b-button
+            variant="secondary"
+            class="mr-2"
+            @click="showMhDownloadModal = false"
+          >
             {{ ui[uiLang].cancel || 'Cancelar' }}
           </b-button>
           <b-button
@@ -1705,8 +2506,17 @@
             :disabled="mhDeckDownloading === mhDownloadDeck.id"
             @click="confirmMhDownload"
           >
-            <fa v-if="mhDeckDownloading === mhDownloadDeck.id" icon="spinner" spin class="mr-1" />
-            {{ mhDeckDownloading === mhDownloadDeck.id ? (ui[uiLang].mh_download_generating || 'Gerando…') : (ui[uiLang].mh_download_zip_btn || 'Baixar ZIP') }}
+            <fa
+              v-if="mhDeckDownloading === mhDownloadDeck.id"
+              icon="spinner"
+              spin
+              class="mr-1"
+            />
+            {{
+              mhDeckDownloading === mhDownloadDeck.id
+                ? ui[uiLang].mh_download_generating || 'Gerando…'
+                : ui[uiLang].mh_download_zip_btn || 'Baixar ZIP'
+            }}
           </b-button>
         </div>
       </template>
@@ -1721,13 +2531,23 @@ import { mapMutations } from 'vuex'
 import html2canvas from 'html2canvas'
 import JSZip from 'jszip'
 import LoadingDialog from '../components/LoadingDialog.vue'
+import YgoImportDeckModal from '../components/YgoImportDeckModal.vue'
+import YgoTranslationModal from '../components/YgoTranslationModal.vue'
 import ui from '../../../static/lang.ui.json'
 import cardMeta from '../../../static/lang.card_meta.json'
 import archetypesList from '../../../static/archetypes.json'
+import failedCanvasArtIds from '../../../static/ygo/failed-canvas-art.json'
+import failedThumbArtIds from '../../../static/ygo/failed-thumb-art.json'
+
+const FAILED_CANVAS_ART_IDS = new Set(
+  failedCanvasArtIds.map((id) => String(id))
+)
+const FAILED_THUMB_ART_IDS = new Set(failedThumbArtIds.map((id) => String(id)))
 
 const YGOPRODECK_API = 'https://db.ygoprodeck.com/api/v7/cardinfo.php'
 const YGOPRODECK_CHECK_VER = 'https://db.ygoprodeck.com/api/v7/checkDBVer.php'
 const SYNC_TIMEOUT_MS = 60000
+const DECK_SNAPSHOT_MIGRATION_KEY = 'deckSnapshotMigration_v1'
 const LINK_MARKER_TO_INDEX = {
   'Top-Left': 1,
   Top: 2,
@@ -1740,7 +2560,7 @@ const LINK_MARKER_TO_INDEX = {
 }
 
 export default {
-  components: { LoadingDialog },
+  components: { LoadingDialog, YgoImportDeckModal, YgoTranslationModal },
   data() {
     return {
       activeTab: 0,
@@ -1772,6 +2592,7 @@ export default {
       cardKey: '',
       apiCardCache: {},
       apiCardImageUrls: {},
+      apiCardImagePromises: Object.create(null),
       apiCardLoading: false,
       apiCardError: null,
       apiCardFetchTimer: null,
@@ -1814,6 +2635,8 @@ export default {
       cardInfo: '',
 
       imgs: {},
+      imageAssetCache: Object.create(null),
+      relatedCardsCache: Object.create(null),
 
       searchMode: 'archetype',
       searchByName: '',
@@ -1826,35 +2649,54 @@ export default {
       searchLoading: false,
       searchTried: false,
       relatedCards: [],
+      /** Aba da terceira coluna YGO: 0 = Criar/Editar, 1 = Busca */
+      dataPanelTabYgo: 0,
 
       userDecks: [],
+      deckSearchQuery: '',
+      deckSortBy: 'updated_at',
       selectedDeckId: null,
       selectedDeckCards: [],
+      /** IDs de cards removidos do deck (só persistem ao clicar Salvar na coluna do meio) */
+      pendingDeckRemovesYgo: [],
+      /** 'decks' = lista de decks como cards; 'deck-cards' = cards do deck selecionado */
+      centerColumnView: 'decks',
+      /** deckId -> URL da imagem do primeiro card (para thumbnail do deck) */
+      deckFirstCardImages: {},
       deckCardImageUrls: {},
       batchDownloading: false,
       showSilhouetteModal: false,
       silhouettePaperSize: 'a4',
       silhouetteCardSize: 'japanese',
       silhouetteCardsTouch: true,
+      silhouetteIncludeImages: true,
       silhouetteDownloading: false,
       loadedFromDeck: false,
       editingDeckCardId: null,
+      editorModeYgo: 'base',
+      /** true = form bloqueado até clicar em Editar (só visualização do card do deck) */
+      deckEditLock: false,
       viewingBaseCard: false,
 
+      showArtApplyModal: false,
       showTranslationModal: false,
       translationName: '',
       translationDesc: '',
+      translationPendulumDesc: '',
       translatingCardId: null,
 
       showNewDeckModal: false,
       newDeckName: '',
+      showImportDeckModal: false,
+      importDeckName: '',
+      importDeckText: '',
+      importDeckLoading: false,
+      importDeckFeedback: '',
       showEditDeckModal: false,
       editingDeckId: null,
       editingDeckName: '',
 
       programmaticUpdate: false,
-      autoSaveTimer: null,
-
       snapshotAtLoad: null,
       initialSnapshotWhenNotFromCollection: null,
       pendingLeaveAction: null,
@@ -1900,7 +2742,19 @@ export default {
       mhUserDecks: [],
       mhSelectedDeckId: null,
       mhSelectedDeckCards: [],
+      /** IDs de cards MH removidos do deck (só persistem ao clicar Salvar na coluna do meio) */
+      pendingDeckRemovesMh: [],
+      /** Aba da terceira coluna MH: 0 = Criar/Editar, 1 = Busca */
+      dataPanelTabMh: 0,
+      /** Todos os cards MH do banco (para busca na aba Busca) */
+      mhAllCardsFromDb: [],
+      /** Texto da busca na aba Busca MH */
+      mhSearchQuery: '',
+      /** 'decks' = lista de decks como cards; 'deck-cards' = cards do deck selecionado */
+      mhCenterColumnView: 'decks',
       editingMhDeckCardId: null,
+      /** true = form MH bloqueado até clicar em Editar */
+      mhDeckEditLock: false,
       snapshotMhAtLoad: null,
       mhDeckDownloading: null,
       showMhDownloadModal: false,
@@ -1909,6 +2763,7 @@ export default {
       mhDownloadSilhouettePaper: 'a4',
       mhDownloadCardSize: 'japanese',
       mhDownloadCardsTouch: true,
+      mhDownloadIncludeImages: true,
       silhouetteCardSizeOptions: [],
       newDeckGame: 'yugioh',
     }
@@ -1926,6 +2781,18 @@ export default {
         backgroundSize: 'cover',
         backgroundPosition: 'center',
       }
+    },
+    /** Quantas cópias do card atual (grupo) existem no deck MH */
+    mhCurrentCardQuantityInDeck() {
+      if (!this.mhSelectedDeckId || !this.editingMhDeckCardId) return 0
+      const current = this.mhSelectedDeckCards.find(
+        (c) => c.id === this.editingMhDeckCardId
+      )
+      if (!current) return 0
+      const groupId = current.copyGroupId || current.id
+      return this.mhSelectedDeckCards.filter(
+        (c) => (c.copyGroupId || c.id) === groupId
+      ).length
     },
     mhCardTypeOpts() {
       return [
@@ -1949,6 +2816,9 @@ export default {
         height: (layout.height ?? 148) + 'px',
         objectFit: 'contain',
       }
+    },
+    hasSilhouetteSupport() {
+      return typeof window !== 'undefined' && !!window.silhouette
     },
     localCardsMap() {
       const map = {}
@@ -1999,9 +2869,24 @@ export default {
     searchResultsCitedRelated() {
       return this.searchResults.filter((c) => c.matchType === 'related')
     },
-    currentSnapshotForAutoSave() {
-      if (!this.cardKey) return null
-      return { cardKey: this.cardKey, ...this.getCurrentCardSnapshot() }
+    cardSearchIndex() {
+      return this.localCards.map((card) => {
+        const descEn = this.normalizeSearchQuery(card.desc_en || '')
+        const descPt = this.normalizeSearchQuery(card.desc_pt || '')
+        const descRaw = this.normalizeSearchQuery(card.desc || '')
+        return {
+          card,
+          id: String(card.id),
+          archetype: this.normalizeSearchQuery(card.archetype || ''),
+          nameEn: this.normalizeSearchQuery(card.name_en || card.name || ''),
+          namePt: this.normalizeSearchQuery(card.name_pt || ''),
+          descEn,
+          descPt,
+          descRaw,
+          combinedDesc: [descEn, descPt, descRaw].filter(Boolean).join(' '),
+          extractedNames: this.extractReferencedNames(card),
+        }
+      })
     },
     cardDisplayDeps() {
       return JSON.stringify(this.getCurrentCardSnapshot())
@@ -2009,11 +2894,85 @@ export default {
     isFieldsLocked() {
       return this.viewingBaseCard && !this.loadedFromDeck
     },
+    /** Quantas cópias do card atual existem no deck selecionado (por cardKey) */
+    currentCardQuantityInDeck() {
+      if (!this.selectedDeckId || !this.cardKey) return 0
+      return this.selectedDeckCards.filter(
+        (item) => String(item.cardKey) === String(this.cardKey)
+      ).length
+    },
+    /** Cards do deck YGO ordenados: estrela (nível) ascendente, depois nome alfabético */
+    sortedSelectedDeckCards() {
+      return [...(this.selectedDeckCards || [])].sort((a, b) => {
+        const levelA = parseInt(a.snapshot?.level, 10) || 0
+        const levelB = parseInt(b.snapshot?.level, 10) || 0
+        if (levelA !== levelB) return levelA - levelB
+        return (a.name || '').localeCompare(b.name || '', 'pt')
+      })
+    },
+    /** Main Deck: apenas monstros, magias e armadilhas; ordem: Monstro → Magia → Armadilha, depois nível e nome */
+    mainDeckCards() {
+      const main = (this.selectedDeckCards || []).filter(
+        (item) => !this.isExtraDeckItem(item)
+      )
+      const typeOrder = (snap) => {
+        const t = Array.isArray(snap?.type)
+          ? snap.type[0]
+          : String(snap?.type || '')
+        if (t === 'Monster') return 0
+        if (t === 'Spell') return 1
+        if (t === 'Trap') return 2
+        return 0
+      }
+      return [...main].sort((a, b) => {
+        const orderA = typeOrder(a.snapshot)
+        const orderB = typeOrder(b.snapshot)
+        if (orderA !== orderB) return orderA - orderB
+        const levelA = parseInt(a.snapshot?.level, 10) || 0
+        const levelB = parseInt(b.snapshot?.level, 10) || 0
+        if (levelA !== levelB) return levelA - levelB
+        return (a.name || '').localeCompare(b.name || '', 'pt')
+      })
+    },
+    /** Extra Deck: Fusion, Synchro, Xyz, Link (já em div separada); ordenado por nível e nome */
+    extraDeckCards() {
+      return this.sortedSelectedDeckCards.filter((item) =>
+        this.isExtraDeckItem(item)
+      )
+    },
+    /** Cards do deck MH ordenados por título (alfabético) */
+    sortedMhSelectedDeckCards() {
+      return [...(this.mhSelectedDeckCards || [])].sort((a, b) => {
+        const nameA = (a.name || a.snapshot?.mhTitle || '').trim().toLowerCase()
+        const nameB = (b.name || b.snapshot?.mhTitle || '').trim().toLowerCase()
+        return nameA.localeCompare(nameB, 'pt')
+      })
+    },
+    /** Cards MH do banco filtrados por mhSearchQuery (para aba Busca MH) */
+    mhSearchFilteredCards() {
+      const q = (this.mhSearchQuery || '').trim().toLowerCase()
+      if (!q) return this.mhAllCardsFromDb.slice(0, 100)
+      const list = this.mhAllCardsFromDb.filter((c) => {
+        const name = (c.name || c.snapshot?.mhTitle || '').toLowerCase()
+        return name.includes(q)
+      })
+      return list.slice(0, 100)
+    },
     currentBaseCard() {
       if (!this.cardKey) return null
       return (
         this.localCards.find((c) => String(c.id) === String(this.cardKey)) ||
         null
+      )
+    },
+    isCurrentCardPendulum() {
+      const card = this.currentBaseCard
+      if (!card) return this.Pendulum
+      const typeStr = (card.type || '').toLowerCase()
+      return (
+        typeStr.includes('pendulum') ||
+        card.scale != null ||
+        (Array.isArray(card.scales) && card.scales.length > 0)
       )
     },
     nameIndexMap() {
@@ -2054,11 +3013,85 @@ export default {
       if (!this.selectedDeckId) return null
       return this.userDecks.find((d) => d.id === this.selectedDeckId) || null
     },
+    filteredUserDecks() {
+      const query = this.normalizeSearchQuery(this.deckSearchQuery || '')
+      const list = query
+        ? this.userDecks.filter((deck) => {
+            const name = this.normalizeSearchQuery(deck.name || '')
+            return name.includes(query)
+          })
+        : [...this.userDecks]
+
+      const byName = (a, b) => (a.name || '').localeCompare(b.name || '', 'pt')
+      const byDate = (field) => (a, b) =>
+        String(b?.[field] || '').localeCompare(String(a?.[field] || ''))
+
+      if (this.deckSortBy === 'name') return list.sort(byName)
+      if (this.deckSortBy === 'created_at')
+        return list.sort(byDate('created_at'))
+      return list.sort(byDate('updated_at'))
+    },
     mhSelectedDeck() {
       if (!this.mhSelectedDeckId) return null
       return (
         this.mhUserDecks.find((d) => d.id === this.mhSelectedDeckId) || null
       )
+    },
+    deckDirtyYgo() {
+      return (
+        this.pendingDeckRemovesYgo.length > 0 ||
+        this.selectedDeckCards.some((c) => String(c.id).startsWith('pending_'))
+      )
+    },
+    deckDirtyMh() {
+      return (
+        this.pendingDeckRemovesMh.length > 0 ||
+        this.mhSelectedDeckCards.some((c) =>
+          String(c.id).startsWith('pending_')
+        )
+      )
+    },
+    importDeckNameIndex() {
+      const map = new Map()
+      for (const card of this.localCards || []) {
+        const candidates = [card.name_en || card.name, card.name_pt, card.name]
+        for (const candidate of candidates) {
+          const normalized = this.normalizeSearchQuery(candidate || '')
+          if (!normalized || map.has(normalized)) continue
+          map.set(normalized, card)
+        }
+      }
+      return map
+    },
+    importDeckPreview() {
+      const parsedEntries = this.parseImportedDeckText(this.importDeckText)
+      const resolvedEntries = []
+      const missingNames = []
+
+      for (const entry of parsedEntries) {
+        const card = this.resolveImportedDeckCard(entry.name)
+        if (!card) {
+          missingNames.push(entry.name)
+          continue
+        }
+        resolvedEntries.push({
+          card,
+          quantity: entry.quantity,
+          name: entry.name,
+        })
+      }
+
+      return {
+        parsedCount: parsedEntries.length,
+        resolvedCount: resolvedEntries.length,
+        missingCount: missingNames.length,
+        totalCards: resolvedEntries.reduce(
+          (sum, entry) => sum + entry.quantity,
+          0
+        ),
+        resolvedEntries,
+        missingNames,
+      }
     },
     hasUnsavedMHChanges() {
       if (this.editingMhDeckCardId == null || this.snapshotMhAtLoad == null)
@@ -2207,6 +3240,12 @@ export default {
     },
   },
   watch: {
+    localCards() {
+      this.relatedCardsCache = Object.create(null)
+    },
+    dataPanelTabMh(val) {
+      if (val === 1) this.ensureMhAllCardsLoaded()
+    },
     cardLang() {
       if (this.cardKey === '') this.load_default_data()
     },
@@ -2214,7 +3253,9 @@ export default {
       if (this.apiCardFetchTimer) clearTimeout(this.apiCardFetchTimer)
       this.apiCardError = null
       const key = String(val).trim()
-      if (key.length >= 8) this.loadedFromDeck = false
+      if (key.length >= 8 && !this.programmaticUpdate) {
+        this.setYgoEditorState('base')
+      }
       if (!this.cardLoadYgoProEnabled || key.length < 8) return
       if (this.localCardsMap[key]) return
       this.apiCardFetchTimer = setTimeout(() => {
@@ -2229,19 +3270,10 @@ export default {
       if (['Slifer', 'Ra', 'Obelisk', 'LDragon'].includes(this.cardSubtype))
         this.Pendulum = false
     },
-    currentSnapshotForAutoSave: {
-      deep: true,
-      handler() {
-        if (this.programmaticUpdate) return
-        if (this.$ygoDb && this.cardKey) this.saveLastCard()
-        if (!this.cardKey || !this.$ygoDb) return
-        if (!this.loadedFromDeck || !this.editingDeckCardId) return
-        if (this.autoSaveTimer) clearTimeout(this.autoSaveTimer)
-        this.autoSaveTimer = setTimeout(() => {
-          this.autoSaveTimer = null
-          this.autoSaveDeckCard()
-        }, 500)
-      },
+    cardDisplayDeps() {
+      if (this.programmaticUpdate) return
+      if (this.$ygoDb && this.cardKey) this.saveLastCard()
+      this.scheduleDrawCard()
     },
     infoSize() {
       this.scheduleDrawCard()
@@ -2250,9 +3282,6 @@ export default {
       this.scheduleDrawCard()
     },
     pendulumSize() {
-      this.scheduleDrawCard()
-    },
-    cardDisplayDeps() {
       this.scheduleDrawCard()
     },
     activeTab(tab) {
@@ -2278,6 +3307,175 @@ export default {
   },
   methods: {
     ...mapMutations(['fireLoadingDialog', 'closeLoadingDialog']),
+
+    isExtraDeckItem(item) {
+      const extraTypes = ['Fusion', 'Xyz', 'Synchro', 'Link']
+      const typeParts = Array.isArray(item?.snapshot?.type)
+        ? item.snapshot.type
+        : String(item?.snapshot?.type || '')
+            .split('/')
+            .map((part) => part.trim())
+      return typeParts.some((part) => extraTypes.includes(part))
+    },
+
+    openImportDeckModal() {
+      this.importDeckName = ''
+      this.importDeckText = ''
+      this.importDeckFeedback = ''
+      this.importDeckLoading = false
+      this.showImportDeckModal = true
+    },
+
+    parseImportedDeckText(rawText) {
+      const entries = []
+      const lines = String(rawText || '').split(/\r?\n/)
+      for (const rawLine of lines) {
+        const line = rawLine.trim()
+        if (!line || line.startsWith('//') || line.startsWith('==')) continue
+        const match = line.match(/^(\d+)\s+(.+?)$/)
+        if (!match) continue
+        const quantity = Number(match[1]) || 0
+        const name = (match[2] || '').trim()
+        if (!quantity || !name) continue
+        entries.push({ quantity, name })
+      }
+      return entries
+    },
+
+    resolveImportedDeckCard(name) {
+      const normalized = this.normalizeSearchQuery(name)
+      if (!normalized) return null
+      const exact = this.importDeckNameIndex.get(normalized)
+      if (exact) return exact
+
+      let partial = null
+      for (const [candidate, card] of this.importDeckNameIndex.entries()) {
+        if (candidate.includes(normalized) || normalized.includes(candidate)) {
+          if (partial && String(partial.id) !== String(card.id)) return null
+          partial = card
+        }
+      }
+      return partial
+    },
+
+    setYgoEditorState(mode, options = {}) {
+      this.editorModeYgo = mode || 'base'
+      this.loadedFromDeck = mode === 'deck-readonly' || mode === 'deck-edit'
+      this.deckEditLock = mode === 'deck-readonly'
+      if (Object.prototype.hasOwnProperty.call(options, 'editingDeckCardId')) {
+        this.editingDeckCardId = options.editingDeckCardId
+      }
+    },
+
+    normalizeDeckItemForPersistence(item, index) {
+      return {
+        id:
+          item && item.id && !String(item.id).startsWith('pending_')
+            ? String(item.id)
+            : undefined,
+        card_id:
+          item?.card_id ??
+          (item?.cardKey ? Number(item.cardKey) || null : null),
+        sort_order: index,
+        name: item?.name || 'Card',
+        cardKey: item?.cardKey || '',
+        cardLang: item?.cardLang || this.cardLang || 'pt',
+        snapshot: JSON.parse(JSON.stringify(item?.snapshot || {})),
+        copyGroupId: item?.copyGroupId,
+      }
+    },
+
+    captureCurrentCardSnapshot() {
+      return JSON.parse(JSON.stringify(this.getCurrentCardSnapshot()))
+    },
+
+    async importYgoDeck() {
+      if (
+        !this.$ygoDb ||
+        this.importDeckLoading ||
+        !this.importDeckName.trim() ||
+        !this.importDeckText.trim()
+      )
+        return
+
+      const preview = this.importDeckPreview
+      if (!preview.parsedCount) {
+        this.importDeckFeedback =
+          'Nenhuma linha valida encontrada. Use o formato: quantidade + nome do card.'
+        return
+      }
+
+      if (!preview.resolvedCount) {
+        this.importDeckFeedback =
+          'Nenhum card da lista foi encontrado no banco local.'
+        return
+      }
+
+      this.importDeckLoading = true
+      try {
+        const cardsToImport = []
+        for (const entry of preview.resolvedEntries) {
+          for (let i = 0; i < entry.quantity; i++) {
+            cardsToImport.push({
+              card_id: Number(entry.card.id) || null,
+              name:
+                entry.card.name_pt ||
+                entry.card.name_en ||
+                entry.card.name ||
+                entry.name,
+              cardKey: String(entry.card.id),
+              cardLang: this.cardLang || 'pt',
+              snapshot: this.map_ygoprodeck_to_internal(entry.card),
+            })
+          }
+        }
+
+        const deckId = await this.$ygoDb.importDeckWithCards(
+          this.importDeckName.trim(),
+          'yugioh',
+          cardsToImport
+        )
+
+        await this.loadDecks()
+        const createdDeck = this.userDecks.find(
+          (deck) => deck.id === deckId
+        ) || {
+          id: deckId,
+          name: this.importDeckName.trim(),
+        }
+        await this.selectDeck(createdDeck)
+
+        const importedCount = preview.totalCards
+        const summary =
+          preview.missingCount > 0
+            ? `Deck importado com ${importedCount} cards. ${preview.missingCount} nome(s) nao foram encontrados.`
+            : `Deck importado com ${importedCount} cards.`
+
+        this.$bvToast &&
+          this.$bvToast.toast(summary, {
+            variant: preview.missingCount > 0 ? 'warning' : 'success',
+          })
+
+        this.showImportDeckModal = false
+        this.importDeckName = ''
+        this.importDeckText = ''
+        this.importDeckFeedback =
+          preview.missingCount > 0
+            ? `Nao encontrados: ${preview.missingNames.slice(0, 8).join(', ')}${
+                preview.missingCount > 8 ? '...' : ''
+              }`
+            : ''
+      } catch (err) {
+        console.error(err)
+        this.importDeckFeedback = err.message || 'Erro ao importar deck.'
+        this.$bvToast &&
+          this.$bvToast.toast(this.importDeckFeedback, {
+            variant: 'danger',
+          })
+      } finally {
+        this.importDeckLoading = false
+      }
+    },
 
     updateMhPreviewScale() {
       const wrap = this.$refs.mhPreviewWrap
@@ -2377,6 +3575,7 @@ export default {
     loadNewMHCard() {
       this.editingMhDeckCardId = null
       this.snapshotMhAtLoad = null
+      this.mhDeckEditLock = false
       this.loadFromMHSnapshot({})
     },
 
@@ -2386,6 +3585,69 @@ export default {
         this._drawCardRaf = null
         this.drawCard()
       })
+    },
+
+    loadCanvasImage(src) {
+      const resolvedSrc = src || 'images/default.jpg'
+      const isRemoteHttp =
+        typeof resolvedSrc === 'string' && resolvedSrc.startsWith('http')
+      const finalSrc = isRemoteHttp ? 'images/default.jpg' : resolvedSrc
+
+      if (this.imageAssetCache[finalSrc]) {
+        return this.imageAssetCache[finalSrc]
+      }
+
+      const promise = new Promise((resolve) => {
+        const image = new window.Image()
+        if (typeof finalSrc === 'string' && finalSrc.startsWith('blob:')) {
+          image.crossOrigin = 'anonymous'
+        }
+        const done = () => resolve(image)
+        image.onload = done
+        image.onerror = () => {
+          const normalizedSrc =
+            typeof finalSrc === 'string' ? finalSrc.replace(/\\/g, '/') : ''
+          const localWebpMatch = normalizedSrc.match(
+            /^(.*)?(ygo\/pics\/[^/]+)\.webp$/i
+          )
+          if (localWebpMatch) {
+            const prefix = localWebpMatch[1] || ''
+            const relativePath = localWebpMatch[2]
+            this.loadCanvasImage(`${prefix}${relativePath}.jpg`).then(resolve)
+            return
+          }
+          if (finalSrc === 'images/default.jpg') {
+            resolve(image)
+            return
+          }
+          this.loadCanvasImage('images/default.jpg').then(resolve)
+        }
+        image.src = finalSrc
+        if (image.complete && (image.naturalWidth > 0 || image.width > 0)) {
+          resolve(image)
+        }
+      })
+
+      this.imageAssetCache[finalSrc] = promise
+      return promise
+    },
+
+    isBundledLocalArtUrl(url) {
+      return (
+        typeof url === 'string' && /^ygo\/pics\/.+\.(webp|jpg|png)$/i.test(url)
+      )
+    },
+
+    getBundledCanvasArtUrl(cardId, extension = 'webp') {
+      if (!cardId) return null
+      if (FAILED_CANVAS_ART_IDS.has(String(cardId))) return null
+      return `ygo/pics/${cardId}.${extension}`
+    },
+
+    getBundledThumbArtUrl(cardId, extension = 'webp') {
+      if (!cardId) return null
+      if (FAILED_THUMB_ART_IDS.has(String(cardId))) return null
+      return `ygo/thumbs/${cardId}.${extension}`
     },
 
     async loadDeckCardForEdit(item) {
@@ -2399,19 +3661,25 @@ export default {
 
     async doLoadDeckCardForEdit(item) {
       this.initialSnapshotWhenNotFromCollection = null
-      this.editingDeckCardId = item.id
+      this.setYgoEditorState('deck-readonly', { editingDeckCardId: item.id })
+      this._editInitialCardKey = item.cardKey
       this.viewingBaseCard = false
       this.relatedCards = []
-      this.snapshotAtLoad = JSON.parse(JSON.stringify(item.snapshot))
       this.loadFromSnapshot(item.snapshot)
+      this.snapshotAtLoad = this.captureCurrentCardSnapshot()
       this.cardKey = item.cardKey
       this.cardLang = item.cardLang || 'pt'
       const imgUrl = await this.getExportImageUrlForBatch(item.cardKey)
       this.cardPhotoLoading = !!imgUrl
       if (imgUrl) {
         this.$nextTick(() => this.fireLoadingDialog())
-        await this.ensureCardImage(item.cardKey, imgUrl)
-        this.drawCard(this.apiCardImageUrls[item.cardKey] || null)
+        if (this.isBundledLocalArtUrl(imgUrl)) {
+          this.$set(this.apiCardImageUrls, String(item.cardKey), imgUrl)
+          this.cardPhotoLoading = false
+          this.drawCard(imgUrl)
+        } else {
+          await this.ensureCardImage(item.cardKey, imgUrl)
+        }
       } else {
         this.cardPhotoLoading = false
         this.$nextTick(() => {
@@ -2419,9 +3687,66 @@ export default {
           this.drawCard()
         })
       }
-      this.$nextTick(() => {
-        this.loadedFromDeck = true
+      this.$nextTick(() => this.setYgoEditorState('deck-readonly'))
+    },
+
+    unlockDeckEdit() {
+      this.setYgoEditorState('deck-edit')
+    },
+
+    removeOneFromDeck() {
+      if (!this.selectedDeckId || !this.editingDeckCardId) return
+      const id = this.editingDeckCardId
+      if (String(id).startsWith('pending_')) {
+        const idx = this.selectedDeckCards.findIndex((c) => c.id === id)
+        if (idx !== -1) this.selectedDeckCards.splice(idx, 1)
+      } else {
+        this.pendingDeckRemovesYgo.push(id)
+        const idx = this.selectedDeckCards.findIndex((c) => c.id === id)
+        if (idx !== -1) this.selectedDeckCards.splice(idx, 1)
+      }
+      const remaining = this.selectedDeckCards.filter(
+        (item) => String(item.cardKey) === String(this.cardKey)
+      )
+      if (remaining.length === 0) {
+        this.setYgoEditorState('base', { editingDeckCardId: null })
+        this.load_default_data()
+      } else {
+        this.doLoadDeckCardForEdit(remaining[0])
+      }
+    },
+
+    addCopyToDeck() {
+      if (!this.cardKey || !this.selectedDeckId || !this.editingDeckCardId)
+        return
+      const current = this.selectedDeckCards.find(
+        (c) => c.id === this.editingDeckCardId
+      )
+      if (!current) return
+      const snapshot = this.getCurrentCardSnapshot()
+      const name = this.cardTitle || 'Card'
+      const sameCards = this.selectedDeckCards.filter(
+        (item) => String(item.cardKey) === String(this.cardKey)
+      )
+      const insertAfter = sameCards.length
+        ? Math.max(
+            ...sameCards.map((c) => (c.sort_order != null ? c.sort_order : -1))
+          )
+        : -1
+      const pid = `pending_${Date.now()}_${Math.random()
+        .toString(36)
+        .slice(2, 9)}`
+      this.selectedDeckCards.push({
+        id: pid,
+        deck_id: this.selectedDeckId,
+        card_id: Number(this.cardKey) || null,
+        sort_order: insertAfter + 1,
+        name,
+        cardKey: this.cardKey,
+        cardLang: this.cardLang,
+        snapshot: JSON.parse(JSON.stringify(snapshot)),
       })
+      this.setYgoEditorState('deck-readonly')
     },
 
     doDrawCard() {
@@ -2484,55 +3809,13 @@ export default {
     // (incluindo a foto da carta) terminarem de carregar — a carta só é exibida quando a request da imagem concluir.
     drawCardLoadingImages(callback) {
       const keys = Object.keys(this.imgs)
-      let count = 0
-      let done = false
-      const finish = () => {
-        if (done) return
-        done = true
-        setTimeout(callback, 100)
-      }
-      const maybeDone = () => {
-        count += 1
-        if (count >= keys.length) finish()
-      }
-      setTimeout(finish, 10000)
-      for (const key of keys) {
-        const src = this.imgs[key]
-        const image = new window.Image()
-        if (typeof src === 'string' && src.startsWith('blob:')) {
-          image.crossOrigin = 'anonymous'
-        }
-        this.imgs[key] = image
-        if (key === 'photo') {
-          let photoDone = false
-          const photoMaybeDone = () => {
-            if (photoDone) return
-            photoDone = true
-            maybeDone()
-          }
-          if (typeof src === 'string' && src.startsWith('http')) {
-            image.onload = photoMaybeDone
-            image.onerror = photoMaybeDone
-            image.src = 'images/default.jpg'
-          } else {
-            image.onload = photoMaybeDone
-            image.onerror = () => {
-              const def = new window.Image()
-              def.onload = () => {
-                this.imgs.photo = def
-                photoMaybeDone()
-              }
-              def.onerror = photoMaybeDone
-              def.src = 'images/default.jpg'
-            }
-            image.src = src || 'images/default.jpg'
-          }
-        } else {
-          image.onload = maybeDone
-          image.onerror = maybeDone
-          image.src = src
-        }
-      }
+      Promise.allSettled(
+        keys.map(async (key) => {
+          this.imgs[key] = await this.loadCanvasImage(this.imgs[key])
+        })
+      ).then(() => {
+        callback()
+      })
     },
 
     // Fluxo principal de desenho do cartão.
@@ -2595,11 +3878,19 @@ export default {
       const pw = photo.naturalWidth || photo.width || 0
       const ph = photo.naturalHeight || photo.height || 0
       if (pw > 0 && ph > 0) {
-        const iW = (pw / ph) * cH
-        const iH = (ph / pw) * cW
-        if (pw <= ph * (this.Pendulum ? 1.33 : 1))
-          ctx.drawImage(photo, cX, cY - (iH - cH) / 2, cW, iH)
-        else ctx.drawImage(photo, cX - (iW - cW) / 2, cY, iW, cH)
+        if (this.Pendulum) {
+          const scale = Math.max(cW / pw, cH / ph)
+          const drawW = pw * scale
+          const drawH = ph * scale
+          const drawX = cX + (cW - drawW) / 2
+          const drawY = cY
+          ctx.drawImage(photo, drawX, drawY, drawW, drawH)
+        } else {
+          const iW = (pw / ph) * cH
+          const iH = (ph / pw) * cW
+          if (pw <= ph) ctx.drawImage(photo, cX, cY - (iH - cH) / 2, cW, iH)
+          else ctx.drawImage(photo, cX - (iW - cW) / 2, cY, iW, cH)
+        }
       }
       ctx.drawImage(this.imgs.template, 0, 0, 1000, 1450)
       ctx.drawImage(this.imgs.attr, 840, 68, 90, 90)
@@ -3189,9 +4480,8 @@ export default {
 
     doLoadDefaultData() {
       this.initialSnapshotWhenNotFromCollection = null
-      this.editingDeckCardId = null
+      this.setYgoEditorState('base', { editingDeckCardId: null })
       this.snapshotAtLoad = null
-      this.loadedFromDeck = false
       this.viewingBaseCard = false
       this.relatedCards = []
       const data = this.cardMetaLang.Default
@@ -3225,17 +4515,83 @@ export default {
       this.pendulumSize = data.pSize
     },
 
+    splitPendulumEffectText(text) {
+      const raw = String(text || '')
+        .replace(/\r/g, '')
+        .trim()
+      if (!raw) return { pendulumText: '', monsterText: '' }
+
+      const pendulumHeader =
+        /\[\s*(?:pendulum effect|efeito de p[eê]ndulo)\s*\]/i
+      const monsterHeader = /\[\s*(?:monster effect|efeito de monstro)\s*\]/i
+      const pendulumMatch = pendulumHeader.exec(raw)
+      const monsterMatch = monsterHeader.exec(raw)
+
+      if (!pendulumMatch && !monsterMatch) {
+        return { pendulumText: '', monsterText: raw }
+      }
+
+      const pendulumText =
+        pendulumMatch && monsterMatch
+          ? raw
+              .slice(
+                pendulumMatch.index + pendulumMatch[0].length,
+                monsterMatch.index
+              )
+              .trim()
+          : pendulumMatch
+          ? raw.slice(pendulumMatch.index + pendulumMatch[0].length).trim()
+          : ''
+
+      const monsterText = monsterMatch
+        ? raw.slice(monsterMatch.index + monsterMatch[0].length).trim()
+        : pendulumMatch
+        ? ''
+        : raw
+
+      return { pendulumText, monsterText }
+    },
+
+    getCardEffectTexts(card) {
+      const preferredDesc = card.desc_pt || card.desc_en || card.desc || ''
+      const preferredPendulumDesc =
+        card.pendulum_desc_pt ||
+        card.pendulum_desc_en ||
+        card.pendulum_desc ||
+        ''
+      const splitPreferred = this.splitPendulumEffectText(preferredDesc)
+
+      return {
+        infoText: splitPreferred.monsterText || preferredDesc,
+        pendulumText:
+          splitPreferred.pendulumText || preferredPendulumDesc || '',
+      }
+    },
+
     // Mapeia resposta da API YGOPRODeck para o formato interno do app.
     map_ygoprodeck_to_internal(card) {
       const typeStr = (card.type || '').toLowerCase()
       const frameType = (card.frameType || '').toLowerCase()
-      const typeline = card.typeline || []
+      const typeline = (card.typeline || []).map((t) => String(t).toLowerCase())
       let cardType = 'Monster'
       let cardSubtype = 'Normal'
-      const eff1 = 'normal'
-      const eff2 = 'none'
+      let eff1 = 'normal'
+      let eff2 = 'none'
       let pendulum = false
       const special = false
+
+      const hasEffectMod = (key) =>
+        typeStr.includes(key) || typeline.includes(key)
+      const effectMods = ['tuner', 'spirit', 'toon', 'union', 'gemini', 'flip']
+      for (const mod of effectMods) {
+        if (!hasEffectMod(mod)) continue
+        if (eff1 === 'normal') {
+          eff1 = mod
+        } else if (eff2 === 'none') {
+          eff2 = mod
+          break
+        }
+      }
 
       if (typeStr.includes('spell')) {
         cardType = 'Spell'
@@ -3277,6 +4633,7 @@ export default {
       const scales = card.scales
       const blue = Array.isArray(scales) ? scales[0] : scale
       const red = Array.isArray(scales) ? scales[1] : scale
+      const { infoText, pendulumText } = this.getCardEffectTexts(card)
 
       return {
         rare: '0',
@@ -3296,9 +4653,9 @@ export default {
             ? '0'
             : '0',
         ...link,
-        infoText: card.desc || '',
+        infoText,
         size: 20,
-        pendulumText: card.pendulum_desc || '',
+        pendulumText,
         pSize: 22,
       }
     },
@@ -3312,7 +4669,7 @@ export default {
         const card = this.localCards.find((c) => String(c.id) === key)
         const imgUrl =
           card && card.card_images && card.card_images[0]
-            ? this.getCanvasImageUrl(card.card_images[0])
+            ? this.getCanvasImageUrl(card.card_images[0], key)
             : null
         this.load_ygopro_data(key)
         this.cardPhotoLoading = !!imgUrl
@@ -3326,6 +4683,42 @@ export default {
       if (!imageUrl) return
       const key = String(id)
       let scheduledDraw = false
+      const isBundledLocalArt = this.isBundledLocalArtUrl(imageUrl)
+
+      if (this.apiCardImageUrls[key]) {
+        if (forCurrentCard) {
+          this.cardPhotoLoading = false
+          this.$nextTick(() => {
+            this.fireLoadingDialog()
+            this.drawCard(this.apiCardImageUrls[key])
+          })
+        }
+        return this.apiCardImageUrls[key]
+      }
+
+      if (isBundledLocalArt) {
+        this.$set(this.apiCardImageUrls, key, imageUrl)
+        if (forCurrentCard) {
+          this.cardPhotoLoading = false
+          this.$nextTick(() => {
+            this.fireLoadingDialog()
+            this.drawCard(imageUrl)
+          })
+        }
+        return imageUrl
+      }
+
+      if (this.apiCardImagePromises[key]) {
+        const pendingUrl = await this.apiCardImagePromises[key]
+        if (forCurrentCard) {
+          this.cardPhotoLoading = false
+          this.$nextTick(() => {
+            this.fireLoadingDialog()
+            this.drawCard(pendingUrl || null)
+          })
+        }
+        return pendingUrl
+      }
 
       const setUrlAndDraw = (url) => {
         this.$set(this.apiCardImageUrls, key, url)
@@ -3339,7 +4732,7 @@ export default {
         }
       }
 
-      try {
+      const loadPromise = (async () => {
         const timeout = (promise, ms) =>
           Promise.race([
             promise,
@@ -3350,19 +4743,13 @@ export default {
 
         if (window.cardArt) {
           try {
-            const base64 = await timeout(
-              window.cardArt.get(key, imageUrl),
+            const url = await timeout(
+              window.cardArt.getUrl(key, imageUrl),
               15000
             )
-            if (base64) {
-              const binary = atob(base64)
-              const bytes = new Uint8Array(binary.length)
-              for (let i = 0; i < binary.length; i++)
-                bytes[i] = binary.charCodeAt(i)
-              const blob = new Blob([bytes], { type: 'image/webp' })
-              const url = URL.createObjectURL(blob)
+            if (url) {
               setUrlAndDraw(url)
-              return
+              return url
             }
           } catch (_) {
             /* timeout or download error, fall through */
@@ -3374,11 +4761,18 @@ export default {
           if (blob) {
             const url = URL.createObjectURL(blob)
             setUrlAndDraw(url)
-            return
+            return url
           }
         }
 
         setUrlAndDraw(null)
+        return null
+      })()
+
+      this.apiCardImagePromises[key] = loadPromise
+
+      try {
+        return await loadPromise
       } catch (e) {
         console.warn('ensureCardImage falhou para', key, e)
         this.$set(this.apiCardImageUrls, key, null)
@@ -3390,7 +4784,9 @@ export default {
             this.drawCard()
           })
         }
+        return null
       } finally {
+        delete this.apiCardImagePromises[key]
         if (forCurrentCard && !scheduledDraw) {
           this.cardPhotoLoading = false
           this.$nextTick(() => {
@@ -3402,7 +4798,10 @@ export default {
     },
 
     /** URL para o canvas: só image_url_cropped ou image_url (nunca image_url_small). */
-    getCanvasImageUrl(img) {
+    getCanvasImageUrl(img, cardId = null) {
+      if (cardId) {
+        return this.getBundledCanvasArtUrl(cardId, 'webp')
+      }
       if (!img) return null
       if (img.image_url_cropped) return img.image_url_cropped
       if (img.image_url && img.image_url !== img.image_url_small)
@@ -3412,12 +4811,16 @@ export default {
 
     /** Lista de resultados: usa image_url_small (miniatura). */
     getCardImageSrc(card) {
+      const localThumb = this.getBundledThumbArtUrl(String(card?.id), 'webp')
+      if (localThumb) return localThumb
       const img = card.card_images && card.card_images[0]
       const url = img && (img.image_url_small || img.image_url)
       return url || 'images/default.jpg'
     },
 
     getSearchResultImageSrc(card) {
+      const localThumb = this.getBundledThumbArtUrl(String(card?.id), 'webp')
+      if (localThumb) return localThumb
       const img = card.card_images && card.card_images[0]
       if (!img) return 'images/default.jpg'
       return img.image_url_small || img.image_url || 'images/default.jpg'
@@ -3460,6 +4863,75 @@ export default {
       const fallback = this.getCardImageSrc(card)
       if (event.target) event.target.src = fallback
     },
+    async migrateYgoDeckSnapshotsIfNeeded() {
+      if (!this.$ygoDb || !this.localCards.length) return
+      try {
+        const already = await this.$ygoDb.getSyncMeta(
+          DECK_SNAPSHOT_MIGRATION_KEY
+        )
+        if (already === '1') return
+
+        const decks = await this.$ygoDb.getDecks('yugioh')
+        if (!Array.isArray(decks) || !decks.length) {
+          await this.$ygoDb.updateSyncMeta(DECK_SNAPSHOT_MIGRATION_KEY, '1')
+          return
+        }
+
+        const localById = new Map(this.localCards.map((c) => [String(c.id), c]))
+
+        for (const deck of decks) {
+          const cards = await this.$ygoDb.getDeckCards(deck.id)
+          if (!Array.isArray(cards) || !cards.length) continue
+          for (const item of cards) {
+            const cardKey = item.cardKey != null ? String(item.cardKey) : null
+            if (!cardKey) continue
+            const base = localById.get(cardKey)
+            if (!base) continue
+
+            const mapped = this.map_ygoprodeck_to_internal(base)
+            const snapshot = item.snapshot || {}
+            const nextSnapshot = { ...snapshot }
+            let changed = false
+
+            if (Array.isArray(mapped.type)) {
+              const prevType = Array.isArray(snapshot.type) ? snapshot.type : []
+              const nextType = mapped.type
+              const typesDiffer =
+                prevType.length !== nextType.length ||
+                prevType.some((v, idx) => v !== nextType[idx])
+              if (typesDiffer) {
+                nextSnapshot.type = [...nextType]
+                changed = true
+              }
+            }
+
+            for (let i = 1; i <= 9; i++) {
+              if (i === 5) continue
+              const key = `link${i}`
+              const prev = snapshot[key]
+              const next = mapped[key]
+              if (prev !== next) {
+                nextSnapshot[key] = next
+                changed = true
+              }
+            }
+
+            if (!changed) continue
+
+            await this.$ygoDb.updateDeckCard(item.id, {
+              name: item.name,
+              cardKey: item.cardKey,
+              cardLang: item.cardLang || 'pt',
+              snapshot: nextSnapshot,
+            })
+          }
+        }
+
+        await this.$ygoDb.updateSyncMeta(DECK_SNAPSHOT_MIGRATION_KEY, '1')
+      } catch (e) {
+        console.warn('migrateYgoDeckSnapshotsIfNeeded falhou', e)
+      }
+    },
     async initYgoDb() {
       if (!this.$ygoDb) return
       try {
@@ -3467,6 +4939,7 @@ export default {
         this.localCards = Array.isArray(cards) ? cards : []
         this.lastSync = lastSync
         this.localDatabaseVersion = databaseVersion ?? null
+        await this.migrateYgoDeckSnapshotsIfNeeded()
         if (await this.$ygoDb.shouldSync(lastSync)) await this.syncYgoDb()
         await this.restoreSearchState()
         await this.restoreLastCard()
@@ -3537,25 +5010,19 @@ export default {
         this.cardKey = state.cardKey || ''
         this.cardLang = state.cardLang || 'pt'
         this.viewingBaseCard = !!this.localCardsMap[this.cardKey]
-        this.loadedFromDeck = false
-        this.editingDeckCardId = null
+        this.setYgoEditorState('base', { editingDeckCardId: null })
         const card = this.localCards.find(
           (c) => String(c.id) === String(this.cardKey)
         )
         const img = card?.card_images?.[0]
-        const imgUrl = img ? this.getCanvasImageUrl(img) : null
+        const imgUrl = img ? this.getCanvasImageUrl(img, this.cardKey) : null
         if (imgUrl) {
           this.cardPhotoLoading = true
           this.$nextTick(() => this.fireLoadingDialog())
           await this.ensureCardImage(this.cardKey, imgUrl)
         }
         this.$nextTick(() => this.drawCard())
-        if (card && this.viewingBaseCard) {
-          setTimeout(() => {
-            this.relatedCards = this.buildRelatedCards(card, 2)
-            this.preloadRelatedCardImages()
-          }, 0)
-        }
+        this.relatedCards = []
       } catch (_) {
         /* ignore */
       }
@@ -3732,20 +5199,20 @@ export default {
 
     findCardsByExtractedNames(names) {
       const found = new Map()
-      const n = (s) => this.normalizeSearchQuery(s || '')
       const namesList = names.filter(Boolean)
       for (const name of namesList) {
         const exact = this.nameIndexMap.get(name)
         if (exact) for (const c of exact) found.set(String(c.id), c)
       }
       if (namesList.length === 0) return [...found.values()]
-      for (const card of this.localCards) {
-        if (found.has(String(card.id))) continue
-        const en = n(card.name_en || card.name)
-        const pt = n(card.name_pt)
+      for (const entry of this.cardSearchIndex) {
+        if (found.has(entry.id)) continue
         for (const name of namesList) {
-          if ((en && en.includes(name)) || (pt && pt.includes(name))) {
-            found.set(String(card.id), card)
+          if (
+            (entry.nameEn && entry.nameEn.includes(name)) ||
+            (entry.namePt && entry.namePt.includes(name))
+          ) {
+            found.set(entry.id, entry.card)
             break
           }
         }
@@ -3759,16 +5226,11 @@ export default {
         .filter(Boolean)
       if (!namesNorm.length) return []
       const found = new Map()
-      const n = (s) => this.stripAccents((s || '').toLowerCase())
-      for (const card of this.localCards) {
-        const descEn = n(card.desc_en)
-        const descPt = n(card.desc_pt)
-        const descRaw = n(card.desc)
-        const combined = [descEn, descPt, descRaw].filter(Boolean).join(' ')
-        if (!combined) continue
+      for (const entry of this.cardSearchIndex) {
+        if (!entry.combinedDesc) continue
         for (const q of namesNorm) {
-          if (combined.includes(q)) {
-            found.set(String(card.id), card)
+          if (entry.combinedDesc.includes(q)) {
+            found.set(entry.id, entry.card)
             break
           }
         }
@@ -3802,6 +5264,10 @@ export default {
 
     buildRelatedCards(card, depth = 2) {
       const mainId = String(card.id)
+      const cacheKey = `${mainId}:${depth}`
+      if (this.relatedCardsCache[cacheKey]) {
+        return this.relatedCardsCache[cacheKey]
+      }
       const collected = new Map()
       const add = (c) => {
         const id = String(c.id)
@@ -3840,6 +5306,7 @@ export default {
         .filter((c) => !excludeIds.has(String(c.id)))
         .sort((a, b) => this.cardTypePriority(a) - this.cardTypePriority(b))
         .slice(0, 150)
+      this.relatedCardsCache[cacheKey] = result
       return result
     },
 
@@ -3863,24 +5330,19 @@ export default {
       return template.replace(/\{\{q\}\}/gi, q).replace(/__Q__/g, q)
     },
 
-    getCardMatchInfo(card, queryNorm) {
+    getCardMatchInfo(entry, queryNorm) {
       if (!queryNorm) return { type: 'none', lang: 'en' }
-      const n = (s) => this.stripAccents((s || '').toLowerCase())
-      const arch = n(card.archetype)
-      const nameEn = n(card.name_en || card.name)
-      const namePt = n(card.name_pt)
-      const descEn = n(card.desc_en)
-      const descPt = n(card.desc_pt)
-      const descRaw = n(card.desc)
-
-      if (arch && (arch === queryNorm || arch.includes(queryNorm))) {
-        const lang = namePt.includes(queryNorm) ? 'pt' : 'en'
+      if (
+        entry.archetype &&
+        (entry.archetype === queryNorm || entry.archetype.includes(queryNorm))
+      ) {
+        const lang = entry.namePt.includes(queryNorm) ? 'pt' : 'en'
         return { type: 'archetype', lang }
       }
-      if (namePt.includes(queryNorm)) return { type: 'name', lang: 'pt' }
-      if (nameEn.includes(queryNorm)) return { type: 'name', lang: 'en' }
-      if (descPt.includes(queryNorm)) return { type: 'desc', lang: 'pt' }
-      if (descEn.includes(queryNorm) || descRaw.includes(queryNorm))
+      if (entry.namePt.includes(queryNorm)) return { type: 'name', lang: 'pt' }
+      if (entry.nameEn.includes(queryNorm)) return { type: 'name', lang: 'en' }
+      if (entry.descPt.includes(queryNorm)) return { type: 'desc', lang: 'pt' }
+      if (entry.descEn.includes(queryNorm) || entry.descRaw.includes(queryNorm))
         return { type: 'desc', lang: 'en' }
       return { type: 'none', lang: 'en' }
     },
@@ -3917,10 +5379,14 @@ export default {
       }
       const queryNorm = this.normalizeSearchQuery(queryRaw)
       const matchPriority = { archetype: 0, name: 1, desc: 2, related: 3 }
-      const withType = this.localCards
-        .map((c) => {
-          const info = this.getCardMatchInfo(c, queryNorm)
-          return { ...c, matchType: info.type, _matchLang: info.lang }
+      const withType = this.cardSearchIndex
+        .map((entry) => {
+          const info = this.getCardMatchInfo(entry, queryNorm)
+          return {
+            ...entry.card,
+            matchType: info.type,
+            _matchLang: info.lang,
+          }
         })
         .filter((c) => c.matchType !== 'none')
         .sort((a, b) => {
@@ -3970,7 +5436,7 @@ export default {
       const limit = 20
       for (const card of this.searchResults.slice(0, limit)) {
         const img = card.card_images && card.card_images[0]
-        const imgUrl = img ? this.getCanvasImageUrl(img) : null
+        const imgUrl = img ? this.getCanvasImageUrl(img, String(card.id)) : null
         if (imgUrl && !this.apiCardImageUrls[String(card.id)]) {
           this.ensureCardImage(String(card.id), imgUrl, {
             forCurrentCard: false,
@@ -3993,13 +5459,12 @@ export default {
       this.searchByArchetype = ''
       this.saveSearchState()
       this.initialSnapshotWhenNotFromCollection = null
-      this.editingDeckCardId = null
+      this.setYgoEditorState('base', { editingDeckCardId: null })
       this.snapshotAtLoad = null
-      this.loadedFromDeck = false
       this.viewingBaseCard = true
       const key = String(card.id)
       const img = card.card_images && card.card_images[0]
-      const imgUrl = img ? this.getCanvasImageUrl(img) : null
+      const imgUrl = img ? this.getCanvasImageUrl(img, key) : null
       this.cardKey = key
       this.cardLang = card.lang || 'pt'
       this.load_ygopro_data(key)
@@ -4029,15 +5494,7 @@ export default {
           )
         }, 800)
       })
-      const runRelated = () => {
-        this.relatedCards = this.buildRelatedCards(card, 2)
-        this.preloadRelatedCardImages()
-      }
-      if (typeof requestIdleCallback !== 'undefined') {
-        requestIdleCallback(() => runRelated(), { timeout: 500 })
-      } else {
-        setTimeout(runRelated, 150)
-      }
+      this.relatedCards = []
     },
 
     preloadRelatedCardImages() {
@@ -4045,7 +5502,7 @@ export default {
       const limit = 20
       for (const card of this.relatedCards.slice(0, limit)) {
         const img = card.card_images && card.card_images[0]
-        const imgUrl = img ? this.getCanvasImageUrl(img) : null
+        const imgUrl = img ? this.getCanvasImageUrl(img, String(card.id)) : null
         if (imgUrl && !this.apiCardImageUrls[String(card.id)]) {
           this.ensureCardImage(String(card.id), imgUrl, {
             forCurrentCard: false,
@@ -4087,42 +5544,104 @@ export default {
     },
 
     async addToDeckCurrent() {
-      if (!this.$ygoDb || !this.cardKey || !this.selectedDeckId) return
+      if (!this.cardKey || !this.selectedDeckId) return
       const snapshot = this.getCurrentCardSnapshot()
       const name = this.cardTitle || 'Card'
-      const id = await this.$ygoDb.addCardToDeck(
-        this.selectedDeckId,
-        Number(this.cardKey) || null,
-        {
-          name,
-          cardKey: this.cardKey,
-          cardLang: this.cardLang,
-          snapshot,
-        }
+      const pid = `pending_${Date.now()}_${Math.random()
+        .toString(36)
+        .slice(2, 9)}`
+      const maxOrder = Math.max(
+        -1,
+        ...this.selectedDeckCards.map((c) =>
+          c.sort_order != null ? c.sort_order : -1
+        )
       )
-      await this.loadDeckCards()
-      this.editingDeckCardId = id
-      this.loadedFromDeck = true
+      this.selectedDeckCards.push({
+        id: pid,
+        deck_id: this.selectedDeckId,
+        card_id: Number(this.cardKey) || null,
+        sort_order: maxOrder + 1,
+        name,
+        cardKey: this.cardKey,
+        cardLang: this.cardLang,
+        snapshot: JSON.parse(JSON.stringify(snapshot)),
+      })
+      this.setYgoEditorState('deck-readonly', { editingDeckCardId: pid })
       this.snapshotAtLoad = JSON.parse(JSON.stringify(snapshot))
     },
 
     async saveDeckCardChanges() {
       if (!this.$ygoDb || !this.editingDeckCardId) return
       const snapshot = this.getCurrentCardSnapshot()
+      const snapshotEqual =
+        JSON.stringify(snapshot) === JSON.stringify(this.snapshotAtLoad)
+      const imageChanged =
+        (this._editInitialCardKey != null &&
+          String(this.cardKey) !== String(this._editInitialCardKey)) ||
+        this.cardImg != null
+      if (snapshotEqual && imageChanged) {
+        this.showArtApplyModal = true
+        return
+      }
+      await this.saveDeckCardChangesApply('all')
+    },
+
+    async onArtApplyThis() {
+      this.showArtApplyModal = false
+      await this.saveDeckCardChangesApply('this')
+    },
+    async onArtApplyAll() {
+      this.showArtApplyModal = false
+      await this.saveDeckCardChangesApply('all')
+    },
+
+    /** Aplica o salvamento: 'this' = só esta cópia, 'all' = todas as cópias (mesmo cardKey) */
+    async saveDeckCardChangesApply(scope) {
+      if (!this.$ygoDb) return
+      const snapshot = this.getCurrentCardSnapshot()
       const name = this.cardTitle || 'Card'
-      await this.$ygoDb.updateDeckCard(this.editingDeckCardId, {
+      const payload = {
         name,
         cardKey: this.cardKey,
         cardLang: this.cardLang,
         snapshot,
-      })
+      }
+      if (scope === 'this') {
+        const id = this.editingDeckCardId
+        if (!String(id).startsWith('pending_')) {
+          await this.$ygoDb.updateDeckCardsBulk([{ id, cardData: payload }])
+        }
+        const item = this.selectedDeckCards.find((c) => c.id === id)
+        if (item) {
+          item.name = name
+          item.cardKey = this.cardKey
+          item.cardLang = this.cardLang
+          item.snapshot = JSON.parse(JSON.stringify(snapshot))
+        }
+      } else {
+        const oldKey =
+          this._editInitialCardKey != null
+            ? String(this._editInitialCardKey)
+            : String(this.cardKey)
+        const toUpdate = this.selectedDeckCards.filter(
+          (item) => String(item.cardKey) === oldKey
+        )
+        const persistedUpdates = []
+        for (const item of toUpdate) {
+          if (!String(item.id).startsWith('pending_')) {
+            persistedUpdates.push({ id: item.id, cardData: payload })
+          }
+          item.name = name
+          item.cardKey = this.cardKey
+          item.cardLang = this.cardLang
+          item.snapshot = JSON.parse(JSON.stringify(snapshot))
+        }
+        if (persistedUpdates.length) {
+          await this.$ygoDb.updateDeckCardsBulk(persistedUpdates)
+        }
+      }
       this.snapshotAtLoad = JSON.parse(JSON.stringify(snapshot))
-      await this.loadDeckCards()
-    },
-
-    async autoSaveDeckCard() {
-      if (!this.editingDeckCardId || !this.$ygoDb) return
-      await this.saveDeckCardChanges()
+      this._editInitialCardKey = this.cardKey
     },
 
     async onUnsavedModalSave() {
@@ -4140,7 +5659,7 @@ export default {
       this.pendingLeaveAction = null
       // Limpar estado de alterações não salvas antes de executar a ação,
       // para que hasUnsavedLayoutChanges fique false e não mostre o modal de novo
-      this.editingDeckCardId = null
+      this.setYgoEditorState('base', { editingDeckCardId: null })
       this.snapshotAtLoad = null
       this.$nextTick(() => {
         this.runPendingLeaveAction(action)
@@ -4168,11 +5687,36 @@ export default {
     async loadDecks() {
       if (!this.$ygoDb) return
       this.userDecks = await this.$ygoDb.getDecks('yugioh')
+      await this.loadDeckFirstCardImages()
+    },
+
+    async loadDeckFirstCardImages() {
+      if (!this.$ygoDb || !this.userDecks.length) return
+      for (const deck of this.userDecks) {
+        try {
+          const cards = await this.$ygoDb.getDeckCards(deck.id)
+          const first = cards && cards[0]
+          if (first) {
+            await this.ensureDeckCardImageUrl(first)
+            const url = this.getDeckCardImageSrc(first)
+            this.$set(this.deckFirstCardImages, deck.id, url)
+          } else {
+            this.$set(this.deckFirstCardImages, deck.id, null)
+          }
+        } catch (_) {
+          this.$set(this.deckFirstCardImages, deck.id, null)
+        }
+      }
     },
 
     async selectDeck(deck) {
       this.selectedDeckId = deck.id
       await this.loadDeckCards()
+      this.centerColumnView = 'deck-cards'
+    },
+
+    goBackToDeckList() {
+      this.centerColumnView = 'decks'
     },
 
     openEditDeckModal(deck) {
@@ -4207,6 +5751,7 @@ export default {
       if (this.selectedDeckId === id) {
         this.selectedDeckId = null
         this.selectedDeckCards = []
+        this.centerColumnView = 'decks'
       }
       await this.$ygoDb.deleteDeck(id)
       await this.loadDecks()
@@ -4228,6 +5773,7 @@ export default {
         await this.loadMHDecks()
         this.mhSelectedDeckId = id
         await this.loadMHDeckCards()
+        this.mhCenterColumnView = 'deck-cards'
       } else {
         await this.loadDecks()
       }
@@ -4236,6 +5782,11 @@ export default {
     async selectMhDeck(deck) {
       this.mhSelectedDeckId = deck.id
       await this.loadMHDeckCards()
+      this.mhCenterColumnView = 'deck-cards'
+    },
+
+    goBackToMhDeckList() {
+      this.mhCenterColumnView = 'decks'
     },
 
     openEditMhDeckModal(deck) {
@@ -4251,6 +5802,7 @@ export default {
         this.mhSelectedDeckCards = []
         this.editingMhDeckCardId = null
         this.snapshotMhAtLoad = null
+        this.mhCenterColumnView = 'decks'
       }
       await this.$ygoDb.deleteDeck(id)
       await this.loadMHDecks()
@@ -4260,61 +5812,211 @@ export default {
       if (!this.$ygoDb || !this.mhSelectedDeckId) return
       const items = await this.$ygoDb.getDeckCards(this.mhSelectedDeckId)
       this.mhSelectedDeckCards = items || []
+      this.pendingDeckRemovesMh = []
     },
 
     async saveOrAddMhCard() {
-      if (!this.$ygoDb || !this.mhSelectedDeckId) return
+      if (!this.mhSelectedDeckId) return
       if (this.editingMhDeckCardId) {
         await this.saveMhDeckCardChanges()
       } else {
-        await this.addCurrentMHToDeck()
+        this.addCurrentMHToDeckPending()
       }
     },
 
-    async addCurrentMHToDeck() {
-      if (!this.$ygoDb || !this.mhSelectedDeckId) return
+    addCurrentMHToDeckPending() {
+      if (!this.mhSelectedDeckId) return
       const snapshot = this.getCurrentMHCardSnapshot()
       const name = this.mhTitle?.trim() || 'Card MH'
-      await this.$ygoDb.addCardToDeck(this.mhSelectedDeckId, null, {
+      const pid = `pending_${Date.now()}_${Math.random()
+        .toString(36)
+        .slice(2, 9)}`
+      const maxOrder = Math.max(
+        -1,
+        ...this.mhSelectedDeckCards.map((c) =>
+          c.sort_order != null ? c.sort_order : -1
+        )
+      )
+      this.mhSelectedDeckCards.push({
+        id: pid,
+        deck_id: this.mhSelectedDeckId,
         name,
-        snapshot,
+        sort_order: maxOrder + 1,
+        snapshot: JSON.parse(JSON.stringify(snapshot)),
       })
-      await this.loadMHDeckCards()
-      this.loadNewMHCard()
+      this.editingMhDeckCardId = pid
+      this.snapshotMhAtLoad = JSON.parse(JSON.stringify(snapshot))
+      this.mhDeckEditLock = true
     },
 
     async saveMhDeckCardChanges() {
-      if (!this.$ygoDb || !this.editingMhDeckCardId) return
+      if (!this.editingMhDeckCardId) return
       const snapshot = this.getCurrentMHCardSnapshot()
       const name = this.mhTitle?.trim() || 'Card MH'
-      await this.$ygoDb.updateDeckCard(this.editingMhDeckCardId, {
-        name,
-        snapshot,
-      })
+      const current = this.mhSelectedDeckCards.find(
+        (c) => c.id === this.editingMhDeckCardId
+      )
+      if (!current) return
+      const groupId = current.copyGroupId || current.id
+      const toUpdate = this.mhSelectedDeckCards.filter(
+        (c) => (c.copyGroupId || c.id) === groupId
+      )
+      if (String(this.editingMhDeckCardId).startsWith('pending_')) {
+        for (const item of toUpdate) {
+          item.name = name
+          item.snapshot = JSON.parse(JSON.stringify(snapshot))
+        }
+      } else {
+        for (const item of toUpdate) {
+          if (!String(item.id).startsWith('pending_')) {
+            await this.$ygoDb.updateDeckCard(item.id, { name, snapshot })
+          }
+          item.name = name
+          item.snapshot = JSON.parse(JSON.stringify(snapshot))
+        }
+      }
       this.snapshotMhAtLoad = JSON.parse(JSON.stringify(snapshot))
-      await this.loadMHDeckCards()
     },
 
     loadMhDeckCardForEdit(item) {
       this.loadFromMHSnapshot(item.snapshot || {})
       this.editingMhDeckCardId = item.id
       this.snapshotMhAtLoad = JSON.parse(JSON.stringify(item.snapshot || {}))
+      this.mhDeckEditLock = true
     },
 
-    async removeMhDeckCard(id) {
-      if (!this.$ygoDb) return
+    async ensureMhAllCardsLoaded() {
+      if (this.mhAllCardsFromDb.length > 0 || !this.$ygoDb) return
+      const list = await this.$ygoDb.getDeckCardsByGame('monsterhunter')
+      this.mhAllCardsFromDb = list || []
+    },
+
+    selectMhCardFromSearch(card) {
+      this.loadFromMHSnapshot(card.snapshot || {})
+      this.editingMhDeckCardId = card.id
+      this.snapshotMhAtLoad = JSON.parse(JSON.stringify(card.snapshot || {}))
+      this.mhDeckEditLock = true
+      if (card.deck_id) {
+        this.loadMHDecks().then(() => {
+          this.mhSelectedDeckId = card.deck_id
+          this.loadMHDeckCards()
+        })
+      }
+    },
+
+    unlockMhDeckEdit() {
+      this.mhDeckEditLock = false
+    },
+
+    removeOneFromMhDeck() {
+      if (!this.mhSelectedDeckId || !this.editingMhDeckCardId) return
+      const current = this.mhSelectedDeckCards.find(
+        (c) => c.id === this.editingMhDeckCardId
+      )
+      if (!current) return
+      const id = this.editingMhDeckCardId
+      const groupId = current.copyGroupId || current.id
+      if (String(id).startsWith('pending_')) {
+        const idx = this.mhSelectedDeckCards.findIndex((c) => c.id === id)
+        if (idx !== -1) this.mhSelectedDeckCards.splice(idx, 1)
+      } else {
+        this.pendingDeckRemovesMh.push(id)
+        const idx = this.mhSelectedDeckCards.findIndex((c) => c.id === id)
+        if (idx !== -1) this.mhSelectedDeckCards.splice(idx, 1)
+      }
+      const remaining = this.mhSelectedDeckCards.filter(
+        (c) => (c.copyGroupId || c.id) === groupId
+      )
+      if (remaining.length === 0) {
+        this.editingMhDeckCardId = null
+        this.snapshotMhAtLoad = null
+        this.mhDeckEditLock = false
+        this.loadNewMHCard()
+      } else {
+        this.loadMhDeckCardForEdit(remaining[0])
+      }
+    },
+
+    addCopyToMhDeck() {
+      if (!this.mhSelectedDeckId || !this.editingMhDeckCardId) return
+      const current = this.mhSelectedDeckCards.find(
+        (c) => c.id === this.editingMhDeckCardId
+      )
+      if (!current) return
+      const snapshot = this.getCurrentMHCardSnapshot()
+      const name = this.mhTitle?.trim() || 'Card MH'
+      const copyGroupId = current.copyGroupId || current.id
+      const sameGroup = this.mhSelectedDeckCards.filter(
+        (c) => (c.copyGroupId || c.id) === copyGroupId
+      )
+      const insertAfter = sameGroup.length
+        ? Math.max(
+            ...sameGroup.map((c) => (c.sort_order != null ? c.sort_order : -1))
+          )
+        : -1
+      const pid = `pending_${Date.now()}_${Math.random()
+        .toString(36)
+        .slice(2, 9)}`
+      this.mhSelectedDeckCards.push({
+        id: pid,
+        deck_id: this.mhSelectedDeckId,
+        name,
+        sort_order: insertAfter + 1,
+        snapshot: JSON.parse(JSON.stringify(snapshot)),
+        copyGroupId,
+      })
+      this.mhDeckEditLock = true
+    },
+
+    removeMhDeckCard(id) {
+      if (String(id).startsWith('pending_')) {
+        const idx = this.mhSelectedDeckCards.findIndex((c) => c.id === id)
+        if (idx !== -1) this.mhSelectedDeckCards.splice(idx, 1)
+      } else {
+        this.pendingDeckRemovesMh.push(id)
+        const idx = this.mhSelectedDeckCards.findIndex((c) => c.id === id)
+        if (idx !== -1) this.mhSelectedDeckCards.splice(idx, 1)
+      }
       if (this.editingMhDeckCardId === id) {
         this.editingMhDeckCardId = null
         this.snapshotMhAtLoad = null
+        this.mhDeckEditLock = false
       }
-      await this.$ygoDb.removeDeckCard(id)
+    },
+
+    async saveDeckStateMh() {
+      if (!this.$ygoDb || !this.mhSelectedDeckId) return
+      const payload = this.mhSelectedDeckCards.map((item, index) => ({
+        id:
+          item && item.id && !String(item.id).startsWith('pending_')
+            ? String(item.id)
+            : undefined,
+        card_id: null,
+        sort_order: index,
+        name: item.name,
+        snapshot: JSON.parse(JSON.stringify(item.snapshot || {})),
+        copyGroupId: item.copyGroupId,
+      }))
+      await this.$ygoDb.replaceDeckCards(this.mhSelectedDeckId, payload)
       await this.loadMHDeckCards()
+      this.pendingDeckRemovesMh = []
+    },
+
+    discardDeckStateMh() {
+      this.pendingDeckRemovesMh = []
+      this.loadMHDeckCards()
     },
 
     async loadSilhouetteCardSizeOptions() {
-      if (typeof window === 'undefined' || !window.silhouette || !window.silhouette.getCardSizeOptions) return
+      if (
+        typeof window === 'undefined' ||
+        !window.silhouette ||
+        !window.silhouette.getCardSizeOptions
+      )
+        return
       try {
-        this.silhouetteCardSizeOptions = await window.silhouette.getCardSizeOptions() || []
+        this.silhouetteCardSizeOptions =
+          (await window.silhouette.getCardSizeOptions()) || []
       } catch (_) {
         this.silhouetteCardSizeOptions = []
       }
@@ -4357,24 +6059,37 @@ export default {
       await new Promise((r) => setTimeout(r, 300))
       try {
         const cards = await this.$ygoDb.getDeckCards(deck.id)
+        const sorted = [...(cards || [])].sort((a, b) => {
+          const na = (a.name || a.snapshot?.mhTitle || '').trim().toLowerCase()
+          const nb = (b.name || b.snapshot?.mhTitle || '').trim().toLowerCase()
+          return na.localeCompare(nb, 'pt')
+        })
         const zip = new JSZip()
         const payload = {
           name: deck.name,
           game: 'monsterhunter',
           exportedAt: new Date().toISOString(),
-          cards: (cards || []).map((c) => ({ id: c.id, name: c.name, snapshot: c.snapshot })),
+          cards: sorted.map((c) => ({
+            id: c.id,
+            name: c.name,
+            snapshot: c.snapshot,
+          })),
         }
         zip.file('deck.json', JSON.stringify(payload, null, 2))
-        for (let i = 0; i < (cards || []).length; i++) {
-          const card = cards[i]
+        for (let i = 0; i < sorted.length; i++) {
+          const card = sorted[i]
           this.loadFromMHSnapshot(card.snapshot || {})
           await this.$nextTick()
           await new Promise((r) => setTimeout(r, 150))
           const wrap = this.$refs.mhPreviewWrap
           if (wrap) {
             const canvas = await html2canvas(wrap, { scale: 2, useCORS: true })
-            const base64 = canvas.toDataURL('image/png').replace(/^data:image\/png;base64,/, '')
-            const fname = `${this.sanitizeFilename(card.name || 'card')}_${i + 1}.png`
+            const base64 = canvas
+              .toDataURL('image/png')
+              .replace(/^data:image\/png;base64,/, '')
+            const fname = `${this.sanitizeFilename(card.name || 'card')}_${
+              i + 1
+            }.png`
             zip.file(fname, base64, { base64: true })
           }
         }
@@ -4387,7 +6102,10 @@ export default {
         URL.revokeObjectURL(zipUrl)
       } catch (err) {
         console.error(err)
-        this.$bvToast && this.$bvToast.toast(err.message || 'Erro ao gerar imagens.', { variant: 'danger' })
+        this.$bvToast &&
+          this.$bvToast.toast(err.message || 'Erro ao gerar imagens.', {
+            variant: 'danger',
+          })
       } finally {
         this.mhDeckDownloading = null
         this.activeTab = prevTab
@@ -4397,7 +6115,11 @@ export default {
     async downloadMhDeckAsSilhouette(deck) {
       if (!this.$ygoDb || !deck || !deck.id) return
       if (typeof window === 'undefined' || !window.silhouette) {
-        this.$bvToast && this.$bvToast.toast('Exportação Silhuete disponível apenas no app desktop.', { variant: 'warning' })
+        this.$bvToast &&
+          this.$bvToast.toast(
+            'Exportação Silhuete disponível apenas no app desktop.',
+            { variant: 'warning' }
+          )
         return
       }
       this.mhDeckDownloading = deck.id
@@ -4407,26 +6129,36 @@ export default {
       await new Promise((r) => setTimeout(r, 300))
       try {
         const cards = await this.$ygoDb.getDeckCards(deck.id)
+        const sorted = [...(cards || [])].sort((a, b) => {
+          const na = (a.name || a.snapshot?.mhTitle || '').trim().toLowerCase()
+          const nb = (b.name || b.snapshot?.mhTitle || '').trim().toLowerCase()
+          return na.localeCompare(nb, 'pt')
+        })
         const images = []
-        for (let i = 0; i < (cards || []).length; i++) {
-          const card = cards[i]
+        for (let i = 0; i < sorted.length; i++) {
+          const card = sorted[i]
           this.loadFromMHSnapshot(card.snapshot || {})
           await this.$nextTick()
           await new Promise((r) => setTimeout(r, 150))
           const wrap = this.$refs.mhPreviewWrap
           if (wrap) {
             const canvas = await html2canvas(wrap, { scale: 2, useCORS: true })
-            const base64 = canvas.toDataURL('image/png').replace(/^data:image\/png;base64,/, '')
-            const mhCardType = (card.snapshot && card.snapshot.mhCardType) || 'time-01'
+            const base64 = canvas
+              .toDataURL('image/png')
+              .replace(/^data:image\/png;base64,/, '')
+            const mhCardType =
+              (card.snapshot && card.snapshot.mhCardType) || 'time-01'
             images.push({ base64, backImageType: mhCardType })
           }
         }
-        const { pdfBase64, templateFileName, templateBase64 } = await window.silhouette.generatePdf({
-          images,
-          cardSize: this.mhDownloadCardSize,
-          paperSize: this.mhDownloadSilhouettePaper,
-          cardsTouch: this.mhDownloadCardsTouch,
-        })
+        const { pdfBase64, templateFileName, templateBase64 } =
+          await window.silhouette.generatePdf({
+            images,
+            cardSize: this.mhDownloadCardSize,
+            paperSize: this.mhDownloadSilhouettePaper,
+            cardsTouch: this.mhDownloadCardsTouch,
+            includeImages: this.mhDownloadIncludeImages,
+          })
         const zip = new JSZip()
         const baseName = this.sanitizeFilename(deck.name)
         zip.file(`${baseName}.pdf`, pdfBase64, { base64: true })
@@ -4442,7 +6174,11 @@ export default {
         URL.revokeObjectURL(zipUrl)
       } catch (err) {
         console.error(err)
-        this.$bvToast && this.$bvToast.toast(err.message || 'Erro ao gerar PDF para Silhuete.', { variant: 'danger' })
+        this.$bvToast &&
+          this.$bvToast.toast(
+            err.message || 'Erro ao gerar PDF para Silhuete.',
+            { variant: 'danger' }
+          )
       } finally {
         this.mhDeckDownloading = null
         this.activeTab = prevTab
@@ -4453,26 +6189,55 @@ export default {
       if (!this.$ygoDb || !this.selectedDeckId) return
       const items = await this.$ygoDb.getDeckCards(this.selectedDeckId)
       this.selectedDeckCards = items || []
+      this.pendingDeckRemovesYgo = []
       items.forEach((item) => this.ensureDeckCardImageUrl(item))
     },
 
-    async removeDeckCard(id) {
-      if (!this.$ygoDb) return
+    removeDeckCard(id) {
+      if (String(id).startsWith('pending_')) {
+        const idx = this.selectedDeckCards.findIndex((c) => c.id === id)
+        if (idx !== -1) this.selectedDeckCards.splice(idx, 1)
+        if (this.editingDeckCardId === id) {
+          this.setYgoEditorState('base', { editingDeckCardId: null })
+          this.snapshotAtLoad = null
+        }
+        this.$delete(this.deckCardImageUrls, id)
+        return
+      }
+      this.pendingDeckRemovesYgo.push(id)
+      const idx = this.selectedDeckCards.findIndex((c) => c.id === id)
+      if (idx !== -1) this.selectedDeckCards.splice(idx, 1)
       if (this.editingDeckCardId === id) {
-        this.editingDeckCardId = null
+        this.setYgoEditorState('base', { editingDeckCardId: null })
         this.snapshotAtLoad = null
       }
-      await this.$ygoDb.removeDeckCard(id)
-      await this.loadDeckCards()
       this.$delete(this.deckCardImageUrls, id)
+    },
+
+    async saveDeckStateYgo() {
+      if (!this.$ygoDb || !this.selectedDeckId) return
+      const payload = this.selectedDeckCards.map((item, index) =>
+        this.normalizeDeckItemForPersistence(item, index)
+      )
+      await this.$ygoDb.replaceDeckCards(this.selectedDeckId, payload)
+      await this.loadDeckCards()
+      this.pendingDeckRemovesYgo = []
+    },
+
+    discardDeckStateYgo() {
+      this.pendingDeckRemovesYgo = []
+      this.loadDeckCards()
     },
 
     getDeckCardImageSrc(item) {
       const key = item.cardKey
-      const card = this.localCards.find((c) => String(c.id) === String(key))
-      const img = card?.card_images?.[0]
-      if (img && (img.image_url_small || img.image_url)) {
-        return img.image_url_small || img.image_url
+      const bundledThumbUrl = this.getBundledThumbArtUrl(String(key), 'webp')
+      if (bundledThumbUrl) {
+        return bundledThumbUrl
+      }
+      const bundledCanvasUrl = this.getBundledCanvasArtUrl(String(key), 'webp')
+      if (bundledCanvasUrl) {
+        return bundledCanvasUrl
       }
       return this.deckCardImageUrls[key] || this.apiCardImageUrls[key] || null
     },
@@ -4480,6 +6245,16 @@ export default {
     async ensureDeckCardImageUrl(item) {
       const key = item.cardKey
       if (this.deckCardImageUrls[key]) return this.deckCardImageUrls[key]
+      const bundledThumbUrl = this.getBundledThumbArtUrl(String(key), 'webp')
+      if (bundledThumbUrl) {
+        this.$set(this.deckCardImageUrls, key, bundledThumbUrl)
+        return bundledThumbUrl
+      }
+      const bundledCanvasUrl = this.getBundledCanvasArtUrl(String(key), 'webp')
+      if (bundledCanvasUrl) {
+        this.$set(this.deckCardImageUrls, key, bundledCanvasUrl)
+        return bundledCanvasUrl
+      }
       if (this.apiCardImageUrls[key]) {
         this.$set(this.deckCardImageUrls, key, this.apiCardImageUrls[key])
         return this.apiCardImageUrls[key]
@@ -4492,7 +6267,7 @@ export default {
       }
       const card = this.localCards.find((c) => String(c.id) === key)
       const img = card?.card_images?.[0]
-      const imgUrl = img ? this.getCanvasImageUrl(img) : null
+      const imgUrl = img ? this.getCanvasImageUrl(img, key) : null
       if (imgUrl) {
         await this.ensureCardImage(key, imgUrl, { forCurrentCard: false })
         if (this.apiCardImageUrls[key]) {
@@ -4508,19 +6283,43 @@ export default {
     openTranslationModal() {
       if (!this.currentBaseCard) return
       this.translatingCardId = this.currentBaseCard.id
-      this.translationName = this.currentBaseCard.name_pt || ''
-      this.translationDesc = this.currentBaseCard.desc_pt || ''
+      /* Preenche com dados em inglês para o usuário traduzir e substituir por PT */
+      this.translationName =
+        this.currentBaseCard.name_en || this.currentBaseCard.name || ''
+      const fullDescEn =
+        this.currentBaseCard.desc_en || this.currentBaseCard.desc || ''
+      if (this.isCurrentCardPendulum) {
+        const { pendulumText, monsterText } =
+          this.splitPendulumEffectText(fullDescEn)
+        this.translationPendulumDesc = pendulumText
+        this.translationDesc = monsterText || fullDescEn
+      } else {
+        this.translationPendulumDesc = ''
+        this.translationDesc = fullDescEn
+      }
       this.showTranslationModal = true
     },
 
     async saveTranslation() {
       if (!this.$ygoDb || !this.translatingCardId) return
+      let descToSave = this.translationDesc || ''
+      if (
+        this.isCurrentCardPendulum &&
+        (this.translationPendulumDesc || '').trim()
+      ) {
+        descToSave =
+          '[Pendulum Effect]\n' +
+          (this.translationPendulumDesc || '').trim() +
+          '\n[Monster Effect]\n' +
+          (this.translationDesc || '').trim()
+      }
       await this.$ygoDb.updateCardTranslation(
         this.translatingCardId,
         this.translationName,
-        this.translationDesc
+        descToSave
       )
       this.showTranslationModal = false
+      this.translationPendulumDesc = ''
       const { cards } = await this.$ygoDb.getDB()
       this.localCards = cards || []
       if (
@@ -4528,7 +6327,14 @@ export default {
         String(this.translatingCardId) === String(this.cardKey)
       ) {
         this.cardTitle = this.translationName || this.cardTitle
-        this.cardInfo = this.translationDesc || this.cardInfo
+        if (this.isCurrentCardPendulum) {
+          const { pendulumText, monsterText } =
+            this.splitPendulumEffectText(descToSave)
+          this.cardPendulumInfo = pendulumText
+          this.cardInfo = monsterText || this.translationDesc
+        } else {
+          this.cardInfo = this.translationDesc || this.cardInfo
+        }
         this.$nextTick(() => this.drawCard())
       }
     },
@@ -4552,8 +6358,9 @@ export default {
       this._exportingCard = true
       const zip = new JSZip()
       try {
-        for (let i = 0; i < this.selectedDeckCards.length; i++) {
-          const entry = this.selectedDeckCards[i]
+        const ordered = this.sortedSelectedDeckCards
+        for (let i = 0; i < ordered.length; i++) {
+          const entry = ordered[i]
           const imgUrl = await this.getExportImageUrlForBatch(entry.cardKey)
           if (imgUrl)
             await this.ensureCardImage(entry.cardKey, imgUrl, {
@@ -4566,6 +6373,8 @@ export default {
             this._drawCardOnDrawn = resolve
             this.drawCard(url)
           })
+          await this.$nextTick()
+          await new Promise((resolve) => requestAnimationFrame(resolve))
           const canvas = this.$refs.yugiohcard
           if (canvas) {
             const dataUrl = canvas.toDataURL('image/png')
@@ -4595,7 +6404,12 @@ export default {
     },
 
     async downloadSilhouetteDeck() {
-      if (!this.selectedDeckCards.length || !this.selectedDeck || !window.silhouette) return
+      if (
+        !this.selectedDeckCards.length ||
+        !this.selectedDeck ||
+        !window.silhouette
+      )
+        return
       this.silhouetteDownloading = true
       this.showSilhouetteModal = false
       const saveState = {
@@ -4606,11 +6420,14 @@ export default {
       this._exportingCard = true
       try {
         const images = []
-        for (let i = 0; i < this.selectedDeckCards.length; i++) {
-          const entry = this.selectedDeckCards[i]
+        const ordered = this.sortedSelectedDeckCards
+        for (let i = 0; i < ordered.length; i++) {
+          const entry = ordered[i]
           const imgUrl = await this.getExportImageUrlForBatch(entry.cardKey)
           if (imgUrl)
-            await this.ensureCardImage(entry.cardKey, imgUrl, { forCurrentCard: false })
+            await this.ensureCardImage(entry.cardKey, imgUrl, {
+              forCurrentCard: false,
+            })
           this.loadFromSnapshot(entry.snapshot)
           this.cardKey = entry.cardKey
           const url = this.apiCardImageUrls[entry.cardKey] || imgUrl
@@ -4618,6 +6435,8 @@ export default {
             this._drawCardOnDrawn = resolve
             this.drawCard(url)
           })
+          await this.$nextTick()
+          await new Promise((resolve) => requestAnimationFrame(resolve))
           const canvas = this.$refs.yugiohcard
           if (canvas) {
             const dataUrl = canvas.toDataURL('image/png')
@@ -4626,36 +6445,36 @@ export default {
           }
           await new Promise((resolve) => setTimeout(resolve, 100))
         }
-        const { pdfBase64, templateFileName, templateBase64 } = await window.silhouette.generatePdf({
-          images,
-          cardSize: this.silhouetteCardSize,
-          paperSize: this.silhouettePaperSize,
-          cardsTouch: this.silhouetteCardsTouch,
-        })
+        const { pdfBase64, templateFileName, templateBase64 } =
+          await window.silhouette.generatePdf({
+            images,
+            cardSize: this.silhouetteCardSize,
+            paperSize: this.silhouettePaperSize,
+            cardsTouch: this.silhouetteCardsTouch,
+            includeImages: this.silhouetteIncludeImages,
+          })
         const baseName = this.sanitizeFilename(this.selectedDeck.name)
-        // PDF pronto para impressão — download direto no arquivo
-        const pdfBytes = Uint8Array.from(atob(pdfBase64), (c) => c.charCodeAt(0))
-        const pdfBlob = new Blob([pdfBytes], { type: 'application/pdf' })
-        const pdfUrl = URL.createObjectURL(pdfBlob)
-        const aPdf = document.createElement('a')
-        aPdf.href = pdfUrl
-        aPdf.download = `${baseName}.pdf`
-        aPdf.click()
-        URL.revokeObjectURL(pdfUrl)
-        // Arquivo de corte para a Silhouette — download direto
+        const zip = new JSZip()
+        // PDF pronto para impressão dentro do ZIP
+        zip.file(`${baseName}.pdf`, pdfBase64, { base64: true })
+        // Arquivo de corte para a Silhouette — mesmo ZIP
         if (templateBase64 && templateFileName) {
-          const studioBytes = Uint8Array.from(atob(templateBase64), (c) => c.charCodeAt(0))
-          const studioBlob = new Blob([studioBytes])
-          const studioUrl = URL.createObjectURL(studioBlob)
-          const aStudio = document.createElement('a')
-          aStudio.href = studioUrl
-          aStudio.download = templateFileName
-          aStudio.click()
-          URL.revokeObjectURL(studioUrl)
+          zip.file(templateFileName, templateBase64, { base64: true })
         }
+        const zipBlob = await zip.generateAsync({ type: 'blob' })
+        const zipUrl = URL.createObjectURL(zipBlob)
+        const aZip = document.createElement('a')
+        aZip.href = zipUrl
+        aZip.download = `${baseName}-silhuete.zip`
+        aZip.click()
+        URL.revokeObjectURL(zipUrl)
       } catch (err) {
         console.error(err)
-        this.$bvToast && this.$bvToast.toast(err.message || 'Erro ao gerar PDF para Silhuete.', { variant: 'danger' })
+        this.$bvToast &&
+          this.$bvToast.toast(
+            err.message || 'Erro ao gerar PDF para Silhuete.',
+            { variant: 'danger' }
+          )
       } finally {
         this._exportingCard = false
         this.silhouetteDownloading = false
@@ -4667,13 +6486,15 @@ export default {
     },
 
     async getExportImageUrlForBatch(cardKey) {
+      const bundledUrl = this.getBundledCanvasArtUrl(cardKey, 'webp')
+      if (bundledUrl) return bundledUrl
       if (this.$ygoDb) {
         const blob = await this.$ygoDb.getCardImage(cardKey)
         if (blob) return URL.createObjectURL(blob)
       }
       const card = this.localCards.find((c) => String(c.id) === cardKey)
       const img = card?.card_images?.[0]
-      return img ? this.getCanvasImageUrl(img) : null
+      return img ? this.getCanvasImageUrl(img, cardKey) : null
     },
 
     // Carregar dados do YGOPRO2 (local) ou da API YGOPRODeck (cache).
@@ -4784,6 +6605,241 @@ body {
   background-blend-mode: multiply;
   font-family: 'Noto Sans JP', 'Noto Sans TC', 'Noto Sans SC', 'arial',
     '微軟正黑體';
+  /* Cada coluna tem seu próprio scroll; evitamos scroll global da página */
+  overflow: hidden;
+}
+
+/* -------------------- Layout 3 colunas (altura total) -------------------- */
+html,
+body,
+#app {
+  height: 100%;
+  min-height: 100%;
+}
+#app {
+  display: flex;
+  flex-direction: column;
+}
+.main-fullheight {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.tabs-fullheight {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.tab-content-fullheight {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.tab-content-fullheight .tab-pane {
+  flex: 1;
+  min-height: 0;
+  display: none;
+  flex-direction: column;
+}
+.tab-content-fullheight .tab-pane.active {
+  display: flex !important;
+}
+.row-three-cols {
+  padding: 0 16px;
+  flex: 1;
+  min-height: 0;
+  max-height: 100%;
+  display: flex;
+  align-items: stretch;
+  /* colunas ocupam tudo, espaço controlado por gap */
+  justify-content: space-between;
+  column-gap: 16px;
+}
+.col-panel {
+  min-height: 0;
+  max-height: 100%;
+  overflow: hidden;
+}
+/* Colunas 1 e 3: canvas e form. Aumente o 3º valor do clamp (máx.) para colunas mais largas. */
+.row-three-cols > #card-panel,
+.row-three-cols > #data-panel,
+.row-three-cols > #mh-card-panel,
+.row-three-cols > #mh-data-panel {
+  flex: 0 1 clamp(420px, 30vw, 720px);
+  min-width: 420px;
+  max-width: clamp(420px, 30vw, 720px);
+}
+/*
+  Agora a coluna do meio (#decks-panel) deve ocupar 90% do espaço restante,
+  após as colunas dos forms/canvas (que são de 550px cada).
+  Usar flex-basis como 0 e flex-grow como 0.9 para alcançar este comportamento.
+*/
+/*
+  Para aumentar o tamanho de #decks-panel dentro de .row-three-cols,
+  ajuste as propriedades de flex em vez de usar width fixa.
+  Exemplo: aumenta o flex-grow para ocupar mais espaço disponível.
+  Remova o width fixo se possível.
+*/
+.row-three-cols > #decks-panel,
+.row-three-cols > #mh-decks-panel {
+  /* Remova width fixa que pode ser sobrescrita pelo flexbox ou outros estilos */
+  /* width: 1200px !important; */
+
+  /* Faz a coluna central crescer até onde puder */
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 100%;
+}
+
+/*
+  Se quiser ocupar ainda mais espaço relativo que as colunas laterais, aumente o flex-grow:
+  Exemplo: flex: 3 1 0;
+*/
+.min-h-0 {
+  min-height: 0;
+}
+.deck-cards-scroll {
+  align-content: flex-start;
+}
+
+/* Colunas com scroll próprio */
+.col-panel-inner {
+  overflow-y: auto;
+  min-height: 0;
+  max-height: 100%;
+}
+.decks-panel-inner,
+#data-panel .panel-bg,
+#mh-data-panel .panel-bg {
+  min-height: 0;
+  max-height: 100%;
+  overflow: hidden;
+  width: 100%;
+  max-width: 100%;
+}
+#data-panel > .panel-bg,
+#mh-data-panel > .panel-bg {
+  overflow: hidden !important;
+}
+#data-panel,
+#mh-data-panel {
+  container-type: inline-size;
+}
+#data-panel .tab-content,
+#mh-data-panel .tab-content {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  width: 100%;
+  max-width: 100%;
+}
+#data-panel .tab-pane,
+#mh-data-panel .tab-pane {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  max-width: 100%;
+}
+#data-panel .tabs,
+#data-panel .tab-content,
+#data-panel .tab-pane,
+#data-panel .tab-pane.active,
+#mh-data-panel .tabs,
+#mh-data-panel .tab-content,
+#mh-data-panel .tab-pane,
+#mh-data-panel .tab-pane.active {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  width: 100%;
+  max-width: 100%;
+}
+#data-panel .data-panel-tabs,
+#mh-data-panel .data-panel-tabs {
+  width: 100%;
+  max-width: 100%;
+}
+#data-panel .nav-tabs,
+#data-panel .alert,
+#data-panel .search-panel-col,
+#data-panel .my-3.mx-0,
+#mh-data-panel .nav-tabs,
+#mh-data-panel .alert,
+#mh-data-panel .search-panel-col,
+#mh-data-panel .my-3.mx-0 {
+  flex-shrink: 0;
+}
+/* Coluna direita: um único scroll na área de edição */
+.data-panel-editor-scroll {
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-height: 0;
+  max-height: 100%;
+  width: 100%;
+  padding-right: 6px;
+  overscroll-behavior: contain;
+}
+.data-panel-search-scroll {
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-height: 0;
+  max-height: 100%;
+  flex: 1 1 auto;
+  width: 100%;
+  margin-top: 12px;
+  padding-right: 6px;
+  overscroll-behavior: contain;
+}
+.search-tab-layout {
+  height: 100%;
+}
+.search-results-panel {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+.search-results-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.data-panel-editor-scroll::-webkit-scrollbar {
+  width: 10px;
+}
+.data-panel-search-scroll::-webkit-scrollbar {
+  width: 10px;
+}
+.data-panel-editor-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+}
+.data-panel-search-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+}
+.data-panel-editor-scroll::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.04);
+}
+.data-panel-search-scroll::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.04);
+}
+.card-form-scroll {
+  display: block;
+  min-height: auto;
+  padding-right: 0;
+  overflow: visible;
+  width: 100%;
+}
+.data-panel-fieldset {
+  display: block;
+  min-height: auto;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  width: 100%;
 }
 
 /* -------------------- Estilos de Bloco -------------------- */
@@ -4800,19 +6856,91 @@ nav {
   border-radius: 1rem;
   color: #fff;
 }
+.form-faded {
+  opacity: 0.65;
+  pointer-events: none;
+}
 
 .deck-name-input,
 .deck-name-input:focus {
   color: #121212 !important;
 }
 
-/* Painel de busca acima do canvas para o dropdown de arquétipo aparecer */
+/* Painel de busca (aba Busca): fundo levemente vermelho para destacar a área */
 .search-panel-col {
   position: relative;
   z-index: 1050;
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  height: 100vh !important;
 }
 .archetype-dropdown {
   z-index: 1060;
+}
+
+@container (max-width: 520px) {
+  #data-panel .px-2[class*='col-lg-'],
+  #data-panel .px-2[class*='col-xl-'],
+  #mh-data-panel .px-2[class*='col-lg-'],
+  #mh-data-panel .px-2[class*='col-xl-'] {
+    flex: 0 0 100%;
+    max-width: 100%;
+  }
+
+  #data-panel .my-3 table,
+  #mh-data-panel .my-3 table {
+    width: 100%;
+  }
+}
+
+@media (max-height: 1080px) {
+  .main-fullheight {
+    padding-top: 0.5rem !important;
+    padding-bottom: 0.5rem !important;
+  }
+
+  #data-panel .panel-bg,
+  #card-panel .panel-bg,
+  #decks-panel .panel-bg,
+  #mh-data-panel .panel-bg,
+  #mh-card-panel .panel-bg,
+  #mh-decks-panel .panel-bg {
+    padding: 1rem !important;
+  }
+
+  .card-deck-actions {
+    margin-top: 0.75rem !important;
+    padding-top: 0.75rem !important;
+  }
+}
+
+@media (max-width: 1599.98px) {
+  .row-three-cols > #card-panel,
+  .row-three-cols > #data-panel,
+  .row-three-cols > #mh-card-panel,
+  .row-three-cols > #mh-data-panel {
+    flex-basis: clamp(380px, 28vw, 460px);
+    min-width: 380px;
+    max-width: clamp(380px, 28vw, 460px);
+  }
+}
+
+@media (max-width: 1279.98px) {
+  .row-three-cols {
+    flex-wrap: wrap;
+    row-gap: 16px;
+  }
+
+  .row-three-cols > #card-panel,
+  .row-three-cols > #decks-panel,
+  .row-three-cols > #data-panel,
+  .row-three-cols > #mh-card-panel,
+  .row-three-cols > #mh-decks-panel,
+  .row-three-cols > #mh-data-panel {
+    flex: 1 1 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
 }
 
 /* -------------------- Estilos de Área de Cartão -------------------- */
@@ -4823,12 +6951,30 @@ nav {
   transition: transform 0.1s ease;
   transform-style: preserve-3d;
   will-change: transform;
+  padding: 16px 12px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
 }
 #yugiohcard-wrap:hover #yugiohcard {
   transform: translateZ(12px);
 }
 #yugiohcard {
   transition: transform 0.3s ease;
+  width: 90%;
+  height: auto;
+  max-height: 65vh;
+}
+
+.card-deck-actions {
+  flex-shrink: 0;
+}
+.card-deck-actions .btn {
+  min-width: 52px;
+  min-height: 40px;
+  font-size: 0.9rem;
+  padding: 0.4rem 1rem;
 }
 
 /* -------------------- Estilos de Área de Entrada -------------------- */
@@ -4883,20 +7029,76 @@ select option {
   box-shadow: 0 0 8px rgba(255, 255, 255, 0.4);
   z-index: 2;
 }
+/* Cards de deck na lista (thumbnail = primeiro card, nome abaixo) */
+.deck-card-item:hover .deck-card-thumb-wrap {
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.4);
+}
+.deck-card-thumb-wrap {
+  width: 100%;
+  height: 160px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.deck-card-thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.deck-card-thumb-placeholder {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 2rem;
+}
+
+/* Container do deck: sempre 10 colunas — cards redimensionam com a coluna */
+.deck-grid {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 4px;
+  align-content: start;
+  min-height: 0;
+}
+/* Área da lista de cards do deck: scroll vertical quando não couber tudo */
+.deck-sections-scroll {
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+.deck-section {
+  min-width: 0;
+}
+.deck-section-label {
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+}
+.deck-section-label-extra {
+  color: #8fd6ff;
+}
+.deck-grid-extra {
+  padding-bottom: 4px;
+}
 /* Thumbnails de deck */
 .deck-thumb-wrap {
   cursor: pointer;
   transition: transform 0.15s;
+  min-width: 0;
 }
 .deck-thumb-wrap:hover {
   transform: scale(1.08);
   z-index: 2;
 }
 .deck-thumb {
-  height: 200px;
-  width: auto;
+  width: 100%;
+  height: auto;
   display: block;
 }
+/* MH deck thumbs na coluna central: herda o grid, sem override de tamanho */
 .deck-thumb-active {
   outline: 2px solid #007bff;
   border-radius: 4px;
@@ -4925,26 +7127,27 @@ select option {
   background: #dc3545;
 }
 
-/* Miniaturas de cards MH no deck – posições fixas proporcionais ao card */
+/* Miniaturas de cards MH – dimensões via aspect-ratio, posicionamento % */
 .mh-deck-thumb {
-  height: 200px;
-  width: 138px;
+  width: 100%;
+  aspect-ratio: 848 / 1264;
   background-size: cover;
   background-position: center;
   box-sizing: border-box;
   overflow: hidden;
+  border-radius: 4px;
 }
 .mh-deck-thumb-title {
   position: absolute;
-  top: 8px;
-  left: 6px;
-  right: 6px;
+  top: 5%;
+  left: 6%;
+  right: 6%;
   font-family: 'EB Garamond', serif;
-  font-size: 10px;
+  font-size: clamp(6px, 1.2vw, 11px);
   font-weight: bold;
   color: #000;
   text-align: center;
-  line-height: 1.2;
+  line-height: 1.15;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -4952,15 +7155,15 @@ select option {
 }
 .mh-deck-thumb-desc {
   position: absolute;
-  top: 26px;
-  left: 6px;
-  right: 6px;
-  max-height: 42px;
+  top: 18%;
+  left: 6%;
+  right: 6%;
+  max-height: 30%;
   font-family: 'EB Garamond', serif;
-  font-size: 7px;
+  font-size: clamp(5px, 0.9vw, 8px);
   color: #222;
   text-align: center;
-  line-height: 1.25;
+  line-height: 1.2;
   overflow: hidden;
   display: -webkit-box;
   -webkit-line-clamp: 3;
@@ -4969,10 +7172,10 @@ select option {
 }
 .mh-deck-thumb-icon-wrap {
   position: absolute;
-  bottom: 8px;
-  right: 8px;
-  width: 22px;
-  height: 22px;
+  bottom: 5%;
+  right: 6%;
+  width: 20%;
+  height: 14%;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -4984,6 +7187,18 @@ select option {
   height: auto;
   object-fit: contain;
   object-position: center;
+}
+
+/* MH search results thumbnails */
+.mh-search-thumb-wrap {
+  flex: 0 0 72px;
+  max-width: 72px;
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+.mh-search-thumb-wrap:hover {
+  transform: scale(1.08);
+  z-index: 2;
 }
 
 /* Monster Hunter card preview */

@@ -3,6 +3,7 @@ const path = require('path')
 const http = require('http')
 const https = require('https')
 const { app } = require('electron')
+const { pathToFileURL } = require('url')
 
 let sharp
 try {
@@ -71,9 +72,31 @@ async function getCardArt(id, imageUrl) {
   return buf
 }
 
+async function ensureCardArtPath(id, imageUrl) {
+  const dir = ensurePicsDir()
+  const filePath = path.join(dir, `${id}.webp`)
+
+  if (!fs.existsSync(filePath)) {
+    await getCardArt(id, imageUrl)
+  }
+
+  return fs.existsSync(filePath) ? filePath : null
+}
+
+async function getCardArtUrl(id, imageUrl) {
+  const filePath = await ensureCardArtPath(id, imageUrl)
+  return filePath ? pathToFileURL(filePath).href : null
+}
+
 function cardArtExists(id) {
   const dir = ensurePicsDir()
   return fs.existsSync(path.join(dir, `${id}.webp`))
 }
 
-module.exports = { getCardArt, cardArtExists, ensurePicsDir }
+module.exports = {
+  getCardArt,
+  getCardArtUrl,
+  ensureCardArtPath,
+  cardArtExists,
+  ensurePicsDir,
+}

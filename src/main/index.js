@@ -5,6 +5,30 @@ const cardArt = require('./card-art')
 const silhouettePdf = require('./silhouette-pdf')
 
 let mainWindow = null
+let devServerRetryTimer = null
+
+function clearDevServerRetryTimer() {
+  if (devServerRetryTimer) {
+    clearTimeout(devServerRetryTimer)
+    devServerRetryTimer = null
+  }
+}
+
+function scheduleDevServerReload(window, url, attempt = 1) {
+  if (!window || window.isDestroyed()) return
+
+  clearDevServerRetryTimer()
+  const delay = Math.min(1000 * attempt, 5000)
+
+  devServerRetryTimer = setTimeout(() => {
+    devServerRetryTimer = null
+    if (!window.isDestroyed()) {
+      window.loadURL(url).catch(() => {
+        scheduleDevServerReload(window, url, attempt + 1)
+      })
+    }
+  }, delay)
+}
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -23,7 +47,26 @@ function createWindow() {
 
   if (process.env.NODE_ENV === 'development') {
     const port = process.env.DEV_SERVER_PORT || 9080
-    mainWindow.loadURL(`http://localhost:${port}`)
+    const devServerUrl = `http://localhost:${port}`
+
+    mainWindow.webContents.on(
+      'did-fail-load',
+      (_event, errorCode, _errorDescription, validatedURL, isMainFrame) => {
+        if (!isMainFrame) return
+        if (validatedURL !== devServerUrl) return
+        if (errorCode === -102 || errorCode === -105 || errorCode === -300) {
+          scheduleDevServerReload(mainWindow, devServerUrl)
+        }
+      }
+    )
+
+    mainWindow.webContents.on('did-finish-load', () => {
+      clearDevServerRetryTimer()
+    })
+
+    mainWindow.loadURL(devServerUrl).catch(() => {
+      scheduleDevServerReload(mainWindow, devServerUrl)
+    })
     // DevTools: abrir manualmente com F12 se precisar (evita erro dragEvent ao trocar abas)
     // mainWindow.webContents.openDevTools()
   } else {
@@ -31,6 +74,7 @@ function createWindow() {
   }
 
   mainWindow.on('closed', () => {
+    clearDevServerRetryTimer()
     mainWindow = null
   })
 }
@@ -66,24 +110,31 @@ function registerIpcHandlers() {
 
   // Deck cards
   ipcMain.handle('ygoDb:getDeckCards', (_e, deckId) => database.getDeckCards(deckId))
-  ipcMain.handle('ygoDb:addCardToDeck', (_e, deckId, cardId, cardData) => database.addCardToDeck(deckId, cardId, cardData))
+  ipcMain.handle('ygoDb:getDeckCardsByGame', (_e, game) => database.getDeckCardsByGame(game))
+  ipcMain.handle('ygoDb:addCardToDeck', (_e, deckId, cardId, cardData, insertAfterSortOrder) => database.addCardToDeck(deckId, cardId, cardData, insertAfterSortOrder))
   ipcMain.handle('ygoDb:updateDeckCard', (_e, id, cardData) => database.updateDeckCard(id, cardData))
+  ipcMain.handle('ygoDb:updateDeckCardsBulk', (_e, updates) => database.updateDeckCardsBulk(updates))
   ipcMain.handle('ygoDb:removeDeckCard', (_e, id) => database.removeDeckCard(id))
+  ipcMain.handle('ygoDb:replaceDeckCards', (_e, deckId, cards) => database.replaceDeckCards(deckId, cards))
+  ipcMain.handle('ygoDb:importDeckWithCards', (_e, name, game, cards) => database.importDeckWithCards(name, game, cards))
 
   // Card art filesystem
   ipcMain.handle('cardArt:get', async (_e, id, imageUrl) => {
     const buf = await cardArt.getCardArt(id, imageUrl)
     return buf ? buf.toString('base64') : null
   })
+  ipcMain.handle('cardArt:getUrl', (_e, id, imageUrl) =>
+    cardArt.getCardArtUrl(id, imageUrl)
+  )
   ipcMain.handle('cardArt:exists', (_e, id) => cardArt.cardArtExists(id))
 
   // PDF para Silhouette/Cricut (integrado, sem Python externo)
-  ipcMain.handle('silhouette:generatePdf', async (_e, { images, cardSize = 'japanese', paperSize = 'a4', cardsTouch = false }) => {
+  ipcMain.handle('silhouette:generatePdf', async (_e, { images, cardSize = 'japanese', paperSize = 'a4', cardsTouch = false, includeImages = true }) => {
     if (!Array.isArray(images) || images.length === 0) {
       throw new Error('Informe ao menos uma imagem (array de { base64 } ou strings base64).')
     }
     const list = images.map((img) => (typeof img === 'string' ? { base64: img } : img))
-    return silhouettePdf.generateSilhouettePdf(list, cardSize, paperSize, { cardsTouch })
+    return silhouettePdf.generateSilhouettePdf(list, cardSize, paperSize, { cardsTouch, includeImages })
   })
   ipcMain.handle('silhouette:getTemplate', (_e, templateFileName) => {
     const buf = silhouettePdf.getTemplateBuffer(templateFileName)
