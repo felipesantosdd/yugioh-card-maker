@@ -594,7 +594,7 @@
                   d-flex
                   flex-column flex-grow-1
                   min-h-0
-                  overflow-y-auto
+                  overflow-hidden
                 "
               >
                 <b-tabs
@@ -607,811 +607,138 @@
                     class="d-flex flex-column min-h-0"
                     lazy
                   >
-                    <div
-                      v-if="currentBaseCard"
-                      class="
-                        d-flex
-                        justify-content-end
-                        align-items-center
-                        flex-shrink-0
-                        h-200%
+                    <YgoCreateEditPanel
+                      :ui="ui"
+                      :uiLang="uiLang"
+                      :currentBaseCard="currentBaseCard"
+                      :isFieldsLocked="isFieldsLocked"
+                      :deckEditLock="deckEditLock"
+                      :baseCardNeedsTranslation="baseCardNeedsTranslation"
+                      :holo="holo"
+                      @update:holo="(v) => (holo = v)"
+                      :cardRare="cardRare"
+                      :cardRareOpts="cardRareOpts"
+                      @update:cardRare="(v) => (cardRare = v)"
+                      :titleColor="titleColor"
+                      @update:titleColor="(v) => (titleColor = v)"
+                      :cardLoadYgoProEnabled="cardLoadYgoProEnabled"
+                      @update:cardLoadYgoProEnabled="
+                        (v) => (cardLoadYgoProEnabled = v)
                       "
-                    >
-                      <b-button
-                        size="sm"
-                        :variant="
-                          baseCardNeedsTranslation
-                            ? 'warning'
-                            : 'outline-warning'
-                        "
-                        @click="openTranslationModal"
-                      >
-                        <fa :icon="['fas', 'language']" class="mr-1" />
-                        {{ ui[uiLang].translate || 'Traduzir' }}
-                      </b-button>
-                    </div>
-                    <!-- Banner de campos bloqueados -->
-                    <div
-                      v-if="isFieldsLocked"
-                      class="
-                        alert alert-info
-                        py-2
-                        mb-3
-                        small
-                        d-flex
-                        align-items-center
-                        justify-content-between
+                      :cardKey="cardKey"
+                      @update:cardKey="(v) => (cardKey = v)"
+                      :apiCardLoading="apiCardLoading"
+                      :apiCardError="apiCardError"
+                      :cardTitle="cardTitle"
+                      @update:cardTitle="(v) => (cardTitle = v)"
+                      :cardImg="cardImg"
+                      @update:cardImg="(v) => (cardImg = v)"
+                      :cardType="cardType"
+                      :cardTypeOpts="cardTypeOpts"
+                      @update:cardType="(v) => (cardType = v)"
+                      :cardSubtype="cardSubtype"
+                      :cardSubtypeOpts="cardSubtypeOpts"
+                      @update:cardSubtype="(v) => (cardSubtype = v)"
+                      :cardEff1="cardEff1"
+                      :cardEff1Opts="cardEff1Opts"
+                      @update:cardEff1="(v) => (cardEff1 = v)"
+                      :cardEff2="cardEff2"
+                      :cardEff2Opts="cardEff2Opts"
+                      @update:cardEff2="(v) => (cardEff2 = v)"
+                      :cardAttr="cardAttr"
+                      :cardAttrOpts="cardAttrOpts"
+                      @update:cardAttr="(v) => (cardAttr = v)"
+                      :cardCustomRaceEnabled="cardCustomRaceEnabled"
+                      @update:cardCustomRaceEnabled="
+                        (v) => (cardCustomRaceEnabled = v)
                       "
-                    >
-                      <span>
-                        <fa :icon="['fas', 'lock']" class="mr-1" />
-                        {{
-                          ui[uiLang].fields_locked ||
-                          'Card do banco de dados (somente leitura). Adicione a um deck para editar.'
-                        }}
-                      </span>
-                      <span></span>
-                    </div>
-                    <div
-                      class="
-                        data-panel-editor-scroll
-                        d-flex
-                        flex-column flex-grow-1
-                        min-h-0
+                      :cardCustomRace="cardCustomRace"
+                      @update:cardCustomRace="(v) => (cardCustomRace = v)"
+                      :cardRace="cardRace"
+                      :cardRaceOpts="cardRaceOpts"
+                      @update:cardRace="(v) => (cardRace = v)"
+                      :canPendulumEnabled="canPendulumEnabled"
+                      :Pendulum="Pendulum"
+                      @update:Pendulum="(v) => (Pendulum = v)"
+                      :Special="Special"
+                      @update:Special="(v) => (Special = v)"
+                      :cardLevel="cardLevel"
+                      :cardLevelOpts="cardLevelOpts"
+                      @update:cardLevel="(v) => (cardLevel = v)"
+                      :cardBLUE="cardBLUE"
+                      :cardRED="cardRED"
+                      :pendulumSize="pendulumSize"
+                      :cardPendulumInfo="cardPendulumInfo"
+                      @update:cardBLUE="(v) => (cardBLUE = v)"
+                      @update:cardRED="(v) => (cardRED = v)"
+                      @update:pendulumSize="(v) => (pendulumSize = v)"
+                      @update:cardPendulumInfo="(v) => (cardPendulumInfo = v)"
+                      :cardATK="cardATK"
+                      :cardDEF="cardDEF"
+                      :isLinkMonster="isLinkMonster"
+                      :links="links"
+                      @update:link="
+                        ({ index, value }) => {
+                          links[index].val = value
+                        }
                       "
-                    >
-                      <fieldset
-                        :disabled="isFieldsLocked || deckEditLock"
-                        class="d-flex flex-column data-panel-fieldset"
-                      >
-                        <div
-                          class="card-body card-form-scroll"
-                          :class="{ 'form-faded': deckEditLock }"
-                        >
-                          <!-- Autenticidade, Raridade, Cor -->
-                          <b-row class="mb-3">
-                            <!-- Etiqueta de autenticidade -->
-                            <b-col cols="6" lg="3" class="px-2">
-                              <div class="form-check px-0">
-                                <label>{{
-                                  ui[uiLang].square_foil_stamp
-                                }}</label>
-                                <b-form-checkbox
-                                  v-model="holo"
-                                  :class="{
-                                    'checkbox-wrap': true,
-                                    active: holo,
-                                  }"
-                                  button
-                                  >{{
-                                    holo ? ui[uiLang].on : ui[uiLang].off
-                                  }}</b-form-checkbox
-                                >
-                              </div>
-                            </b-col>
-                            <!-- Etiqueta de autenticação -->
-                            <b-col cols="6" lg="3" class="px-2">
-                              <label>{{ ui[uiLang].rarity }}</label>
-                              <b-form-select
-                                v-model="cardRare"
-                                :options="cardRareOpts"
-                              ></b-form-select>
-                            </b-col>
-                            <!-- Cor do nome do card -->
-                            <b-col cols="6" lg="3" class="px-2">
-                              <label>{{ ui[uiLang].title_color }}</label>
-                              <b-form-input
-                                v-model="titleColor"
-                                type="color"
-                              ></b-form-input>
-                            </b-col>
-                          </b-row>
-
-                          <!-- Codigo do card -->
-                          <b-row class="my-3">
-                            <b-col cols="6" lg="4" class="px-2">
-                              <div class="form-check px-0">
-                                <label>{{ ui[uiLang].card_secret }}</label>
-                                <b-form-checkbox
-                                  v-model="cardLoadYgoProEnabled"
-                                  :class="{
-                                    'checkbox-wrap': true,
-                                    active: cardLoadYgoProEnabled,
-                                  }"
-                                  button
-                                  >{{
-                                    ui[uiLang].auto_fill_card_data
-                                  }}</b-form-checkbox
-                                >
-                              </div>
-                            </b-col>
-                            <b-col cols="6" lg="8" class="px-2">
-                              <label
-                                ><small>{{
-                                  ui[uiLang].card_secret_note
-                                }}</small></label
-                              >
-                              <b-form-input
-                                v-model="cardKey"
-                                type="number"
-                                maxlength="8"
-                                :placeholder="ui[uiLang].plz_input_card_secret"
-                              />
-                              <small v-if="apiCardLoading" class="text-muted">{{
-                                ui[uiLang].search_loading
-                              }}</small>
-                              <small
-                                v-else-if="apiCardError"
-                                class="text-danger"
-                                >{{ apiCardError }}</small
-                              >
-                            </b-col>
-                          </b-row>
-
-                          <!-- Nome do card -->
-                          <b-row class="my-3">
-                            <b-col class="px-2">
-                              <label>{{ ui[uiLang].card_name }}</label>
-                              <b-form-input v-model="cardTitle"></b-form-input>
-                            </b-col>
-                          </b-row>
-
-                          <!-- Imagem do card -->
-                          <b-row class="my-3">
-                            <b-col class="px-2">
-                              <b-form-file
-                                v-model="cardImg"
-                                :state="Boolean(cardImg)"
-                                :placeholder="ui[uiLang].upload_image"
-                                browse="✚"
-                                accept="image/*"
-                                :drop-placeholder="ui[uiLang].drag_and_drop"
-                              ></b-form-file>
-                            </b-col>
-                          </b-row>
-
-                          <!-- Tipo do card, Face do card, Efeito do card -->
-                          <b-row class="my-3">
-                            <!-- Tipo de card -->
-                            <b-col cols="6" lg="3" class="px-2">
-                              <label>{{ ui[uiLang].card_type }}</label>
-                              <b-form-select
-                                v-model="cardType"
-                                :options="cardTypeOpts"
-                              ></b-form-select>
-                            </b-col>
-
-                            <!-- Face do card -->
-                            <b-col cols="6" lg="3" class="px-2">
-                              <label>{{ ui[uiLang].card_subtype }}</label>
-                              <b-form-select
-                                v-model="cardSubtype"
-                                :options="cardSubtypeOpts[cardType]"
-                              ></b-form-select>
-                            </b-col>
-
-                            <!-- Efeito -->
-                            <b-col
-                              v-show="cardType === 'Monster'"
-                              cols="6"
-                              lg="3"
-                              class="px-2"
-                            >
-                              <label>{{ ui[uiLang].card_effect }}</label>
-                              <b-form-select
-                                v-model="cardEff1"
-                                :options="cardEff1Opts"
-                              ></b-form-select>
-                            </b-col>
-                            <b-col
-                              v-show="cardType === 'Monster'"
-                              cols="6"
-                              lg="3"
-                              class="px-2"
-                            >
-                              <label>&emsp;</label>
-                              <b-form-select
-                                v-model="cardEff2"
-                                :options="cardEff2Opts"
-                              ></b-form-select>
-                            </b-col>
-                          </b-row>
-
-                          <!-- Atributo, Tipo -->
-                          <b-row v-show="cardType === 'Monster'" class="my-3">
-                            <!-- 屬性 -->
-                            <b-col cols="12" lg="6" class="px-2">
-                              <label>{{ ui[uiLang].card_attribute }}</label>
-                              <b-form-select
-                                v-model="cardAttr"
-                                :options="cardAttrOpts"
-                              ></b-form-select>
-                            </b-col>
-
-                            <!-- Tipo de Card -->
-                            <b-col
-                              v-show="cardType === 'Monster'"
-                              cols="6"
-                              lg="3"
-                              class="px-2"
-                            >
-                              <div class="form-check px-0">
-                                <label>{{ ui[uiLang].card_race_type }}</label>
-                                <b-form-checkbox
-                                  v-model="cardCustomRaceEnabled"
-                                  :class="{
-                                    'checkbox-wrap': true,
-                                    active: cardCustomRaceEnabled,
-                                  }"
-                                  button
-                                  >{{ ui[uiLang].custom }}</b-form-checkbox
-                                >
-                              </div>
-                            </b-col>
-                            <!-- Tipo - Seleção de Tipo -->
-                            <b-col
-                              v-show="!cardCustomRaceEnabled"
-                              cols="6"
-                              lg="3"
-                              class="px-2"
-                            >
-                              <label>&emsp;</label>
-                              <b-form-select
-                                v-model="cardRace"
-                                :options="cardRaceOpts"
-                              ></b-form-select>
-                            </b-col>
-                            <!-- Tipo - Entrada Personalizada -->
-                            <b-col
-                              v-show="cardCustomRaceEnabled"
-                              cols="6"
-                              lg="3"
-                              class="px-2"
-                            >
-                              <label>&emsp;</label>
-                              <b-form-input
-                                v-model="cardCustomRace"
-                                type="text"
-                                maxlength="8"
-                                :placeholder="ui[uiLang].plz_input_race_type"
-                              />
-                            </b-col>
-                          </b-row>
-
-                          <!-- Balanço de Pêndulo, Invocação Especial, Nível -->
-                          <b-row class="my-3">
-                            <!-- Balanço de Pêndulo -->
-                            <b-col
-                              v-show="canPendulumEnabled"
-                              cols="6"
-                              lg="4"
-                              class="px-2"
-                            >
-                              <div class="form-check px-0">
-                                <label>&emsp;</label>
-                                <b-form-checkbox
-                                  v-model="Pendulum"
-                                  :class="{
-                                    'checkbox-wrap': true,
-                                    active: Pendulum,
-                                  }"
-                                  button
-                                  >{{ ui[uiLang].pendulum }}</b-form-checkbox
-                                >
-                              </div>
-                            </b-col>
-
-                            <!-- Invocação Especial -->
-                            <b-col
-                              v-show="cardType === 'Monster'"
-                              cols="6"
-                              lg="4"
-                              class="px-2"
-                            >
-                              <div class="form-check px-0">
-                                <label>&emsp;</label>
-                                <b-form-checkbox
-                                  v-model="Special"
-                                  :class="{
-                                    'checkbox-wrap': true,
-                                    active: Special,
-                                  }"
-                                  button
-                                  >{{
-                                    ui[uiLang].special_summon
-                                  }}</b-form-checkbox
-                                >
-                              </div>
-                            </b-col>
-
-                            <!-- Nível -->
-                            <b-col
-                              v-show="cardType === 'Monster' && !isLinkMonster"
-                              cols="12"
-                              lg="4"
-                              class="px-2"
-                            >
-                              <label>{{ ui[uiLang].lavel_and_rank }}</label>
-                              <b-form-select
-                                v-model="cardLevel"
-                                :options="cardLevelOpts"
-                              ></b-form-select>
-                            </b-col>
-                          </b-row>
-
-                          <!-- Área de Efeito de Pêndulo -->
-                          <b-row v-show="Pendulum" class="my-3">
-                            <b-col cols="12">
-                              <h4 class="text-light text-center">
-                                {{ ui[uiLang].pendulum_area }}
-                              </h4>
-                            </b-col>
-                            <b-col cols="12">
-                              <b-row class="mb-3">
-                                <b-col cols="4" class="px-2">
-                                  <label>{{ ui[uiLang].pendulum_blue }}</label>
-                                  <b-form-input
-                                    v-model="cardBLUE"
-                                    type="number"
-                                    min="0"
-                                    max="12"
-                                  ></b-form-input>
-                                </b-col>
-
-                                <b-col cols="4" class="px-2">
-                                  <label>{{ ui[uiLang].pendulum_red }}</label>
-                                  <b-form-input
-                                    v-model="cardRED"
-                                    type="number"
-                                    min="0"
-                                    max="12"
-                                  ></b-form-input>
-                                </b-col>
-
-                                <b-col cols="4" class="px-2">
-                                  <label>{{ ui[uiLang].text_size }}</label>
-                                  <b-form-input
-                                    v-model="pendulumSize"
-                                    type="number"
-                                  ></b-form-input>
-                                </b-col>
-                              </b-row>
-
-                              <b-row class="my-3">
-                                <b-col class="px-2">
-                                  <label>{{
-                                    ui[uiLang].pendulum_effect_label ||
-                                    'Efeito de Pêndulo'
-                                  }}</label>
-                                  <b-form-textarea
-                                    v-model="cardPendulumInfo"
-                                    rows="5"
-                                  ></b-form-textarea>
-                                </b-col>
-                              </b-row>
-                            </b-col>
-                          </b-row>
-
-                          <!-- Área de Ataque/Defesa -->
-                          <b-row class="my-3">
-                            <!-- Ataque -->
-                            <b-col
-                              v-show="cardType === 'Monster'"
-                              cols="4"
-                              class="px-2"
-                            >
-                              <label>{{ ui[uiLang].attack }}</label>
-                              <b-form-input
-                                v-model="cardATK"
-                                type="text"
-                                maxlength="6"
-                              ></b-form-input>
-                            </b-col>
-
-                            <!-- Defesa -->
-                            <b-col
-                              v-show="cardType === 'Monster' && !isLinkMonster"
-                              cols="4"
-                              class="px-2"
-                            >
-                              <label>{{ ui[uiLang].defence }}</label>
-                              <b-form-input
-                                v-model="cardDEF"
-                                type="text"
-                                maxlength="6"
-                              ></b-form-input>
-                            </b-col>
-
-                            <!-- Link -->
-                            <b-col v-show="isLinkMonster" cols="4" class="px-2">
-                              <label>{{ ui[uiLang].link }}</label>
-                              <table>
-                                <tr v-for="row in [0, 1, 2]" :key="row">
-                                  <td v-for="col in [1, 2, 3]" :key="col">
-                                    <b-form-checkbox
-                                      v-if="row * 3 + col !== 5"
-                                      v-model="links[row * 3 + col].val"
-                                      :class="{
-                                        'checkbox-wrap': true,
-                                        active: links[row * 3 + col].val,
-                                      }"
-                                      button
-                                      >{{
-                                        links[row * 3 + col].symbol
-                                      }}</b-form-checkbox
-                                    >
-                                  </td>
-                                </tr>
-                              </table>
-                            </b-col>
-
-                            <!-- Tamanho do texto e posição (top) -->
-                            <b-col cols="2" class="px-2">
-                              <label>{{ ui[uiLang].text_size }}</label>
-                              <b-form-input
-                                v-model.number="infoSize"
-                                type="number"
-                              ></b-form-input>
-                            </b-col>
-                            <b-col cols="2" class="px-2">
-                              <label>{{ ui[uiLang].text_position }}</label>
-                              <b-form-input
-                                v-model.number="infoPosition"
-                                type="number"
-                                placeholder="0"
-                              ></b-form-input>
-                            </b-col>
-                          </b-row>
-
-                          <!-- Descrição do cartão (ou Efeito de Monstro quando Pêndulo) -->
-                          <b-row class="my-3">
-                            <b-col class="px-2">
-                              <label>{{
-                                Pendulum
-                                  ? ui[uiLang].monster_effect_label ||
-                                    'Efeito de Monstro'
-                                  : ui[uiLang].card_info_text
-                              }}</label>
-                              <b-form-textarea
-                                v-model="cardInfo"
-                                rows="5"
-                              ></b-form-textarea>
-                            </b-col>
-                          </b-row>
-                        </div>
-                      </fieldset>
-                      <!-- Área de botões do form: apenas Salvar (alterações do card) e Download, Redefinir -->
-                      <b-row class="my-3 mx-0 flex-shrink-0">
-                        <b-col class="px-2">
-                          <button
-                            type="button"
-                            class="my-2 btn btn-success"
-                            @click="download_img"
-                          >
-                            {{ ui[uiLang].download }}
-                          </button>
-                          <b-button
-                            v-if="hasUnsavedLayoutChanges"
-                            class="my-2 ml-2"
-                            variant="success"
-                            @click="saveDeckCardChanges"
-                          >
-                            {{ ui[uiLang].save_changes }}
-                          </b-button>
-                          <label style="color: #ccc"
-                            >&emsp;{{ ui[uiLang].auto_gen_note }}</label
-                          >
-                        </b-col>
-                        <b-col cols="6" class="px-2 text-right">
-                          <button
-                            type="button"
-                            class="my-2 btn btn-danger"
-                            @click="load_default_data"
-                          >
-                            {{ ui[uiLang].reset_to_default }}
-                          </button>
-                        </b-col>
-                      </b-row>
-                    </div>
+                      :infoSize="infoSize"
+                      :infoPosition="infoPosition"
+                      :cardInfo="cardInfo"
+                      @update:cardATK="(v) => (cardATK = v)"
+                      @update:cardDEF="(v) => (cardDEF = v)"
+                      @update:infoSize="(v) => (infoSize = v)"
+                      @update:infoPosition="(v) => (infoPosition = v)"
+                      @update:cardInfo="(v) => (cardInfo = v)"
+                      :hasUnsavedLayoutChanges="hasUnsavedLayoutChanges"
+                      @open-translation-modal="openTranslationModal"
+                      @download-img="download_img"
+                      @save-deck-card-changes="saveDeckCardChanges"
+                      @load-default-data="load_default_data"
+                    />
                   </b-tab>
                   <b-tab
                     :title="ui[uiLang].tab_search || 'Busca'"
                     class="d-flex flex-column min-h-0 search-tab-layout"
                     lazy
                   >
-                    <!-- Busca por nome ou arquétipo -->
-                    <div class="search-tab-content debug-search-column">
-                      <div
-                        class="
-                          search-panel-col
-                          flex-shrink-0
-                          debug-search-controls
-                        "
-                      >
-                        <b-row class="align-items-end">
-                          <b-col cols="12" md="auto" class="mb-2 mb-md-0">
-                            <label class="d-block mb-2">{{
-                              ui[uiLang].search_cards
-                            }}</label>
-                            <b-form-radio-group
-                              v-model="searchMode"
-                              buttons
-                              button-variant="outline-secondary"
-                              size="sm"
-                            >
-                              <b-form-radio value="archetype">{{
-                                ui[uiLang].search_by_archetype
-                              }}</b-form-radio>
-                              <b-form-radio value="name">{{
-                                ui[uiLang].search_by_name
-                              }}</b-form-radio>
-                            </b-form-radio-group>
-                          </b-col>
-                          <b-col
-                            cols="12"
-                            md
-                            class="
-                              mb-2 mb-md-0
-                              d-flex
-                              justify-content-end
-                              flex-wrap
-                            "
-                          >
-                            <div
-                              v-if="searchMode === 'archetype'"
-                              class="
-                                position-relative
-                                mr-1
-                                flex-grow-1 flex-md-grow-0
-                              "
-                              style="min-width: 180px; max-width: 320px"
-                            >
-                              <b-form-input
-                                v-model="searchByArchetype"
-                                :placeholder="
-                                  ui[uiLang].search_placeholder_archetype
-                                "
-                                autocomplete="off"
-                                @focus="showArchetypeDropdown = true"
-                                @keyup.enter="
-                                  filteredArchetypes.length
-                                    ? selectArchetype(filteredArchetypes[0])
-                                    : searchCards()
-                                "
-                                @input="showArchetypeDropdown = true"
-                                @blur="closeArchetypeDropdown"
-                              />
-                              <ul
-                                v-if="
-                                  showArchetypeDropdown &&
-                                  searchByArchetype.length >= 1
-                                "
-                                class="
-                                  list-group
-                                  position-absolute
-                                  shadow
-                                  mt-1
-                                  w-100
-                                  archetype-dropdown
-                                "
-                                style="max-height: 220px; overflow-y: auto"
-                              >
-                                <li
-                                  v-for="(opt, idx) in filteredArchetypes.slice(
-                                    0,
-                                    15
-                                  )"
-                                  :key="idx"
-                                  class="
-                                    list-group-item list-group-item-action
-                                    py-2
-                                  "
-                                  @click="selectArchetype(opt)"
-                                >
-                                  {{ opt.archetype_name }}
-                                </li>
-                              </ul>
-                            </div>
-                            <div
-                              v-else
-                              class="
-                                position-relative
-                                mr-1
-                                flex-grow-1 flex-md-grow-0
-                              "
-                              style="min-width: 180px; max-width: 320px"
-                            >
-                              <b-form-input
-                                v-model="searchByName"
-                                :placeholder="
-                                  ui[uiLang].search_placeholder_name
-                                "
-                                autocomplete="off"
-                                @focus="showNameDropdown = true"
-                                @keyup.enter="
-                                  filteredCardsByName.length
-                                    ? selectCardFromName(filteredCardsByName[0])
-                                    : null
-                                "
-                                @input="showNameDropdown = true"
-                                @blur="closeNameDropdown"
-                              />
-                              <ul
-                                v-if="
-                                  showNameDropdown && searchByName.length >= 1
-                                "
-                                class="
-                                  list-group
-                                  position-absolute
-                                  shadow
-                                  mt-1
-                                  w-100
-                                  archetype-dropdown
-                                "
-                                style="max-height: 220px; overflow-y: auto"
-                              >
-                                <li
-                                  v-for="card in filteredCardsByName.slice(
-                                    0,
-                                    15
-                                  )"
-                                  :key="card.id"
-                                  class="
-                                    list-group-item list-group-item-action
-                                    py-2
-                                  "
-                                  @click="selectCardFromName(card)"
-                                >
-                                  {{ getFilteredCardDisplayName(card) }}
-                                </li>
-                              </ul>
-                            </div>
-                          </b-col>
-                        </b-row>
-                      </div>
-                      <!-- Resultados da busca (classificados: arquétipo > nome > descrição) -->
-                      <div
-                        class="data-panel-search-scroll debug-search-results"
-                      >
-                        <div
-                          v-if="searchResults.length > 0"
-                          class="panel-bg shadow p-3 search-results-panel"
-                        >
-                          <label class="d-block mb-2">{{
-                            ui[uiLang].search_results
-                          }}</label>
-                          <template v-if="searchResultsByArchetype.length > 0">
-                            <div class="small text-muted mb-1 mt-2">
-                              {{ getSearchSectionLabel('archetype') }} ({{
-                                searchResultsByArchetype.length
-                              }})
-                            </div>
-                            <div class="search-results-grid mb-3">
-                              <img
-                                v-for="card in searchResultsByArchetype"
-                                :key="'arch-' + card.id"
-                                v-b-tooltip.hover.top="getDisplayName(card)"
-                                :src="getSearchResultImageSrc(card)"
-                                :alt="getDisplayName(card)"
-                                class="search-thumb rounded"
-                                loading="lazy"
-                                @click="applyCardFromSearch(card)"
-                                @error="onSearchResultImgError(card, $event)"
-                              />
-                            </div>
-                          </template>
-                          <template
-                            v-if="
-                              searchMode === 'name' &&
-                              searchResultsByName.length > 0
-                            "
-                          >
-                            <div class="small text-muted mb-1 mt-2">
-                              {{ getSearchSectionLabel('name') }} ({{
-                                searchResultsByName.length
-                              }})
-                            </div>
-                            <div class="search-results-grid mb-3">
-                              <img
-                                v-for="card in searchResultsByName"
-                                :key="'name-' + card.id"
-                                v-b-tooltip.hover.top="getDisplayName(card)"
-                                :src="getSearchResultImageSrc(card)"
-                                :alt="getDisplayName(card)"
-                                class="search-thumb rounded"
-                                loading="lazy"
-                                @click="applyCardFromSearch(card)"
-                                @error="onSearchResultImgError(card, $event)"
-                              />
-                            </div>
-                          </template>
-                          <template
-                            v-if="
-                              searchMode === 'name' &&
-                              searchResultsByDesc.length > 0
-                            "
-                          >
-                            <div class="small text-muted mb-1 mt-2">
-                              {{ getSearchSectionLabel('desc') }} ({{
-                                searchResultsByDesc.length
-                              }})
-                            </div>
-                            <div class="search-results-grid">
-                              <img
-                                v-for="card in searchResultsByDesc"
-                                :key="'desc-' + card.id"
-                                v-b-tooltip.hover.top="getDisplayName(card)"
-                                :src="getSearchResultImageSrc(card)"
-                                :alt="getDisplayName(card)"
-                                class="search-thumb rounded"
-                                loading="lazy"
-                                @click="applyCardFromSearch(card)"
-                                @error="onSearchResultImgError(card, $event)"
-                              />
-                            </div>
-                          </template>
-                          <template v-if="searchResultsCitedRelated.length > 0">
-                            <div class="small text-muted mb-1 mt-2">
-                              {{
-                                ui[uiLang].search_section_cited ||
-                                'Cards citados e relacionados'
-                              }}
-                              ({{ searchResultsCitedRelated.length }})
-                            </div>
-                            <div class="search-results-grid">
-                              <img
-                                v-for="card in searchResultsCitedRelated"
-                                :key="'cited-' + card.id"
-                                v-b-tooltip.hover.top="getDisplayName(card)"
-                                :src="getSearchResultImageSrc(card)"
-                                :alt="getDisplayName(card)"
-                                class="search-thumb rounded"
-                                loading="lazy"
-                                @click="applyCardFromSearch(card)"
-                                @error="onSearchResultImgError(card, $event)"
-                              />
-                            </div>
-                          </template>
-                          <template
-                            v-if="
-                              searchMode === 'archetype' &&
-                              searchResultsRelated.length > 0
-                            "
-                          >
-                            <div class="small text-muted mb-1 mt-2">
-                              {{ getSearchSectionLabel('related') }} ({{
-                                searchResultsRelated.length
-                              }})
-                            </div>
-                            <div class="search-results-grid">
-                              <img
-                                v-for="card in searchResultsRelated"
-                                :key="'rel-' + card.id"
-                                v-b-tooltip.hover.top="getDisplayName(card)"
-                                :src="getSearchResultImageSrc(card)"
-                                :alt="getDisplayName(card)"
-                                class="search-thumb rounded"
-                                loading="lazy"
-                                @click="applyCardFromSearch(card)"
-                                @error="onSearchResultImgError(card, $event)"
-                              />
-                            </div>
-                          </template>
-                        </div>
-                        <div
-                          v-else-if="searchTried && !searchLoading"
-                          class="
-                            panel-bg
-                            shadow
-                            p-3
-                            text-muted text-center
-                            search-results-panel
-                          "
-                        >
-                          {{ ui[uiLang].search_no_results }}
-                        </div>
-                      </div>
-                    </div>
+                    <YgoSearchDataPanel
+                      :ui="ui"
+                      :uiLang="uiLang"
+                      :searchMode="searchMode"
+                      :searchByArchetype="searchByArchetype"
+                      :searchByName="searchByName"
+                      :showArchetypeDropdown="showArchetypeDropdown"
+                      :showNameDropdown="showNameDropdown"
+                      :filteredArchetypes="filteredArchetypes"
+                      :filteredCardsByName="filteredCardsByName"
+                      :searchResults="searchResults"
+                      :searchResultsByArchetype="searchResultsByArchetype"
+                      :searchResultsByName="searchResultsByName"
+                      :searchResultsByDesc="searchResultsByDesc"
+                      :searchResultsCitedRelated="searchResultsCitedRelated"
+                      :searchResultsRelated="searchResultsRelated"
+                      :searchTried="searchTried"
+                      :searchLoading="searchLoading"
+                      :getDisplayName="getDisplayName"
+                      :getFilteredCardDisplayName="getFilteredCardDisplayName"
+                      :getSearchResultImageSrc="getSearchResultImageSrc"
+                      :getSearchSectionLabel="getSearchSectionLabel"
+                      :selectArchetypeFn="selectArchetype"
+                      :searchCardsFn="searchCards"
+                      :closeArchetypeDropdownFn="closeArchetypeDropdown"
+                      :closeNameDropdownFn="closeNameDropdown"
+                      :selectCardFromNameFn="selectCardFromName"
+                      :applyCardFromSearchFn="applyCardFromSearch"
+                      :onSearchResultImgErrorFn="onSearchResultImgError"
+                      @update:searchMode="(v) => (searchMode = v)"
+                      @update:searchByArchetype="(v) => (searchByArchetype = v)"
+                      @update:searchByName="(v) => (searchByName = v)"
+                      @update:showArchetypeDropdown="
+                        (v) => (showArchetypeDropdown = v)
+                      "
+                      @update:showNameDropdown="(v) => (showNameDropdown = v)"
+                    />
                   </b-tab>
                 </b-tabs>
               </div>
@@ -2561,6 +1888,8 @@ import YgoImportDeckModal from '../components/YgoImportDeckModal.vue'
 import YgoDecksPanel from '../components/index/YgoDecksPanel.vue'
 import YgoSearchTab from '../components/index/YgoSearchTab.vue'
 import YgoTranslationModal from '../components/YgoTranslationModal.vue'
+import YgoCreateEditPanel from '../components/index/YgoCreateEditPanel.vue'
+import YgoSearchDataPanel from '../components/index/YgoSearchDataPanel.vue'
 import ui from '../../../static/lang.ui.json'
 import cardMeta from '../../../static/lang.card_meta.json'
 import archetypesList from '../../../static/archetypes.json'
@@ -2596,6 +1925,8 @@ export default {
     YgoImportDeckModal,
     YgoSearchTab,
     YgoTranslationModal,
+    YgoCreateEditPanel,
+    YgoSearchDataPanel,
   },
   data() {
     return {
@@ -6769,7 +6100,8 @@ body,
   flex: 1 1 auto;
   min-height: 0;
   max-height: 100%;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: visible;
   width: 100%;
   max-width: 100%;
 }
@@ -6781,6 +6113,11 @@ body,
   width: 100%;
   max-width: 100%;
 }
+/* Abas inativas: não ocupam espaço (evita busca aparecer na coluna Criar/Editar) */
+#data-panel .tab-pane:not(.active),
+#mh-data-panel .tab-pane:not(.active) {
+  display: none !important;
+}
 #data-panel .tab-pane,
 #mh-data-panel .tab-pane {
   flex: 1 1 auto;
@@ -6790,11 +6127,15 @@ body,
 }
 #data-panel .tabs,
 #data-panel .tab-content,
-#data-panel .tab-pane,
-#data-panel .tab-pane.active,
 #mh-data-panel .tabs,
-#mh-data-panel .tab-content,
-#mh-data-panel .tab-pane,
+#mh-data-panel .tab-content {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  width: 100%;
+  max-width: 100%;
+}
+#data-panel .tab-pane.active,
 #mh-data-panel .tab-pane.active {
   display: flex;
   flex-direction: column;
@@ -6817,48 +6158,66 @@ body,
 #mh-data-panel .my-3.mx-0 {
   flex-shrink: 0;
 }
-/* Coluna direita: um único scroll na área de edição */
-.data-panel-editor-scroll {
-  overflow-y: auto;
-  overflow-x: hidden;
+/* Aba Criar/Editar: ocupa toda a altura da coluna */
+.ygo-create-edit-panel {
+  flex: 1 1 auto;
   min-height: 0;
-  max-height: 100%;
-  width: 100%;
-  padding-right: 6px;
-  overscroll-behavior: contain;
-}
-.data-panel-search-scroll {
   display: flex;
   flex-direction: column;
+}
+/* Coluna direita: área do form usa o espaço que sobra e rola */
+.data-panel-editor-scroll {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  padding-right: 6px;
   overflow-y: auto;
   overflow-x: hidden;
-  flex: 1 1 auto;
-  width: 100%;
-  margin-top: 12px;
-  padding-right: 6px;
-  min-height: 200px;
 }
+/* Aba Busca: coluna com altura garantida e sem cortar o dropdown */
 .search-tab-layout {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 400px;
   height: 100%;
 }
+/* Container da busca: NÃO usar overflow hidden para o dropdown do autocomplete aparecer */
 .search-tab-content {
   display: flex;
   flex-direction: column;
   flex: 1 1 auto;
   min-height: 0;
+  overflow: visible;
 }
-.search-results-panel {
+/* Área de resultados: ocupa o resto e só ela rola */
+.data-panel-search-scroll {
   display: flex;
   flex-direction: column;
-}
-.search-results-grid {
-  display: flex;
-  flex-wrap: wrap;
-  align-content: flex-start;
-  justify-content: space-around;
+  flex: 1 1 auto;
+  min-height: 200px;
+  width: 100%;
+  margin-top: 12px;
+  padding-right: 6px;
   overflow-y: auto;
-  max-height: 100%;
-  gap: 4px;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+.search-results-panel {
+  display: block;
+  flex: 0 0 auto;
+}
+.search-collapse-title {
+  font-size: 1.8rem;
+}
+/* Grid preenche a largura; miniaturas crescem para ocupar o espaço */
+.search-results-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 6px;
+  align-content: start;
 }
 .data-panel-editor-scroll::-webkit-scrollbar {
   width: 10px;
@@ -7071,8 +6430,9 @@ select option {
 }
 /* Thumbnails de busca */
 .search-thumb {
-  height: 200px;
-  width: auto;
+  width: 100%;
+  height: auto;
+  display: block;
   cursor: pointer;
   transition: transform 0.15s, box-shadow 0.15s;
 }
