@@ -3,7 +3,7 @@ const path = require('path')
 const { app } = require('electron')
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000
-const SCHEMA_VERSION = 2
+const SCHEMA_VERSION = 3
 
 let db = null
 
@@ -39,7 +39,8 @@ function open() {
 
   const userVersion = db.pragma('user_version', { simple: true })
 
-  if (userVersion < SCHEMA_VERSION) {
+  // Só apaga e recria tabelas em migrações antigas (ex.: 0 ou 1). De 2 → 3 apenas adicionamos coluna.
+  if (userVersion < SCHEMA_VERSION && userVersion < 2) {
     db.exec(`
       DROP TABLE IF EXISTS cards;
       DROP TABLE IF EXISTS card_images;
@@ -66,10 +67,16 @@ function open() {
       image BLOB NOT NULL
     );
 
+    CREATE TABLE IF NOT EXISTS card_fullart_images (
+      card_id TEXT PRIMARY KEY,
+      image BLOB NOT NULL
+    );
+
     CREATE TABLE IF NOT EXISTS decks (
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
       game TEXT NOT NULL DEFAULT 'yugioh',
+      cover_card_id TEXT,
       created_at TEXT DEFAULT (datetime('now')),
       updated_at TEXT DEFAULT (datetime('now'))
     );
@@ -91,7 +98,23 @@ function open() {
   `)
 
   if (userVersion < SCHEMA_VERSION) {
+    if (userVersion === 2) {
+      try {
+        db.exec('ALTER TABLE decks ADD COLUMN cover_card_id TEXT')
+      } catch (_) {}
+    }
     db.pragma(`user_version = ${SCHEMA_VERSION}`)
+  }
+
+  // Garantir coluna cover_card_id em decks (reparo se migração 2→3 não rodou ou falhou)
+  if (db.pragma('user_version', { simple: true }) >= 3) {
+    const deckCols = db.prepare('PRAGMA table_info(decks)').all()
+    const hasCover = deckCols.some((c) => c.name === 'cover_card_id')
+    if (!hasCover) {
+      try {
+        db.exec('ALTER TABLE decks ADD COLUMN cover_card_id TEXT')
+      } catch (_) {}
+    }
   }
 
   return db
@@ -212,6 +235,9 @@ function mergeCardsPT(ptCards) {
       data.name = ptCard.name || data.name
       data.desc = ptCard.desc || data.desc
       data.lang = 'pt'
+      // Guardar efeito pêndulo e de monstro separados quando a API PT envia (permite PT só em um deles)
+      if (ptCard.pend_desc != null) data.pend_desc_pt = ptCard.pend_desc
+      if (ptCard.monster_desc != null) data.monster_desc_pt = ptCard.monster_desc
       updatePt.run(
         ptCard.name || '',
         ptCard.desc || '',
@@ -273,6 +299,30 @@ function saveCardImage(id, buffer) {
   d.prepare('INSERT OR REPLACE INTO card_images (card_id, image) VALUES (?, ?)').run(String(id), buf)
 }
 
+function getCardFullArtImage(id) {
+  const d = open()
+  const row = d
+    .prepare('SELECT image FROM card_fullart_images WHERE card_id = ?')
+    .get(String(id))
+  return row ? row.image : null
+}
+
+function saveCardFullArtImage(id, buffer) {
+  const d = open()
+  const buf = Buffer.isBuffer(buffer) ? buffer : Buffer.from(buffer)
+  d.prepare(
+    'INSERT OR REPLACE INTO card_fullart_images (card_id, image) VALUES (?, ?)'
+  ).run(String(id), buf)
+}
+
+function hasCardFullArt(id) {
+  const d = open()
+  const row = d
+    .prepare('SELECT 1 FROM card_fullart_images WHERE card_id = ?')
+    .get(String(id))
+  return !!row
+}
+
 // --------------- Decks ---------------
 
 function getDecks(game) {
@@ -293,6 +343,14 @@ function createDeck(name, game) {
 function updateDeck(id, name) {
   const d = open()
   d.prepare("UPDATE decks SET name = ?, updated_at = datetime('now') WHERE id = ?").run(name, id)
+}
+
+function updateDeckCover(deckId, coverCardId) {
+  const d = open()
+  d.prepare("UPDATE decks SET cover_card_id = ?, updated_at = datetime('now') WHERE id = ?").run(
+    coverCardId || null,
+    deckId
+  )
 }
 
 function deleteDeck(id) {
@@ -496,9 +554,13 @@ module.exports = {
   clearCardImages,
   getCardImage,
   saveCardImage,
+  getCardFullArtImage,
+  saveCardFullArtImage,
+  hasCardFullArt,
   getDecks,
   createDeck,
   updateDeck,
+  updateDeckCover,
   deleteDeck,
   getDeckCards,
   getDeckCardsByGame,

@@ -7,7 +7,7 @@
       <b-tabs
         v-model="activeTab"
         content-class=" tab-content-fullheight"
-        class="px-2 tabs-fullheight"
+        class="px-2 tabs-fullheight main-game-tabs"
       >
         <b-tab :title="ui[uiLang].tab_yugioh">
           <!-- Barra de progresso ao atualizar banco local -->
@@ -74,7 +74,7 @@
                     <div
                       id="yugiohcard-wrap"
                       ref="yugiohcard-wrap"
-                      class="card-body position-relative flex-grow-1 min-h-0"
+                      class="card-body position-relative flex-grow-1 min-h-0 overflow-hidden"
                       @mousemove="move"
                       @mouseleave="leave"
                     >
@@ -107,7 +107,7 @@
                         </div>
                       </div>
                     </div>
-                    <!-- Barra: -1 | quantidade | Editar | +1 | Novo -->
+                    <!-- Barra: -1 | Editar | Estrela (capa) | Novo | +1 -->
                     <div
                       class="
                         card-deck-actions
@@ -120,13 +120,9 @@
                         class="
                           d-flex
                           align-items-center
-                          justify-content-center
-                          flex-wrap
+                          justify-content-between
                         "
                       >
-                        <span class="text-light small gap-2">
-                          {{ currentCardQuantityInDeck }} no deck
-                        </span>
                         <b-button
                           size="md"
                           variant="outline-light"
@@ -158,6 +154,22 @@
                           }}
                         </b-button>
                         <b-button
+                          v-if="selectedDeckId && isCurrentCardInDeck && currentDeckCardIdForCover"
+                          size="md"
+                          type="button"
+                          class="deck-cover-star-btn"
+                          :class="{ 'deck-cover-star-active': isCurrentCardDeckCover }"
+                          variant="outline-secondary"
+                          :title="
+                            isCurrentCardDeckCover
+                              ? 'Capa do deck (clique para desmarcar)'
+                              : 'Definir como capa do deck'
+                          "
+                          @click="toggleDeckCover"
+                        >
+                          <fa :icon="isCurrentCardDeckCover ? ['fas', 'star'] : ['far', 'star']" />
+                        </b-button>
+                        <b-button
                           size="md"
                           variant="outline-info"
                           title="Novo card (zerar canvas)"
@@ -168,11 +180,15 @@
                         <b-button
                           size="md"
                           variant="outline-light"
-                          :disabled="
-                            !selectedDeckId || !cardKey || !editingDeckCardId
+                          :disabled="!selectedDeckId || !cardKey"
+                          :title="
+                            editingDeckCardId || isCurrentCardInDeck
+                              ? 'Adicionar uma cópia ao deck'
+                              : 'Adicionar card ao deck'
                           "
-                          title="Adicionar uma cópia ao deck"
-                          @click="addCopyToDeck"
+                          @click="
+                            editingDeckCardId ? addCopyToDeck() : addToDeckCurrent()
+                          "
                         >
                           <fa :icon="['fas', 'plus']" />
                         </b-button>
@@ -391,57 +407,16 @@
                           </b-button>
                           <b-button
                             size="sm"
-                            variant="outline-warning"
-                            :disabled="!cardKey || isCurrentCardInDeck"
-                            :title="
-                              isCurrentCardInDeck
-                                ? 'Card já está no deck'
-                                : 'Adicionar card atual ao deck'
-                            "
-                            @click="addToDeckCurrent"
-                          >
-                            <fa :icon="['fas', 'plus']" class="mr-1" />
-                            {{ ui[uiLang].add_to_deck || 'Adicionar ao deck' }}
-                          </b-button>
-                          <b-button
-                            size="sm"
-                            variant="outline-success"
-                            :disabled="!deckDirtyYgo"
-                            title="Salvar alterações do deck (adicionados/removidos)"
-                            @click="saveDeckStateYgo"
-                          >
-                            <fa :icon="['fas', 'save']" class="mr-1" />
-                            Salvar
-                          </b-button>
-                          <b-button
-                            v-if="deckDirtyYgo"
-                            size="sm"
-                            variant="outline-secondary"
-                            title="Descartar alterações do deck"
-                            @click="discardDeckStateYgo"
-                          >
-                            Descartar
-                          </b-button>
-                          <b-button
-                            size="sm"
                             variant="outline-info"
-                            :disabled="batchDownloading"
-                            @click="batchDownloadDeck"
+                            :disabled="ygoDeckDownloading || !selectedDeckCards.length"
+                            :title="ui[uiLang].download || 'Baixar deck'"
+                            @click="openYgoDownloadModal"
                           >
-                            {{
-                              batchDownloading
-                                ? ui[uiLang].batch_downloading || 'Baixando...'
-                                : ui[uiLang].batch_download || 'Baixar'
-                            }}
-                          </b-button>
-                          <b-button
-                            v-if="hasSilhouetteSupport"
-                            size="sm"
-                            variant="outline-success"
-                            :disabled="silhouetteDownloading"
-                            @click="openSilhouetteModal"
-                          >
-                            {{ ui[uiLang].silhouette_download || 'Silhuete' }}
+                            <fa
+                              :icon="['fas', 'file-archive']"
+                              :class="{ 'fa-spin': ygoDeckDownloading }"
+                            />
+                            Baixar
                           </b-button>
                           <b-button
                             size="sm"
@@ -633,6 +608,11 @@
                       @update:cardTitle="(v) => (cardTitle = v)"
                       :cardImg="cardImg"
                       @update:cardImg="(v) => (cardImg = v)"
+                      :fullart="fullart"
+                      @update:fullart="(v) => (fullart = v)"
+                      :hasCardFullArt="hasCardFullArtCache"
+                      @upload-fullart="onUploadFullArt"
+                      @refresh-fullart-check="refreshHasCardFullArt"
                       :cardType="cardType"
                       :cardTypeOpts="cardTypeOpts"
                       @update:cardType="(v) => (cardType = v)"
@@ -1656,7 +1636,116 @@
       </b-form>
     </b-modal>
 
-    <!-- Modal: Baixar para Silhuete (PDF + arquivo de corte) - deck YGO -->
+    <!-- Modal: Download deck YGO — formato PNG (lote) ou Silhuete -->
+    <b-modal
+      v-model="showYgoDownloadModal"
+      :title="
+        selectedDeck
+          ? (selectedDeck.name || 'Deck') + ' — Formato de download'
+          : 'Baixar deck'
+      "
+      ok-title=""
+      cancel-title=""
+      hide-footer
+      centered
+      @show="loadSilhouetteCardSizeOptions"
+    >
+      <b-form-group
+        :label="
+          ui[uiLang].mh_download_format || 'Em que formato deseja os cards?'
+        "
+      >
+        <b-form-radio-group
+          v-model="ygoDownloadFormat"
+          name="ygo-download-format"
+        >
+          <b-form-radio value="png">{{
+            ui[uiLang].mh_download_png ||
+            'PNG — imagens dos cards (ZIP)'
+          }}</b-form-radio>
+          <b-form-radio
+            v-if="hasSilhouetteSupport"
+            value="silhouette"
+          >{{
+            ui[uiLang].mh_download_silhouette ||
+            'Silhuete — PDF para impressão + arquivo de corte (ZIP)'
+          }}</b-form-radio>
+        </b-form-radio-group>
+      </b-form-group>
+      <template v-if="ygoDownloadFormat === 'silhouette' && hasSilhouetteSupport">
+        <b-form-group
+          :label="ui[uiLang].mh_download_card_size || 'Tamanho do card'"
+          class="mt-3"
+        >
+          <b-form-select
+            v-model="silhouetteCardSize"
+            :options="silhouetteCardSizeOptions"
+            value-field="key"
+            text-field="label"
+            size="sm"
+          />
+        </b-form-group>
+        <b-form-group
+          :label="ui[uiLang].silhouette_paper_size || 'Tamanho da folha'"
+        >
+          <b-form-radio-group
+            v-model="silhouettePaperSize"
+            name="ygo-silhouette-paper"
+          >
+            <b-form-radio value="letter">{{
+              ui[uiLang].silhouette_letter || 'Letter (EUA)'
+            }}</b-form-radio>
+            <b-form-radio value="a4">{{
+              ui[uiLang].silhouette_a4 || 'A4'
+            }}</b-form-radio>
+          </b-form-radio-group>
+        </b-form-group>
+        <b-form-group>
+          <b-form-checkbox v-model="silhouetteCardsTouch">
+            {{
+              ui[uiLang].silhouette_cards_touch ||
+              'Cards se tocam (reduz falha de impressão)'
+            }}
+          </b-form-checkbox>
+        </b-form-group>
+        <b-form-group>
+          <b-form-checkbox v-model="silhouetteIncludeImages">
+            {{
+              ui[uiLang].silhouette_include_images ||
+              'PDF com imagem dos cards'
+            }}
+          </b-form-checkbox>
+        </b-form-group>
+      </template>
+      <div class="text-right mt-3">
+        <b-button
+          variant="secondary"
+          class="mr-2"
+          @click="showYgoDownloadModal = false"
+        >
+          {{ ui[uiLang].cancel || 'Cancelar' }}
+        </b-button>
+        <b-button
+          variant="success"
+          :disabled="ygoDeckDownloading"
+          @click="confirmYgoDownload"
+        >
+          <fa
+            v-if="ygoDeckDownloading"
+            icon="spinner"
+            spin
+            class="mr-1"
+          />
+          {{
+            ygoDeckDownloading
+              ? ui[uiLang].mh_download_generating || 'Gerando…'
+              : ui[uiLang].mh_download_zip_btn || 'Baixar ZIP'
+          }}
+        </b-button>
+      </div>
+    </b-modal>
+
+    <!-- Modal: Baixar para Silhuete (legado; aberto apenas por fluxos que ainda usam) -->
     <b-modal
       v-model="showSilhouetteModal"
       :title="
@@ -1959,12 +2048,15 @@ export default {
       cardKey: '',
       apiCardCache: {},
       apiCardImageUrls: {},
+      apiCardFullArtUrls: {},
       apiCardImagePromises: Object.create(null),
+      hasCardFullArtCache: false,
       apiCardLoading: false,
       apiCardError: null,
       apiCardFetchTimer: null,
       cardTitle: '',
       cardImg: null,
+      fullart: false,
       cardType: 'Monster',
       cardSubtype: 'Normal',
       cardEff1: 'normal',
@@ -2033,6 +2125,8 @@ export default {
       deckCardImageUrls: {},
       batchDownloading: false,
       showSilhouetteModal: false,
+      showYgoDownloadModal: false,
+      ygoDownloadFormat: 'png',
       silhouettePaperSize: 'a4',
       silhouetteCardSize: 'japanese',
       silhouetteCardsTouch: true,
@@ -2187,6 +2281,9 @@ export default {
     hasSilhouetteSupport() {
       return typeof window !== 'undefined' && !!window.silhouette
     },
+    ygoDeckDownloading() {
+      return this.batchDownloading || this.silhouetteDownloading
+    },
     localCardsMap() {
       const map = {}
       for (const card of this.localCards) {
@@ -2223,17 +2320,63 @@ export default {
       return this.searchResults.filter((c) => c.matchType === 'archetype')
     },
     searchResultsByName() {
-      return this.searchResults.filter((c) => c.matchType === 'name')
+      const idsArchetype = new Set(
+        this.searchResults
+          .filter((c) => c.matchType === 'archetype')
+          .map((c) => String(c.id))
+      )
+      return this.searchResults.filter(
+        (c) => c.matchType === 'name' && !idsArchetype.has(String(c.id))
+      )
     },
     searchResultsByDesc() {
-      return this.searchResults.filter((c) => c.matchType === 'desc')
+      const idsArchetype = new Set(
+        this.searchResults
+          .filter((c) => c.matchType === 'archetype')
+          .map((c) => String(c.id))
+      )
+      const idsName = new Set(
+        this.searchResults
+          .filter((c) => c.matchType === 'name')
+          .map((c) => String(c.id))
+      )
+      return this.searchResults.filter(
+        (c) =>
+          c.matchType === 'desc' &&
+          !idsArchetype.has(String(c.id)) &&
+          !idsName.has(String(c.id))
+      )
     },
     searchResultsRelated() {
-      return this.searchResults.filter((c) => c.matchType === 'related')
+      const idsPrior = new Set(
+        this.searchResults
+          .filter(
+            (c) =>
+              c.matchType === 'archetype' ||
+              c.matchType === 'name' ||
+              c.matchType === 'desc'
+          )
+          .map((c) => String(c.id))
+      )
+      return this.searchResults.filter(
+        (c) => c.matchType === 'related' && !idsPrior.has(String(c.id))
+      )
     },
     searchResultsCitedRelated() {
+      const idsPrior = new Set(
+        this.searchResults
+          .filter(
+            (c) =>
+              c.matchType === 'archetype' ||
+              c.matchType === 'name' ||
+              c.matchType === 'desc'
+          )
+          .map((c) => String(c.id))
+      )
       return this.searchResults.filter(
-        (c) => c.matchType === 'name' || c.matchType === 'desc'
+        (c) =>
+          (c.matchType === 'name' || c.matchType === 'desc') &&
+          !idsPrior.has(String(c.id))
       )
     },
     cardSearchIndex() {
@@ -2347,6 +2490,8 @@ export default {
       const typeStr = (card.type || '').toLowerCase()
       return (
         typeStr.includes('pendulum') ||
+        typeStr.includes('pêndulo') ||
+        typeStr.includes('pendulo') ||
         card.scale != null ||
         (Array.isArray(card.scales) && card.scales.length > 0)
       )
@@ -2388,6 +2533,20 @@ export default {
     selectedDeck() {
       if (!this.selectedDeckId) return null
       return this.userDecks.find((d) => d.id === this.selectedDeckId) || null
+    },
+    currentDeckCardIdForCover() {
+      if (!this.selectedDeckId || !this.cardKey || !this.selectedDeckCards.length)
+        return null
+      if (this.editingDeckCardId) return this.editingDeckCardId
+      const first = this.selectedDeckCards.find(
+        (c) => String(c.cardKey) === String(this.cardKey)
+      )
+      return first ? first.id : null
+    },
+    isCurrentCardDeckCover() {
+      const deck = this.selectedDeck
+      const id = this.currentDeckCardIdForCover
+      return !!(deck && id && deck.cover_card_id === id)
     },
     filteredUserDecks() {
       const query = this.normalizeSearchQuery(this.deckSearchQuery || '')
@@ -2581,6 +2740,9 @@ export default {
     isEffectMonster() {
       return (
         this.cardSubtype === 'Effect' ||
+        ['Fusion', 'Synchro', 'Xyz', 'Ritual', 'Link'].includes(
+          this.cardSubtype
+        ) ||
         (this.cardEff2 !== 'none' && this.cardSubtype !== 'Normal')
       )
     },
@@ -2639,7 +2801,7 @@ export default {
       }, 500)
     },
     cardType() {
-      this.cardSubtype = 'Normal'
+      if (!this.programmaticUpdate) this.cardSubtype = 'Normal'
       if (this.cardType !== 'Monster') this.Pendulum = false
     },
     cardSubtype() {
@@ -3070,7 +3232,7 @@ export default {
       this.setYgoEditorState('deck-edit')
     },
 
-    removeOneFromDeck() {
+    async removeOneFromDeck() {
       if (!this.selectedDeckId || !this.editingDeckCardId) return
       const id = this.editingDeckCardId
       if (String(id).startsWith('pending_')) {
@@ -3081,6 +3243,7 @@ export default {
         const idx = this.selectedDeckCards.findIndex((c) => c.id === id)
         if (idx !== -1) this.selectedDeckCards.splice(idx, 1)
       }
+      await this.saveDeckStateYgo()
       const remaining = this.selectedDeckCards.filter(
         (item) => String(item.cardKey) === String(this.cardKey)
       )
@@ -3092,7 +3255,7 @@ export default {
       }
     },
 
-    addCopyToDeck() {
+    async addCopyToDeck() {
       if (!this.cardKey || !this.selectedDeckId || !this.editingDeckCardId)
         return
       const current = this.selectedDeckCards.find(
@@ -3123,6 +3286,20 @@ export default {
         snapshot: JSON.parse(JSON.stringify(snapshot)),
       })
       this.setYgoEditorState('deck-readonly')
+      await this.saveDeckStateYgo()
+    },
+
+    /** Nome do ícone (Spell/Trap) para images/pic/*.webp — normalizado para os assets existentes. */
+    getSpellTrapIconSubtype() {
+      const s = (this.cardSubtype || '').trim()
+      const lower = s.toLowerCase().replace(/\s+/g, ' ').replace(/-/g, ' ')
+      if (lower.startsWith('quick')) return 'Quick'
+      if (lower === 'continuous') return 'Continuous'
+      if (lower === 'counter') return 'Counter'
+      if (lower === 'field') return 'Field'
+      if (lower === 'equip') return 'Equip'
+      if (lower === 'ritual') return 'Ritual'
+      return s || 'Quick'
     },
 
     doDrawCard() {
@@ -3137,19 +3314,36 @@ export default {
         optionalPhotoUrl ??
         (this.cardImg ? URL.createObjectURL(this.cardImg) : null)
       const templateLang = this.cardMetaLang._templateLang
-      if (
-        cardImgUrl == null &&
-        this.cardLoadYgoProEnabled &&
-        !this._exportingCard &&
-        !this.loadedFromDeck
-      ) {
-        const hasData = this.load_ygopro_data(this.cardKey)
-        if (hasData) cardImgUrl = this.apiCardImageUrls[this.cardKey] || null
+      if (this.fullart && this.cardKey) {
+        const fullArtUrl = this.apiCardFullArtUrls[this.cardKey]
+        if (fullArtUrl) {
+          cardImgUrl = fullArtUrl
+        } else {
+          this.ensureFullArtImage(this.cardKey, true)
+          cardImgUrl =
+            cardImgUrl ||
+            this.apiCardImageUrls[this.cardKey] ||
+            null
+        }
       }
-      if (cardImgUrl == null && this.loadedFromDeck)
-        cardImgUrl = this.apiCardImageUrls[this.cardKey] || null
+      if (cardImgUrl == null) {
+        if (
+          !this.fullart &&
+          this.cardLoadYgoProEnabled &&
+          !this._exportingCard &&
+          !this.loadedFromDeck
+        ) {
+          const hasData = this.load_ygopro_data(this.cardKey)
+          if (hasData) cardImgUrl = this.apiCardImageUrls[this.cardKey] || null
+        }
+        if (cardImgUrl == null && this.loadedFromDeck)
+          cardImgUrl = this.apiCardImageUrls[this.cardKey] || null
+      }
       if (this._exportingCard && cardImgUrl == null)
-        cardImgUrl = this.apiCardImageUrls[this.cardKey] || 'images/default.jpg'
+        cardImgUrl =
+          (this.fullart && this.apiCardFullArtUrls[this.cardKey]) ||
+          this.apiCardImageUrls[this.cardKey] ||
+          'images/default.jpg'
       this.imgs = {
         template: `images/card/${templateLang}/${this.cardTemplateText}.png`,
         holo: 'images/pic/holo.png',
@@ -3168,7 +3362,7 @@ export default {
         photo: cardImgUrl || 'images/default.jpg', // placeholder até imagem local estar pronta
         levelOrSubtype:
           this.cardType !== 'Monster' && this.cardSubtype !== 'Normal'
-            ? `images/pic/${this.cardSubtype}.webp`
+            ? `images/pic/${this.getSpellTrapIconSubtype()}.webp`
             : `images/pic/${this.isXyzMonster ? 'Rank' : 'Level'}.webp`,
       }
       this.drawCardLoadingImages(() => {
@@ -3200,6 +3394,24 @@ export default {
       const ctx = canvas.getContext('2d')
       canvas.width = 1000
       canvas.height = 1450
+
+      // Full Art: só a imagem enviada pelo usuário, sem moldura/fundo/título/texto.
+      const fullArtUrl = this.fullart && this.cardKey && this.apiCardFullArtUrls[this.cardKey]
+      if (fullArtUrl) {
+        const photo = this.imgs.photo
+        const pw = photo.naturalWidth || photo.width || 0
+        const ph = photo.naturalHeight || photo.height || 0
+        if (pw > 0 && ph > 0) {
+          const scale = Math.max(1000 / pw, 1450 / ph)
+          const drawW = pw * scale
+          const drawH = ph * scale
+          const drawX = (1000 - drawW) / 2
+          const drawY = (1450 - drawH) / 2
+          ctx.drawImage(photo, drawX, drawY, drawW, drawH)
+        }
+        this.closeLoadingDialog()
+        return
+      }
 
       const langStr = this.cardMetaLang
       const offset = langStr._offset
@@ -3278,7 +3490,10 @@ export default {
         fontName[4]
       }, ${fontName[5]}`
       const useWhiteTitle =
-        this.isLinkMonster || this.isXyzMonster || this.cardType === 'Trap'
+        this.isLinkMonster ||
+        this.isXyzMonster ||
+        this.cardType === 'Trap' ||
+        this.cardType === 'Spell'
       ctx.fillStyle = useWhiteTitle ? '#FFFFFF' : this.rareColor(ctx)
       ctx.fillText(this.cardTitle, 77 + offset.tX, 140 + offset.tY, 750)
       ctx.shadowColor = '#000'
@@ -3419,13 +3634,16 @@ export default {
           x += wOpen
           ctx.fillText(typeText, x, y)
           x += wText + gap
-          ctx.drawImage(
-            this.imgs.levelOrSubtype,
-            x,
-            y - iconH + 14,
-            iconW,
-            iconH
-          )
+          const iconImg = this.imgs.levelOrSubtype
+          if (iconImg && (iconImg.naturalWidth > 0 || iconImg.width > 0)) {
+            ctx.drawImage(
+              iconImg,
+              x,
+              y - iconH + 14,
+              iconW,
+              iconH
+            )
+          }
           x += iconW + gap
           ctx.fillText(closeB, x, y)
         } else {
@@ -3868,6 +4086,8 @@ export default {
       this.cardKey = ''
       this.cardTitle = data.title
       this.cardImg = null
+      this.fullart = false
+      this.hasCardFullArtCache = false
       this.cardType = 'Monster'
       this.cardSubtype = 'Normal'
       this.cardAttr = 'DARK'
@@ -3930,17 +4150,24 @@ export default {
 
     getCardEffectTexts(card) {
       const preferredDesc = card.desc_pt || card.desc_en || card.desc || ''
-      const preferredPendulumDesc =
+      const splitPreferred = this.splitPendulumEffectText(preferredDesc)
+      // Prioridade: split de desc_pt/desc_en (respeita tradução salva); fallback nos campos separados da API
+      const fallbackPendulum =
+        card.pend_desc_pt ||
         card.pendulum_desc_pt ||
+        card.pend_desc ||
         card.pendulum_desc_en ||
         card.pendulum_desc ||
         ''
-      const splitPreferred = this.splitPendulumEffectText(preferredDesc)
-
+      const fallbackMonster =
+        card.monster_desc_pt || card.monster_desc || ''
       return {
-        infoText: splitPreferred.monsterText || preferredDesc,
+        infoText:
+          splitPreferred.monsterText ||
+          fallbackMonster ||
+          preferredDesc,
         pendulumText:
-          splitPreferred.pendulumText || preferredPendulumDesc || '',
+          splitPreferred.pendulumText || fallbackPendulum || '',
       }
     },
 
@@ -3956,10 +4183,22 @@ export default {
       let pendulum = false
       const special = false
 
-      const hasEffectMod = (key) =>
-        typeStr.includes(key) || typeline.includes(key)
-      const effectMods = ['tuner', 'spirit', 'toon', 'union', 'gemini', 'flip']
-      for (const mod of effectMods) {
+      // Modificadores de efeito: chaves internas + variações (ex.: PT "regulador" = tuner)
+      const effectModVariants = {
+        tuner: ['tuner', 'regulador', 'sincronizador'],
+        spirit: ['spirit', 'espírito', 'espirito'],
+        toon: ['toon'],
+        union: ['union', 'união', 'uniao'],
+        gemini: ['gemini', 'gêmeo', 'gemeo'],
+        flip: ['flip', 'virar'],
+      }
+      const hasEffectMod = (modKey) => {
+        const variants = effectModVariants[modKey] || [modKey]
+        const inStr = (s) => variants.some((v) => s.includes(v))
+        return inStr(typeStr) || typeline.some(inStr)
+      }
+      const effectModKeys = Object.keys(effectModVariants)
+      for (const mod of effectModKeys) {
         if (!hasEffectMod(mod)) continue
         if (eff1 === 'normal') {
           eff1 = mod
@@ -3969,27 +4208,31 @@ export default {
         }
       }
 
-      if (typeStr.includes('spell')) {
+      if (typeStr.includes('spell') || typeStr.includes('magic') || typeStr.includes('magia')) {
         cardType = 'Spell'
-        const r = (card.race || 'Normal').toLowerCase()
+        const r = (card.race || 'Normal').toLowerCase().replace(/\s+/g, '-')
         cardSubtype =
-          r === 'quick-play' ? 'Quick' : r.charAt(0).toUpperCase() + r.slice(1)
-      } else if (typeStr.includes('trap')) {
+          r === 'quick-play' ? 'Quick' : r.split('-').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join('-')
+        if (cardSubtype === 'Quick-Play') cardSubtype = 'Quick'
+      } else if (typeStr.includes('trap') || typeStr.includes('armadilha')) {
         cardType = 'Trap'
         const r = (card.race || 'Normal').toLowerCase()
         cardSubtype = r.charAt(0).toUpperCase() + r.slice(1)
       } else {
-        if (typeStr.includes('fusion')) cardSubtype = 'Fusion'
+        // Subtipos de monstro: inglês + abreviações/PT (sincro = Synchro)
+        if (typeStr.includes('fusion') || typeStr.includes('fusão') || typeStr.includes('fusao')) cardSubtype = 'Fusion'
         else if (typeStr.includes('ritual')) cardSubtype = 'Ritual'
-        else if (typeStr.includes('synchro')) cardSubtype = 'Synchro'
+        else if (typeStr.includes('synchro') || typeStr.includes('sincro')) cardSubtype = 'Synchro'
         else if (typeStr.includes('xyz')) cardSubtype = 'Xyz'
         else if (typeStr.includes('link')) cardSubtype = 'Link'
-        else if (typeStr.includes('token')) cardSubtype = 'Token'
-        else if (frameType === 'effect' || typeline.includes('Effect'))
+        else if (typeStr.includes('token') || typeStr.includes('ficha')) cardSubtype = 'Token'
+        else if (frameType === 'effect' || typeline.includes('effect') || typeline.includes('efeito'))
           cardSubtype = 'Effect'
         else cardSubtype = 'Normal'
         pendulum =
           typeStr.includes('pendulum') ||
+          typeStr.includes('pêndulo') ||
+          typeStr.includes('pendulo') ||
           Boolean(card.scale != null || card.scales)
       }
 
@@ -4021,13 +4264,18 @@ export default {
         level: card.level != null ? String(card.level) : '0',
         blue: blue != null ? blue : 1,
         red: red != null ? red : 1,
-        atk: card.atk != null ? String(card.atk) : '0',
+        atk:
+          card.atk != null && card.atk !== -1 && card.atk !== '-1'
+            ? String(card.atk)
+            : '?',
         def:
-          card.def != null
-            ? String(card.def)
-            : cardType === 'Monster' && cardSubtype === 'Link'
-            ? '0'
-            : '0',
+          cardType === 'Monster' && cardSubtype === 'Link'
+            ? (card.def != null && card.def !== -1 && card.def !== '-1'
+                ? String(card.def)
+                : '0')
+            : card.def != null && card.def !== -1 && card.def !== '-1'
+              ? String(card.def)
+              : '?',
         ...link,
         infoText,
         size: 20,
@@ -4173,6 +4421,66 @@ export default {
       }
     },
 
+    async ensureFullArtImage(cardId, forCurrentCard = true) {
+      if (!this.$ygoDb || !cardId) return null
+      const key = String(cardId)
+      if (this.apiCardFullArtUrls[key]) {
+        if (forCurrentCard) {
+          this.$nextTick(() => {
+            this.fireLoadingDialog()
+            this.drawCard(this.apiCardFullArtUrls[key])
+          })
+        }
+        return this.apiCardFullArtUrls[key]
+      }
+      try {
+        const blob = await this.$ygoDb.getCardFullArtImage(key)
+        if (blob) {
+          const url = URL.createObjectURL(blob)
+          this.$set(this.apiCardFullArtUrls, key, url)
+          if (forCurrentCard) {
+            this.$nextTick(() => {
+              this.fireLoadingDialog()
+              this.drawCard(url)
+            })
+          }
+          return url
+        }
+      } catch (e) {
+        console.warn('ensureFullArtImage falhou para', key, e)
+      }
+      // Não chamar drawCard() aqui quando não há blob: o drawCard que chamou ensureFullArtImage
+      // já prosseguiu com a imagem normal/default; chamar de novo causaria loop infinito.
+      return null
+    },
+
+    async refreshHasCardFullArt() {
+      if (!this.$ygoDb || !this.cardKey) {
+        this.hasCardFullArtCache = false
+        return
+      }
+      try {
+        this.hasCardFullArtCache = await this.$ygoDb.hasCardFullArt(
+          this.cardKey
+        )
+      } catch (_) {
+        this.hasCardFullArtCache = false
+      }
+    },
+
+    async onUploadFullArt(file) {
+      if (!this.$ygoDb || !this.cardKey || !file) return
+      const key = String(this.cardKey)
+      try {
+        await this.$ygoDb.saveCardFullArtImage(key, file)
+        this.hasCardFullArtCache = true
+        const url = await this.ensureFullArtImage(key, true)
+        if (url) this.drawCard(url)
+      } catch (e) {
+        console.warn('onUploadFullArt falhou', e)
+      }
+    },
+
     /** URL para o canvas: só image_url_cropped ou image_url (nunca image_url_small). */
     getCanvasImageUrl(img, cardId = null) {
       if (cardId) {
@@ -4205,18 +4513,16 @@ export default {
     /** Cor de fundo do card na lista de busca por tipo/subtipo. */
     getSearchResultCardBg(card) {
       const t = (card.type || '').toLowerCase()
-      if (t.includes('spell')) return '#008872'
-      if (t.includes('trap')) return '#9D1C6F'
-      if (t.includes('fusion')) return '#93539A'
+      const f = (card.frameType || '').toLowerCase()
+      if (t.includes('spell') || t.includes('magic') || t.includes('magia')) return '#008872'
+      if (t.includes('trap') || t.includes('armadilha')) return '#9D1C6F'
+      if (t.includes('fusion') || t.includes('fusão') || t.includes('fusao')) return '#93539A'
       if (t.includes('ritual')) return '#597DBC'
-      if (t.includes('synchro')) return '#E6E2E0'
+      if (t.includes('synchro') || t.includes('sincro')) return '#E6E2E0'
       if (t.includes('link')) return '#00477F'
-      if (t.includes('token')) return '#736967'
+      if (t.includes('token') || t.includes('ficha')) return '#736967'
       if (t.includes('xyz')) return '#2D2D2D'
-      if (
-        t.includes('effect') ||
-        (card.frameType || '').toLowerCase() === 'effect'
-      )
+      if (t.includes('effect') || t.includes('efeito') || f === 'effect' || f === 'efeito')
         return '#B5663B'
       if (t.includes('normal')) return '#BB8C40'
       return '#555'
@@ -4225,7 +4531,7 @@ export default {
     /** Texto claro em fundos escuros; escuro em Synchro. */
     getSearchResultTextClass(card) {
       const t = (card.type || '').toLowerCase()
-      if (t.includes('synchro')) return 'text-dark'
+      if (t.includes('synchro') || t.includes('sincro')) return 'text-dark'
       return 'text-white'
     },
 
@@ -4617,24 +4923,23 @@ export default {
     cardTypePriority(card) {
       const t = (card.type || '').toLowerCase()
       const f = (card.frameType || '').toLowerCase()
-      if (t.includes('token') || f === 'token') return 99
+      const has = (...args) => args.some((w) => t.includes(w))
+      const hasNot = (...args) => !args.some((w) => t.includes(w))
+      if (has('token', 'ficha') || f === 'token' || f === 'ficha') return 99
       if (
         f === 'normal' ||
-        (t.includes('normal') &&
-          !t.includes('effect') &&
-          !t.includes('spell') &&
-          !t.includes('trap'))
+        (has('normal') && hasNot('effect', 'efeito', 'spell', 'magic', 'magia', 'trap', 'armadilha'))
       )
         return 0
-      if (t.includes('effect') || f === 'effect') return 1
-      if (t.includes('spell')) return 2
-      if (t.includes('trap')) return 3
-      if (t.includes('ritual')) return 4
-      if (t.includes('fusion')) return 5
-      if (t.includes('synchro')) return 6
-      if (t.includes('xyz')) return 7
-      if (t.includes('pendulum')) return 8
-      if (t.includes('link')) return 9
+      if (has('effect', 'efeito') || f === 'effect' || f === 'efeito') return 1
+      if (has('spell', 'magic', 'magia')) return 2
+      if (has('trap', 'armadilha')) return 3
+      if (has('ritual')) return 4
+      if (has('fusion', 'fusão', 'fusao')) return 5
+      if (has('synchro', 'sincro')) return 6
+      if (has('xyz')) return 7
+      if (has('pendulum', 'pêndulo', 'pendulo')) return 8
+      if (has('link')) return 9
       return 10
     },
 
@@ -4893,7 +5198,7 @@ export default {
         if (i !== 5) link[`link${i}`] = this.links[i].val
       return {
         rare: this.cardRare,
-        color: this.titleColor,
+        color: this.cardType === 'Spell' ? '#FFFFFF' : this.titleColor,
         title: this.cardTitle,
         type: [
           this.cardType,
@@ -4916,6 +5221,7 @@ export default {
         infoPosition: Number(this.infoPosition) || 0,
         pendulumText: this.cardPendulumInfo,
         pSize: Number(this.pendulumSize) || 22,
+        fullart: this.fullart,
       }
     },
 
@@ -4944,6 +5250,7 @@ export default {
       })
       this.setYgoEditorState('deck-readonly', { editingDeckCardId: pid })
       this.snapshotAtLoad = JSON.parse(JSON.stringify(snapshot))
+      await this.saveDeckStateYgo()
     },
 
     async saveDeckCardChanges() {
@@ -5071,10 +5378,14 @@ export default {
       for (const deck of this.userDecks) {
         try {
           const cards = await this.$ygoDb.getDeckCards(deck.id)
-          const first = cards && cards[0]
-          if (first) {
-            await this.ensureDeckCardImageUrl(first)
-            const url = this.getDeckCardImageSrc(first)
+          const coverCard =
+            deck.cover_card_id && cards
+              ? cards.find((c) => c.id === deck.cover_card_id)
+              : null
+          const cardToShow = coverCard || (cards && cards[0])
+          if (cardToShow) {
+            await this.ensureDeckCardImageUrl(cardToShow)
+            const url = this.getDeckCardImageSrc(cardToShow)
             this.$set(this.deckFirstCardImages, deck.id, url)
           } else {
             this.$set(this.deckFirstCardImages, deck.id, null)
@@ -5093,6 +5404,16 @@ export default {
 
     goBackToDeckList() {
       this.centerColumnView = 'decks'
+    },
+
+    async toggleDeckCover() {
+      if (!this.$ygoDb || !this.selectedDeckId) return
+      const id = this.currentDeckCardIdForCover
+      if (!id) return
+      const newCover =
+        this.isCurrentCardDeckCover ? null : this.currentDeckCardIdForCover
+      await this.$ygoDb.updateDeckCover(this.selectedDeckId, newCover)
+      await this.loadDecks()
     },
 
     openEditDeckModal(deck) {
@@ -5403,6 +5724,20 @@ export default {
       this.showSilhouetteModal = true
     },
 
+    openYgoDownloadModal() {
+      this.ygoDownloadFormat = 'png'
+      this.showYgoDownloadModal = true
+    },
+
+    async confirmYgoDownload() {
+      if (this.ygoDownloadFormat === 'png') {
+        await this.batchDownloadDeck()
+      } else {
+        await this.downloadSilhouetteDeck()
+      }
+      this.showYgoDownloadModal = false
+    },
+
     async openMhDownloadModal(deck) {
       this.mhDownloadDeck = deck
       this.mhDownloadFormat = 'png'
@@ -5569,7 +5904,7 @@ export default {
       items.forEach((item) => this.ensureDeckCardImageUrl(item))
     },
 
-    removeDeckCard(id) {
+    async removeDeckCard(id) {
       if (String(id).startsWith('pending_')) {
         const idx = this.selectedDeckCards.findIndex((c) => c.id === id)
         if (idx !== -1) this.selectedDeckCards.splice(idx, 1)
@@ -5578,6 +5913,7 @@ export default {
           this.snapshotAtLoad = null
         }
         this.$delete(this.deckCardImageUrls, id)
+        await this.saveDeckStateYgo()
         return
       }
       this.pendingDeckRemovesYgo.push(id)
@@ -5588,6 +5924,7 @@ export default {
         this.snapshotAtLoad = null
       }
       this.$delete(this.deckCardImageUrls, id)
+      await this.saveDeckStateYgo()
     },
 
     async saveDeckStateYgo() {
@@ -5659,19 +5996,24 @@ export default {
     openTranslationModal() {
       if (!this.currentBaseCard) return
       this.translatingCardId = this.currentBaseCard.id
-      /* Preenche com dados em inglês para o usuário traduzir e substituir por PT */
       this.translationName =
-        this.currentBaseCard.name_en || this.currentBaseCard.name || ''
-      const fullDescEn =
-        this.currentBaseCard.desc_en || this.currentBaseCard.desc || ''
+        this.currentBaseCard.name_pt ||
+        this.currentBaseCard.name_en ||
+        this.currentBaseCard.name ||
+        ''
       if (this.isCurrentCardPendulum) {
-        const { pendulumText, monsterText } =
-          this.splitPendulumEffectText(fullDescEn)
-        this.translationPendulumDesc = pendulumText
-        this.translationDesc = monsterText || fullDescEn
+        const { infoText, pendulumText } = this.getCardEffectTexts(
+          this.currentBaseCard
+        )
+        this.translationPendulumDesc = pendulumText || ''
+        this.translationDesc = infoText || ''
       } else {
         this.translationPendulumDesc = ''
-        this.translationDesc = fullDescEn
+        this.translationDesc =
+          this.currentBaseCard.desc_pt ||
+          this.currentBaseCard.desc_en ||
+          this.currentBaseCard.desc ||
+          ''
       }
       this.showTranslationModal = true
     },
@@ -5744,7 +6086,13 @@ export default {
             })
           this.loadFromSnapshot(entry.snapshot)
           this.cardKey = entry.cardKey
-          const url = this.apiCardImageUrls[entry.cardKey] || imgUrl
+          if (entry.snapshot.fullart)
+            await this.ensureFullArtImage(entry.cardKey, false)
+          const url =
+            (entry.snapshot.fullart && this.apiCardFullArtUrls[entry.cardKey]) ||
+            this.apiCardImageUrls[entry.cardKey] ||
+            imgUrl
+          await this.$nextTick()
           await new Promise((resolve) => {
             this._drawCardOnDrawn = resolve
             this.drawCard(url)
@@ -5806,7 +6154,13 @@ export default {
             })
           this.loadFromSnapshot(entry.snapshot)
           this.cardKey = entry.cardKey
-          const url = this.apiCardImageUrls[entry.cardKey] || imgUrl
+          if (entry.snapshot.fullart)
+            await this.ensureFullArtImage(entry.cardKey, false)
+          const url =
+            (entry.snapshot.fullart && this.apiCardFullArtUrls[entry.cardKey]) ||
+            this.apiCardImageUrls[entry.cardKey] ||
+            imgUrl
+          await this.$nextTick()
           await new Promise((resolve) => {
             this._drawCardOnDrawn = resolve
             this.drawCard(url)
@@ -5880,42 +6234,48 @@ export default {
       const card = this.localCards.find((c) => String(c.id) === key)
       this.cardLang = (card && card.lang) || 'pt'
       this.loadFromSnapshot(data)
+      this.refreshHasCardFullArt()
       return true
     },
 
     loadFromSnapshot(data) {
       this.programmaticUpdate = true
+      const typeArr = Array.isArray(data.type) ? data.type : []
       this.cardRare = data.rare
       this.titleColor = data.color
       this.cardTitle = data.title
       this.cardImg = null
-      this.cardType = data.type[0]
-      this.cardSubtype = data.type[1]
+      this.cardType = typeArr[0] ?? 'Monster'
+      this.cardSubtype = typeArr[1] ?? 'Normal'
       if (data.attribute !== 'Trap' && data.attribute !== 'Spell')
         this.cardAttr = data.attribute
-      this.cardEff1 = data.type[2]
-      this.cardEff2 = data.type[3]
+      this.cardEff1 = typeArr[2] ?? 'normal'
+      this.cardEff2 = typeArr[3] ?? 'none'
       this.cardCustomRaceEnabled = false
       this.cardCustomRace = ''
       this.cardRace = data.race
-      this.Pendulum = data.type[4]
-      this.Special = data.type[5]
+      this.Pendulum = typeArr[4] ?? false
+      this.Special = typeArr[5] ?? false
       this.cardLevel = data.level
       this.cardBLUE = data.blue
       this.cardRED = data.red
-      this.cardATK = data.atk
-      this.cardDEF = data.def
+      this.cardATK =
+        data.atk === -1 || data.atk === '-1' ? '?' : (data.atk ?? '0')
+      this.cardDEF =
+        data.def === -1 || data.def === '-1' ? '?' : (data.def ?? '0')
       for (let i = 1; i <= 9; i++)
-        if (i !== 5) this.links[i].val = data[`link${i}`]
+        if (i !== 5) this.links[i].val = Boolean(data[`link${i}`])
       this.cardInfo = data.infoText
       this.infoSize = data.size
       this.infoPosition =
         data.infoPosition != null ? Number(data.infoPosition) : 5
       this.cardPendulumInfo = data.pendulumText
       this.pendulumSize = data.pSize
+      this.fullart = data.fullart === true
       setTimeout(() => {
         this.programmaticUpdate = false
       }, 650)
+      if (this.fullart && this.cardKey) this.refreshHasCardFullArt()
     },
 
     // Quando a página é rolada.
@@ -5966,23 +6326,76 @@ export default {
 }
 
 body {
-  background: url('../../../static/Screentone.png') round,
-    -webkit-linear-gradient(to bottom right, #000000bb, #66666699, #000000bb),
-    -webkit-linear-gradient(to bottom left, #111111bb, #11111199, #111111bb);
-  background: url('../../../static/Screentone.png') round,
-    -moz-linear-gradient(to bottom right, #000000bb, #66666699, #000000bb),
-    -moz-linear-gradient(to bottom left, #111111bb, #11111199, #111111bb);
-  background: url('../../../static/Screentone.png') round,
-    -o-linear-gradient(to bottom right, #000000bb, #66666699, #000000bb),
-    -o-linear-gradient(to bottom left, #111111bb, #11111199, #111111bb);
-  background: url('../../../static/Screentone.png') round,
-    linear-gradient(to bottom right, #000000bb, #66666699, #000000bb),
-    linear-gradient(to bottom left, #111111bb, #11111199, #111111bb);
-  background-blend-mode: multiply;
+  background: url('../../../static/ygo-bg.png') center center / cover no-repeat fixed;
   font-family: 'Noto Sans JP', 'Noto Sans TC', 'Noto Sans SC', 'arial',
     '微軟正黑體';
   /* Cada coluna tem seu próprio scroll; evitamos scroll global da página */
   overflow: hidden;
+}
+
+/* Textos azuis → preto (Bootstrap primary, links, btn-link) */
+#app .text-primary,
+#app .btn-link,
+#app a {
+  color: #000 !important;
+}
+#app .btn-link:hover,
+#app a:hover {
+  color: #000 !important;
+  opacity: 0.85;
+}
+
+/* Textos muito claros (muted/secondary) que não davam pra ler → preto. Labels/legendas acima dos campos ficam brancos (herdam do painel). */
+#app .text-muted,
+#app .text-secondary {
+  color: #000 !important;
+}
+#app .text-muted:hover,
+#app .text-secondary:hover {
+  color: #000 !important;
+}
+
+/* Placeholder: cor única em todo o sistema */
+#app input::placeholder,
+#app textarea::placeholder {
+  color: #C0BEBB;
+}
+#app input::-webkit-input-placeholder,
+#app textarea::-webkit-input-placeholder {
+  color: #C0BEBB;
+}
+#app input::-moz-placeholder,
+#app textarea::-moz-placeholder {
+  color: #C0BEBB;
+  opacity: 1;
+}
+#app input:-ms-input-placeholder,
+#app textarea:-ms-input-placeholder {
+  color: #C0BEBB;
+}
+
+/* Abas de jogos (Yugioh, Monster Hunter): ativa = branco/preto; inativas = glass + texto branco */
+#app .main-game-tabs .nav-tabs .nav-link {
+  border-radius: 0.5rem 0.5rem 0 0;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  margin-right: 4px;
+}
+#app .main-game-tabs .nav-tabs .nav-link:not(.active) {
+  background: rgba(40, 44, 52, 0.5);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: #fff !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+#app .main-game-tabs .nav-tabs .nav-link:not(.active):hover {
+  background: rgba(50, 55, 65, 0.6);
+  color: #fff !important;
+}
+#app .main-game-tabs .nav-tabs .nav-link.active {
+  background: #fff !important;
+  color: #000 !important;
+  border-color: rgba(255, 255, 255, 0.2);
+  box-shadow: none;
 }
 
 /* -------------------- Layout 3 colunas (altura total) -------------------- */
@@ -6265,9 +6678,14 @@ header {
 nav {
   background-color: #2f2f2f;
 }
+/* Efeito glass nas colunas (backdrop blur + fundo semi-transparente) */
 .panel-bg {
-  background-color: #5555556a;
+  background: rgba(40, 44, 52, 0.5);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border-radius: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
   color: #fff;
 }
 .form-faded {

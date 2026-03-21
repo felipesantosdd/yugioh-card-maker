@@ -133,17 +133,58 @@
               ></b-form-input>
             </b-col>
           </b-row>
-          <b-row class="my-3">
-            <b-col class="px-2">
-              <b-form-file
-                :value="cardImg"
-                :state="Boolean(cardImg)"
-                :placeholder="ui[uiLang].upload_image"
-                browse="✚"
-                accept="image/*"
-                :drop-placeholder="ui[uiLang].drag_and_drop"
-                @input="$emit('update:cardImg', $event)"
-              ></b-form-file>
+          <b-row class="my-3 fullart-and-upload-row">
+            <b-col class="px-2 fullart-toggle-col">
+              <label class="d-block">{{ ui[uiLang].art_style || 'Estilo da arte' }}</label>
+              <b-form-checkbox
+                :checked="fullart"
+                :class="{ 'checkbox-wrap': true, active: fullart }"
+                button
+                switch
+                @input="$emit('update:fullart', $event)"
+              >
+                {{ fullart ? (ui[uiLang].art_style_fullart || 'Full Art') : (ui[uiLang].art_style_normal || 'Normal') }}
+              </b-form-checkbox>
+            </b-col>
+            <b-col class="px-2 card-art-upload-col">
+              <template v-if="!fullart">
+                <label class="d-block">{{ ui[uiLang].upload_image }}</label>
+                <b-form-file
+                  :value="cardImg"
+                  :state="Boolean(cardImg)"
+                  :placeholder="ui[uiLang].upload_image"
+                  browse="✚"
+                  accept="image/*"
+                  :drop-placeholder="ui[uiLang].drag_and_drop"
+                  @input="$emit('update:cardImg', $event)"
+                ></b-form-file>
+              </template>
+              <template v-else>
+                <label class="d-block">{{ ui[uiLang].fullart_upload || 'Enviar imagem Full Art' }}</label>
+                <template v-if="hasCardFullArt">
+                  <span class="text-success small mr-2">
+                    {{ ui[uiLang].fullart_defined || 'Imagem Full Art definida' }}
+                  </span>
+                  <b-button size="sm" variant="outline-light" @click="$refs.fullartFileInput.click()">
+                    {{ ui[uiLang].fullart_change || 'Trocar' }}
+                  </b-button>
+                </template>
+                <b-button
+                  v-else
+                  size="sm"
+                  variant="outline-info"
+                  @click="$refs.fullartFileInput.click()"
+                >
+                  {{ ui[uiLang].fullart_upload || 'Enviar imagem Full Art' }}
+                </b-button>
+                <input
+                  ref="fullartFileInput"
+                  type="file"
+                  accept="image/*"
+                  class="d-none"
+                  @change="onFullArtFileChange"
+                />
+              </template>
             </b-col>
           </b-row>
           <b-row class="my-3">
@@ -490,6 +531,8 @@ export default {
     apiCardError: { type: String, default: '' },
     cardTitle: { type: String, required: true },
     cardImg: { type: [File, Object, String], default: null },
+    fullart: { type: Boolean, default: false },
+    hasCardFullArt: { type: Boolean, default: false },
     cardType: { type: String, required: true },
     cardTypeOpts: { type: Array, required: true },
     cardSubtype: { type: String, required: true },
@@ -522,6 +565,37 @@ export default {
     cardInfo: { type: String, required: true },
     hasUnsavedLayoutChanges: { type: Boolean, required: true },
   },
+  computed: {
+    artStyleOpts() {
+      const u = this.ui && this.ui[this.uiLang]
+      return [
+        { value: 'normal', text: (u && u.art_style_normal) || 'Normal' },
+        { value: 'fullart', text: (u && u.art_style_fullart) || 'Full Art' },
+      ]
+    },
+  },
+  methods: {
+    onFullArtFileChange(e) {
+      const file = e.target.files && e.target.files[0]
+      if (file) this.$emit('upload-fullart', file)
+      e.target.value = ''
+    },
+  },
 }
 </script>
+
+<style scoped>
+.fullart-and-upload-row {
+  display: flex;
+  align-items: flex-end;
+}
+.fullart-and-upload-row .fullart-toggle-col {
+  flex: 0 0 20%;
+  max-width: 20%;
+}
+.fullart-and-upload-row .card-art-upload-col {
+  flex: 1 1 80%;
+  max-width: 80%;
+}
+</style>
 

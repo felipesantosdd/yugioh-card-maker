@@ -125,8 +125,11 @@
         v-if="searchResults.length > 0"
         class="panel-bg shadow p-3 search-results-panel d-flex flex-column"
       >
-        <!-- Seção 1: principais (arquétipo) -->
-        <div class="mb-3 flex-shrink-0">
+        <!-- Seção 1: principais (arquétipo) – não renderiza se vazio -->
+        <div
+          v-if="searchResultsByArchetype.length > 0"
+          class="mb-3 flex-shrink-0"
+        >
           <b-card no-body class="border-0 bg-transparent">
             <b-card-header
               header-tag="header"
@@ -145,10 +148,7 @@
             </b-card-header>
             <b-collapse id="collapse-search-main" visible>
               <b-card-body class="p-0 pt-2">
-                <div
-                  v-if="searchResultsByArchetype.length > 0"
-                  class="search-results-grid mb-2"
-                >
+                <div class="search-results-grid mb-2">
                   <img
                     v-for="card in searchResultsByArchetype"
                     :key="'arch-' + card.id"
@@ -166,8 +166,11 @@
           </b-card>
         </div>
 
-        <!-- Seção 2: nome / descrição / relacionados (do meio) -->
-        <div class="mb-3 flex-shrink-0">
+        <!-- Seção 2: nome / descrição / relacionados (do meio) – não renderiza se vazio -->
+        <div
+          v-if="middleSectionCount > 0"
+          class="mb-3 flex-shrink-0"
+        >
           <b-card no-body class="border-0 bg-transparent">
             <b-card-header
               header-tag="header"
@@ -244,8 +247,11 @@
           </b-card>
         </div>
 
-        <!-- Seção 3: citados / relacionados (2º grau) -->
-        <div class="flex-shrink-0">
+        <!-- Seção 3: citados / relacionados (2º grau) – não renderiza se vazio -->
+        <div
+          v-if="searchResultsCitedRelated.length > 0"
+          class="flex-shrink-0"
+        >
           <b-card no-body class="border-0 bg-transparent">
             <b-card-header
               header-tag="header"
@@ -267,10 +273,7 @@
             </b-card-header>
             <b-collapse id="collapse-search-related" visible>
               <b-card-body class="p-0 pt-2">
-                <div
-                  v-if="searchResultsCitedRelated.length > 0"
-                  class="search-results-grid"
-                >
+                <div class="search-results-grid">
                   <img
                     v-for="card in searchResultsCitedRelated"
                     :key="'cited-' + card.id"

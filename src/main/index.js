@@ -101,11 +101,23 @@ function registerIpcHandlers() {
     const buf = Buffer.from(base64, 'base64')
     database.saveCardImage(id, buf)
   })
+  ipcMain.handle('ygoDb:getCardFullArtImage', (_e, id) => {
+    const buf = database.getCardFullArtImage(id)
+    return buf ? buf.toString('base64') : null
+  })
+  ipcMain.handle('ygoDb:saveCardFullArtImage', (_e, id, base64) => {
+    const buf = Buffer.from(base64, 'base64')
+    database.saveCardFullArtImage(id, buf)
+  })
+  ipcMain.handle('ygoDb:hasCardFullArt', (_e, id) =>
+    database.hasCardFullArt(id)
+  )
 
   // Decks
   ipcMain.handle('ygoDb:getDecks', (_e, game) => database.getDecks(game))
   ipcMain.handle('ygoDb:createDeck', (_e, name, game) => database.createDeck(name, game))
   ipcMain.handle('ygoDb:updateDeck', (_e, id, name) => database.updateDeck(id, name))
+  ipcMain.handle('ygoDb:updateDeckCover', (_e, deckId, coverCardId) => database.updateDeckCover(deckId, coverCardId))
   ipcMain.handle('ygoDb:deleteDeck', (_e, id) => database.deleteDeck(id))
 
   // Deck cards

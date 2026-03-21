@@ -407,6 +407,7 @@ nav {
   align-items: center;
   justify-content: center;
   overflow: hidden;
+  min-height: 0;
 }
 
 #yugiohcard-wrap:hover #yugiohcard {
@@ -713,4 +714,14 @@ select option {
   width: auto;
   vertical-align: middle;
   display: inline-block;
+}
+
+/* Estrela "capa do deck" na barra ao lado de Editar / Novo */
+.deck-cover-star-btn.deck-cover-star-active {
+  color: #ffc107;
+  border-color: #ffc107;
+}
+.deck-cover-star-btn.deck-cover-star-active:hover {
+  color: #ffdb4d;
+  border-color: #ffdb4d;
 }
