@@ -75,7 +75,7 @@
           v-for="deck in filteredUserDecks"
           :key="deck.id"
           class="deck-card-item rounded text-center position-relative"
-          style="cursor: pointer; width: 120px; flex-shrink: 0"
+          style="cursor: pointer"
           @click="$emit('select-deck', deck)"
         >
           <div
@@ -168,16 +168,16 @@
               <b-button
                 size="sm"
                 variant="outline-warning"
-                :disabled="!cardKey || isCurrentCardInDeck"
+                :disabled="!mainDeckCards.length"
                 :title="
                   isCurrentCardInDeck
                     ? 'Card já está no deck'
                     : 'Adicionar card atual ao deck'
                 "
-                @click="$emit('add-current-card')"
+                @click="$emit('open-hand-test')"
               >
-                <fa :icon="['fas', 'plus']" class="mr-1" />
-                {{ ui[uiLang].add_to_deck || 'Adicionar ao deck' }}
+                <fa :icon="['fas', 'hand-paper']" class="mr-1" />
+                {{ ui[uiLang].hand_test || 'Teste de mão' }}
               </b-button>
               <b-button
                 size="sm"
@@ -201,23 +201,14 @@
               <b-button
                 size="sm"
                 variant="outline-info"
-                :disabled="batchDownloading"
-                @click="$emit('batch-download')"
+                :disabled="downloading"
+                @click="$emit('open-download-modal')"
               >
                 {{
-                  batchDownloading
-                    ? ui[uiLang].batch_downloading || 'Baixando...'
-                    : ui[uiLang].batch_download || 'Baixar'
+                  downloading
+                    ? ui[uiLang].mh_download_generating || 'Gerando...'
+                    : ui[uiLang].download || 'Baixar'
                 }}
-              </b-button>
-              <b-button
-                v-if="hasSilhouetteSupport"
-                size="sm"
-                variant="outline-success"
-                :disabled="silhouetteDownloading"
-                @click="$emit('open-silhouette')"
-              >
-                {{ ui[uiLang].silhouette_download || 'Silhuete' }}
               </b-button>
               <b-button
                 size="sm"
@@ -244,7 +235,9 @@
                 :key="item.id"
                 v-b-tooltip.hover.top="item.name"
                 class="deck-thumb-wrap position-relative"
-                :class="editingDeckCardId === item.id ? 'deck-thumb-active' : ''"
+                :class="
+                  editingDeckCardId === item.id ? 'deck-thumb-active' : ''
+                "
                 @click="$emit('edit-deck-card', item)"
               >
                 <img
@@ -288,7 +281,9 @@
                 :key="item.id"
                 v-b-tooltip.hover.top="item.name"
                 class="deck-thumb-wrap position-relative"
-                :class="editingDeckCardId === item.id ? 'deck-thumb-active' : ''"
+                :class="
+                  editingDeckCardId === item.id ? 'deck-thumb-active' : ''
+                "
                 @click="$emit('edit-deck-card', item)"
               >
                 <img
@@ -324,7 +319,9 @@
           </div>
         </div>
         <p v-else class="text-muted small mb-0 flex-shrink-0">
-          {{ ui[uiLang].deck_empty || 'Deck vazio. Busque um card e adicione.' }}
+          {{
+            ui[uiLang].deck_empty || 'Deck vazio. Busque um card e adicione.'
+          }}
         </p>
       </div>
     </template>
@@ -349,12 +346,15 @@ export default {
     extraDeckCards: { type: Array, required: true },
     editingDeckCardId: { type: [String, Number], default: null },
     deckDirtyYgo: { type: Boolean, required: true },
-    batchDownloading: { type: Boolean, required: true },
-    silhouetteDownloading: { type: Boolean, required: true },
-    hasSilhouetteSupport: { type: Boolean, required: true },
-    isCurrentCardInDeck: { type: Boolean, required: true },
-    cardKey: { type: [String, Number], default: '' },
+    downloading: { type: Boolean, required: true },
+    isCurrentCardInDeck: { type: Boolean, default: false },
     getDeckCardImageSrc: { type: Function, required: true },
   },
 }
 </script>
+
+<style scoped>
+.decks-toolbar .btn-outline-success {
+  display: none !important;
+}
+</style>

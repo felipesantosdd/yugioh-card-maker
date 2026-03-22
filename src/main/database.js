@@ -3,7 +3,7 @@ const path = require('path')
 const { app } = require('electron')
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000
-const SCHEMA_VERSION = 3
+const SCHEMA_VERSION = 4
 
 let db = null
 
@@ -54,15 +54,17 @@ function open() {
   db.exec(`
     CREATE TABLE IF NOT EXISTS cards (
       id INTEGER PRIMARY KEY,
-      name_en TEXT NOT NULL DEFAULT '',
-      name_pt TEXT NOT NULL DEFAULT '',
-      desc_en TEXT NOT NULL DEFAULT '',
-      desc_pt TEXT NOT NULL DEFAULT '',
-      translation_official INTEGER NOT NULL DEFAULT 0,
+      name TEXT NOT NULL DEFAULT '',
+      desc TEXT NOT NULL DEFAULT '',
       data TEXT NOT NULL
     );
 
     CREATE TABLE IF NOT EXISTS card_images (
+      card_id TEXT PRIMARY KEY,
+      image BLOB NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS card_preview_images (
       card_id TEXT PRIMARY KEY,
       image BLOB NOT NULL
     );
@@ -103,6 +105,32 @@ function open() {
         db.exec('ALTER TABLE decks ADD COLUMN cover_card_id TEXT')
       } catch (_) {}
     }
+    if (userVersion < 4) {
+      const cardCols = db.prepare('PRAGMA table_info(cards)').all()
+      const hasLegacyCols = cardCols.some((c) => c.name === 'name_en')
+      const hasUnifiedCols =
+        cardCols.some((c) => c.name === 'name') &&
+        cardCols.some((c) => c.name === 'desc')
+      if (hasLegacyCols && !hasUnifiedCols) {
+        db.exec(`
+          CREATE TABLE IF NOT EXISTS cards_new (
+            id INTEGER PRIMARY KEY,
+            name TEXT NOT NULL DEFAULT '',
+            desc TEXT NOT NULL DEFAULT '',
+            data TEXT NOT NULL
+          );
+          INSERT INTO cards_new (id, name, desc, data)
+          SELECT
+            id,
+            COALESCE(NULLIF(name_pt, ''), NULLIF(name_en, ''), ''),
+            COALESCE(NULLIF(desc_pt, ''), NULLIF(desc_en, ''), ''),
+            data
+          FROM cards;
+          DROP TABLE cards;
+          ALTER TABLE cards_new RENAME TO cards;
+        `)
+      }
+    }
     db.pragma(`user_version = ${SCHEMA_VERSION}`)
   }
 
@@ -131,17 +159,14 @@ function close() {
 
 function getDB() {
   const d = open()
-  const rows = d.prepare('SELECT id, name_en, name_pt, desc_en, desc_pt, translation_official, data FROM cards').all()
+  const rows = d.prepare('SELECT id, name, desc, data FROM cards').all()
   const cards = rows.map((r) => {
     const parsed = JSON.parse(r.data)
     return {
       ...parsed,
       id: r.id,
-      name_en: r.name_en,
-      name_pt: r.name_pt,
-      desc_en: r.desc_en,
-      desc_pt: r.desc_pt,
-      translation_official: r.translation_official === 1,
+      name: r.name,
+      desc: r.desc,
     }
   })
 
@@ -158,8 +183,8 @@ function getDB() {
 function saveCards(cards, databaseVersion) {
   const d = open()
   const insertCard = d.prepare(`
-    INSERT OR REPLACE INTO cards (id, name_en, name_pt, desc_en, desc_pt, translation_official, data)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
+    INSERT OR REPLACE INTO cards (id, name, desc, data)
+    VALUES (?, ?, ?, ?)
   `)
   const insertMeta = d.prepare('INSERT OR REPLACE INTO sync_meta (key, value) VALUES (?, ?)')
 
@@ -167,14 +192,11 @@ function saveCards(cards, databaseVersion) {
     if (Array.isArray(cards)) {
       d.prepare('DELETE FROM cards').run()
       for (const card of cards) {
-        const { name_en, name_pt, desc_en, desc_pt, translation_official, ...rest } = card
+        const { name, desc, ...rest } = card
         insertCard.run(
           card.id,
-          name_en || '',
-          name_pt || '',
-          desc_en || '',
-          desc_pt || '',
-          translation_official ? 1 : 0,
+          name || '',
+          desc || '',
           JSON.stringify(rest)
         )
       }
@@ -188,16 +210,17 @@ function saveCards(cards, databaseVersion) {
 }
 
 /**
- * Salva cards EN e depois mescla PT preservando traduções do usuário.
+ * Salva cards EN e depois mescla PT, sempre mantendo no campo unificado
+ * a melhor versão disponível do texto.
  * Chamado em duas fases:
  *  1) saveCardsEN(enCards) — popula base com EN
- *  2) mergeCardsPT(ptCards) — preenche name_pt/desc_pt; se translation_official=0 (usuário), não sobrescreve
+ *  2) mergeCardsPT(ptCards) — substitui name/desc por PT quando disponível
  */
 function saveCardsEN(enCards) {
   const d = open()
   const insert = d.prepare(`
-    INSERT OR REPLACE INTO cards (id, name_en, name_pt, desc_en, desc_pt, translation_official, data)
-    VALUES (?, ?, '', ?, '', 0, ?)
+    INSERT OR REPLACE INTO cards (id, name, desc, data)
+    VALUES (?, ?, ?, ?)
   `)
   const tx = d.transaction(() => {
     d.prepare('DELETE FROM cards').run()
@@ -216,26 +239,19 @@ function saveCardsEN(enCards) {
 
 function mergeCardsPT(ptCards) {
   const d = open()
-  const getCard = d.prepare('SELECT id, name_pt, translation_official, data FROM cards WHERE id = ?')
+  const getCard = d.prepare('SELECT id, data FROM cards WHERE id = ?')
   const updatePt = d.prepare(`
-    UPDATE cards SET name_pt = ?, desc_pt = ?, translation_official = 1, data = ? WHERE id = ?
+    UPDATE cards SET name = ?, desc = ?, data = ? WHERE id = ?
   `)
 
   const tx = d.transaction(() => {
     for (const ptCard of ptCards) {
       const existing = getCard.get(ptCard.id)
       if (!existing) continue
-
-      const hasUserTranslation = existing.name_pt && existing.translation_official === 0
-      if (hasUserTranslation) {
-        // Usuário traduziu manualmente e a tradução não é oficial; sobrescrever com oficial
-      }
-      // Sempre sobrescrever com oficial quando vem da API PT
       const data = JSON.parse(existing.data)
       data.name = ptCard.name || data.name
       data.desc = ptCard.desc || data.desc
       data.lang = 'pt'
-      // Guardar efeito pêndulo e de monstro separados quando a API PT envia (permite PT só em um deles)
       if (ptCard.pend_desc != null) data.pend_desc_pt = ptCard.pend_desc
       if (ptCard.monster_desc != null) data.monster_desc_pt = ptCard.monster_desc
       updatePt.run(
@@ -249,19 +265,46 @@ function mergeCardsPT(ptCards) {
   tx()
 }
 
-function updateCardTranslation(cardId, namePt, descPt) {
+function updateCardBase(cardId, payload) {
   const d = open()
-  const existing = d.prepare('SELECT data FROM cards WHERE id = ?').get(cardId)
-  if (!existing) return
+  const existing = d
+    .prepare('SELECT id, name, desc, data FROM cards WHERE id = ?')
+    .get(cardId)
+  if (!existing) return false
 
-  const data = JSON.parse(existing.data)
-  data.name = namePt || data.name
-  data.desc = descPt || data.desc
-  data.lang = 'pt'
+  const existingData = JSON.parse(existing.data || '{}')
+  const nextDataObject =
+    payload && payload.data != null
+      ? { ...existingData, ...payload.data }
+      : existingData
+  const nextNameValue =
+    payload && Object.prototype.hasOwnProperty.call(payload, 'name')
+      ? payload.name || ''
+      : existing.name || ''
+  const nextDescValue =
+    payload && Object.prototype.hasOwnProperty.call(payload, 'desc')
+      ? payload.desc || ''
+      : existing.desc || ''
+
+  nextDataObject.name = nextNameValue
+  nextDataObject.desc = nextDescValue
+  if (!nextDataObject.lang) {
+    nextDataObject.lang = (payload && payload.lang) || 'pt'
+  }
+  const nextData = JSON.stringify(nextDataObject)
 
   d.prepare(`
-    UPDATE cards SET name_pt = ?, desc_pt = ?, translation_official = 0, data = ? WHERE id = ?
-  `).run(namePt || '', descPt || '', JSON.stringify(data), cardId)
+    UPDATE cards
+    SET name = ?, desc = ?, data = ?
+    WHERE id = ?
+  `).run(
+    nextNameValue,
+    nextDescValue,
+    nextData,
+    cardId
+  )
+
+  return true
 }
 
 function shouldSync(lastSync) {
@@ -297,6 +340,38 @@ function saveCardImage(id, buffer) {
   const d = open()
   const buf = Buffer.isBuffer(buffer) ? buffer : Buffer.from(buffer)
   d.prepare('INSERT OR REPLACE INTO card_images (card_id, image) VALUES (?, ?)').run(String(id), buf)
+}
+
+function getCardPreviewImage(id) {
+  const d = open()
+  const row = d
+    .prepare('SELECT image FROM card_preview_images WHERE card_id = ?')
+    .get(String(id))
+  return row ? row.image : null
+}
+
+function saveCardPreviewImage(id, buffer) {
+  const d = open()
+  const buf = Buffer.isBuffer(buffer) ? buffer : Buffer.from(buffer)
+  d.prepare(
+    'INSERT OR REPLACE INTO card_preview_images (card_id, image) VALUES (?, ?)'
+  ).run(String(id), buf)
+}
+
+function hasCardPreviewImage(id) {
+  const d = open()
+  const row = d
+    .prepare('SELECT 1 FROM card_preview_images WHERE card_id = ?')
+    .get(String(id))
+  return !!row
+}
+
+function hasCardImage(id) {
+  const d = open()
+  const row = d
+    .prepare('SELECT 1 FROM card_images WHERE card_id = ?')
+    .get(String(id))
+  return !!row
 }
 
 function getCardFullArtImage(id) {
@@ -546,7 +621,7 @@ module.exports = {
   saveCards,
   saveCardsEN,
   mergeCardsPT,
-  updateCardTranslation,
+  updateCardBase,
   shouldSync,
   getSyncMeta,
   updateSyncMeta,
@@ -554,6 +629,10 @@ module.exports = {
   clearCardImages,
   getCardImage,
   saveCardImage,
+  getCardPreviewImage,
+  saveCardPreviewImage,
+  hasCardPreviewImage,
+  hasCardImage,
   getCardFullArtImage,
   saveCardFullArtImage,
   hasCardFullArt,

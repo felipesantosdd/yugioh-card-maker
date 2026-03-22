@@ -6,7 +6,7 @@ contextBridge.exposeInMainWorld('ygoDb', {
   saveCards: (cards, databaseVersion) => ipcRenderer.invoke('ygoDb:saveCards', cards, databaseVersion),
   saveCardsEN: (enCards) => ipcRenderer.invoke('ygoDb:saveCardsEN', enCards),
   mergeCardsPT: (ptCards) => ipcRenderer.invoke('ygoDb:mergeCardsPT', ptCards),
-  updateCardTranslation: (cardId, namePt, descPt) => ipcRenderer.invoke('ygoDb:updateCardTranslation', cardId, namePt, descPt),
+  updateCardBase: (cardId, payload) => ipcRenderer.invoke('ygoDb:updateCardBase', cardId, payload),
   shouldSync: (lastSync) => ipcRenderer.invoke('ygoDb:shouldSync', lastSync),
   getSyncMeta: (key) => ipcRenderer.invoke('ygoDb:getSyncMeta', key),
   updateSyncMeta: (key, value) => ipcRenderer.invoke('ygoDb:updateSyncMeta', key, value),
@@ -32,6 +32,25 @@ contextBridge.exposeInMainWorld('ygoDb', {
     const base64 = btoa(binary)
     return ipcRenderer.invoke('ygoDb:saveCardImage', id, base64)
   },
+  hasCardImage: (id) => ipcRenderer.invoke('ygoDb:hasCardImage', id),
+  getCardPreviewImage: async (id) => {
+    const base64 = await ipcRenderer.invoke('ygoDb:getCardPreviewImage', id)
+    if (!base64) return null
+    const binary = atob(base64)
+    const bytes = new Uint8Array(binary.length)
+    for (let i = 0; i < bytes.length; i++) bytes[i] = binary.charCodeAt(i)
+    return new Blob([bytes], { type: 'image/webp' })
+  },
+  saveCardPreviewImage: async (id, blob) => {
+    if (!(blob instanceof Blob)) return
+    const arrayBuf = await blob.arrayBuffer()
+    const bytes = new Uint8Array(arrayBuf)
+    let binary = ''
+    for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i])
+    const base64 = btoa(binary)
+    return ipcRenderer.invoke('ygoDb:saveCardPreviewImage', id, base64)
+  },
+  hasCardPreviewImage: (id) => ipcRenderer.invoke('ygoDb:hasCardPreviewImage', id),
   getCardFullArtImage: async (id) => {
     const base64 = await ipcRenderer.invoke('ygoDb:getCardFullArtImage', id)
     if (!base64) return null

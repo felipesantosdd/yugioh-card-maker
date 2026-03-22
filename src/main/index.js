@@ -85,7 +85,9 @@ function registerIpcHandlers() {
   ipcMain.handle('ygoDb:saveCards', (_e, cards, databaseVersion) => database.saveCards(cards, databaseVersion))
   ipcMain.handle('ygoDb:saveCardsEN', (_e, enCards) => database.saveCardsEN(enCards))
   ipcMain.handle('ygoDb:mergeCardsPT', (_e, ptCards) => database.mergeCardsPT(ptCards))
-  ipcMain.handle('ygoDb:updateCardTranslation', (_e, cardId, namePt, descPt) => database.updateCardTranslation(cardId, namePt, descPt))
+  ipcMain.handle('ygoDb:updateCardBase', (_e, cardId, payload) =>
+    database.updateCardBase(cardId, payload)
+  )
   ipcMain.handle('ygoDb:shouldSync', (_e, lastSync) => database.shouldSync(lastSync))
   ipcMain.handle('ygoDb:getSyncMeta', (_e, key) => database.getSyncMeta(key))
   ipcMain.handle('ygoDb:updateSyncMeta', (_e, key, value) => database.updateSyncMeta(key, value))
@@ -101,6 +103,18 @@ function registerIpcHandlers() {
     const buf = Buffer.from(base64, 'base64')
     database.saveCardImage(id, buf)
   })
+  ipcMain.handle('ygoDb:hasCardImage', (_e, id) => database.hasCardImage(id))
+  ipcMain.handle('ygoDb:getCardPreviewImage', (_e, id) => {
+    const buf = database.getCardPreviewImage(id)
+    return buf ? buf.toString('base64') : null
+  })
+  ipcMain.handle('ygoDb:saveCardPreviewImage', (_e, id, base64) => {
+    const buf = Buffer.from(base64, 'base64')
+    database.saveCardPreviewImage(id, buf)
+  })
+  ipcMain.handle('ygoDb:hasCardPreviewImage', (_e, id) =>
+    database.hasCardPreviewImage(id)
+  )
   ipcMain.handle('ygoDb:getCardFullArtImage', (_e, id) => {
     const buf = database.getCardFullArtImage(id)
     return buf ? buf.toString('base64') : null

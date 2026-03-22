@@ -1,46 +1,6 @@
 <template>
   <div class="ygo-create-edit-panel d-flex flex-column min-h-0">
     <div
-      v-if="currentBaseCard"
-      class="
-        d-flex
-        justify-content-end
-        align-items-center
-        flex-shrink-0
-        h-200%
-      "
-    >
-      <b-button
-        size="sm"
-        :variant="baseCardNeedsTranslation ? 'warning' : 'outline-warning'"
-        @click="$emit('open-translation-modal')"
-      >
-        <fa :icon="['fas', 'language']" class="mr-1" />
-        {{ ui[uiLang].translate || 'Traduzir' }}
-      </b-button>
-    </div>
-    <div
-      v-if="isFieldsLocked"
-      class="
-        alert alert-info
-        py-2
-        mb-3
-        small
-        d-flex
-        align-items-center
-        justify-content-between
-      "
-    >
-      <span>
-        <fa :icon="['fas', 'lock']" class="mr-1" />
-        {{
-          ui[uiLang].fields_locked ||
-          'Card do banco de dados (somente leitura). Adicione a um deck para editar.'
-        }}
-      </span>
-      <span></span>
-    </div>
-    <div
       class="
         data-panel-editor-scroll
         d-flex
@@ -56,80 +16,20 @@
           class="card-body card-form-scroll"
           :class="{ 'form-faded': deckEditLock }"
         >
-          <b-row class="mb-3">
-            <b-col cols="6" lg="3" class="px-2">
-              <div class="form-check px-0">
-                <label>{{ ui[uiLang].square_foil_stamp }}</label>
-                <b-form-checkbox
-                  :value="holo"
-                  :class="{
-                    'checkbox-wrap': true,
-                    active: holo,
-                  }"
-                  button
-                  @input="$emit('update:holo', $event)"
-                  >{{ holo ? ui[uiLang].on : ui[uiLang].off }}</b-form-checkbox
-                >
-              </div>
+          <b-row class="mb-3 align-items-end">
+            <b-col cols="12" lg="8" class="px-2">
+              <label>{{ ui[uiLang].card_name }}</label>
+              <b-form-input
+                :value="cardTitle"
+                @input="$emit('update:cardTitle', $event)"
+              ></b-form-input>
             </b-col>
-            <b-col cols="6" lg="3" class="px-2">
-              <label>{{ ui[uiLang].rarity }}</label>
-              <b-form-select
-                :value="cardRare"
-                :options="cardRareOpts"
-                @input="$emit('update:cardRare', $event)"
-              ></b-form-select>
-            </b-col>
-            <b-col cols="6" lg="3" class="px-2">
+            <b-col cols="12" lg="4" class="px-2 mt-3 mt-lg-0">
               <label>{{ ui[uiLang].title_color }}</label>
               <b-form-input
                 :value="titleColor"
                 type="color"
                 @input="$emit('update:titleColor', $event)"
-              ></b-form-input>
-            </b-col>
-          </b-row>
-          <b-row class="my-3">
-            <b-col cols="6" lg="4" class="px-2">
-              <div class="form-check px-0">
-                <label>{{ ui[uiLang].card_secret }}</label>
-                <b-form-checkbox
-                  :value="cardLoadYgoProEnabled"
-                  :class="{
-                    'checkbox-wrap': true,
-                    active: cardLoadYgoProEnabled,
-                  }"
-                  button
-                  @input="$emit('update:cardLoadYgoProEnabled', $event)"
-                  >{{ ui[uiLang].auto_fill_card_data }}</b-form-checkbox
-                >
-              </div>
-            </b-col>
-            <b-col cols="6" lg="8" class="px-2">
-              <label
-                ><small>{{ ui[uiLang].card_secret_note }}</small></label
-              >
-              <b-form-input
-                :value="cardKey"
-                type="number"
-                maxlength="8"
-                :placeholder="ui[uiLang].plz_input_card_secret"
-                @input="$emit('update:cardKey', $event)"
-              />
-              <small v-if="apiCardLoading" class="text-muted">{{
-                ui[uiLang].search_loading
-              }}</small>
-              <small v-else-if="apiCardError" class="text-danger">{{
-                apiCardError
-              }}</small>
-            </b-col>
-          </b-row>
-          <b-row class="my-3">
-            <b-col class="px-2">
-              <label>{{ ui[uiLang].card_name }}</label>
-              <b-form-input
-                :value="cardTitle"
-                @input="$emit('update:cardTitle', $event)"
               ></b-form-input>
             </b-col>
           </b-row>
@@ -299,7 +199,7 @@
               <div class="form-check px-0">
                 <label>&emsp;</label>
                 <b-form-checkbox
-                  :value="Pendulum"
+                  :checked="Pendulum"
                   :class="{
                     'checkbox-wrap': true,
                     active: Pendulum,
@@ -311,29 +211,9 @@
               </div>
             </b-col>
             <b-col
-              v-show="cardType === 'Monster'"
-              cols="6"
-              lg="4"
-              class="px-2"
-            >
-              <div class="form-check px-0">
-                <label>&emsp;</label>
-                <b-form-checkbox
-                  :value="Special"
-                  :class="{
-                    'checkbox-wrap': true,
-                    active: Special,
-                  }"
-                  button
-                  @input="$emit('update:Special', $event)"
-                  >{{ ui[uiLang].special_summon }}</b-form-checkbox
-                >
-              </div>
-            </b-col>
-            <b-col
               v-show="cardType === 'Monster' && !isLinkMonster"
               cols="12"
-              lg="4"
+              lg="8"
               class="px-2"
             >
               <label>{{ ui[uiLang].lavel_and_rank }}</label>
@@ -352,32 +232,16 @@
             </b-col>
             <b-col cols="12">
               <b-row class="mb-3">
-                <b-col cols="4" class="px-2">
-                  <label>{{ ui[uiLang].pendulum_blue }}</label>
+                <b-col cols="6" class="px-2">
+                  <label>{{
+                    ui[uiLang].pendulum_scale_single || 'Escala de Pêndulo'
+                  }}</label>
                   <b-form-input
-                    :value="cardBLUE"
+                    :value="pendulumScaleValue"
                     type="number"
                     min="0"
                     max="12"
-                    @input="$emit('update:cardBLUE', $event)"
-                  ></b-form-input>
-                </b-col>
-                <b-col cols="4" class="px-2">
-                  <label>{{ ui[uiLang].pendulum_red }}</label>
-                  <b-form-input
-                    :value="cardRED"
-                    type="number"
-                    min="0"
-                    max="12"
-                    @input="$emit('update:cardRED', $event)"
-                  ></b-form-input>
-                </b-col>
-                <b-col cols="4" class="px-2">
-                  <label>{{ ui[uiLang].text_size }}</label>
-                  <b-form-input
-                    :value="pendulumSize"
-                    type="number"
-                    @input="$emit('update:pendulumSize', $event)"
+                    @input="onPendulumScaleInput"
                   ></b-form-input>
                 </b-col>
               </b-row>
@@ -442,15 +306,7 @@
                 </tr>
               </table>
             </b-col>
-            <b-col cols="2" class="px-2">
-              <label>{{ ui[uiLang].text_size }}</label>
-              <b-form-input
-                :value="infoSize"
-                type="number"
-                @input="$emit('update:infoSize', $event)"
-              ></b-form-input>
-            </b-col>
-            <b-col cols="2" class="px-2">
+            <b-col cols="4" class="px-2">
               <label>{{ ui[uiLang].text_position }}</label>
               <b-form-input
                 :value="infoPosition"
@@ -486,9 +342,10 @@
             {{ ui[uiLang].download }}
           </button>
           <b-button
-            v-if="hasUnsavedLayoutChanges"
+            v-if="!isFieldsLocked && !deckEditLock"
             class="my-2 ml-2"
             variant="success"
+            :disabled="!hasUnsavedLayoutChanges"
             @click="$emit('save-deck-card-changes')"
           >
             {{ ui[uiLang].save_changes }}
@@ -520,7 +377,6 @@ export default {
     currentBaseCard: { type: Object, default: null },
     isFieldsLocked: { type: Boolean, required: true },
     deckEditLock: { type: Boolean, required: true },
-    baseCardNeedsTranslation: { type: Boolean, required: true },
     holo: { type: Boolean, required: true },
     cardRare: { type: [String, Number], required: true },
     cardRareOpts: { type: Array, required: true },
@@ -549,8 +405,7 @@ export default {
     cardRaceOpts: { type: Array, required: true },
     canPendulumEnabled: { type: Boolean, required: true },
     Pendulum: { type: Boolean, required: true },
-    Special: { type: Boolean, required: true },
-    cardLevel: { type: Number, required: true },
+    cardLevel: { type: [String, Number], required: true },
     cardLevelOpts: { type: Array, required: true },
     cardBLUE: { type: [String, Number], required: true },
     cardRED: { type: [String, Number], required: true },
@@ -573,12 +428,21 @@ export default {
         { value: 'fullart', text: (u && u.art_style_fullart) || 'Full Art' },
       ]
     },
+    pendulumScaleValue() {
+      return this.cardBLUE != null && this.cardBLUE !== ''
+        ? this.cardBLUE
+        : this.cardRED
+    },
   },
   methods: {
     onFullArtFileChange(e) {
       const file = e.target.files && e.target.files[0]
       if (file) this.$emit('upload-fullart', file)
       e.target.value = ''
+    },
+    onPendulumScaleInput(value) {
+      this.$emit('update:cardBLUE', value)
+      this.$emit('update:cardRED', value)
     },
   },
 }
