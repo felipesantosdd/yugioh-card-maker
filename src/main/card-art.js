@@ -59,6 +59,7 @@ async function getCardArt(id, imageUrl) {
   }
 
   if (!imageUrl) return null
+  if (!/^https?:\/\//i.test(String(imageUrl))) return null
 
   const buf = await fetchUrl(imageUrl)
 

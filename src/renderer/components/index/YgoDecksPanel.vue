@@ -180,6 +180,37 @@
                 {{ ui[uiLang].hand_test || 'Teste de mão' }}
               </b-button>
               <b-button
+                v-if="!deckExportMode"
+                size="sm"
+                variant="outline-primary"
+                :disabled="!selectedDeckCards.length"
+                title="Selecionar cards para exportar para outro deck"
+                @click="$emit('start-export-cards')"
+              >
+                <fa :icon="['fas', 'file-export']" class="mr-1" />
+                Exportar cards
+              </b-button>
+              <b-button
+                v-else
+                size="sm"
+                variant="outline-danger"
+                :disabled="!selectedExportCardIds.length"
+                title="Escolher deck de destino"
+                @click="$emit('finish-export-cards')"
+              >
+                <fa :icon="['fas', 'check']" class="mr-1" />
+                Pronto
+              </b-button>
+              <b-button
+                v-if="deckExportMode"
+                size="sm"
+                variant="outline-secondary"
+                title="Cancelar seleÃ§Ã£o de cards"
+                @click="$emit('cancel-export-cards')"
+              >
+                Cancelar
+              </b-button>
+              <b-button
                 size="sm"
                 variant="outline-success"
                 :disabled="!deckDirtyYgo"
@@ -235,10 +266,11 @@
                 :key="item.id"
                 v-b-tooltip.hover.top="item.name"
                 class="deck-thumb-wrap position-relative"
-                :class="
-                  editingDeckCardId === item.id ? 'deck-thumb-active' : ''
-                "
-                @click="$emit('edit-deck-card', item)"
+                :class="{
+                  'deck-thumb-active': editingDeckCardId === item.id,
+                  'deck-thumb-export-selected': isExportSelected(item.id),
+                }"
+                @click="handleDeckCardClick(item)"
               >
                 <img
                   v-if="getDeckCardImageSrc(item)"
@@ -262,6 +294,7 @@
                   ?
                 </div>
                 <button
+                  v-if="!deckExportMode"
                   class="deck-thumb-remove"
                   title="Remover"
                   @click.stop="$emit('remove-deck-card', item.id)"
@@ -281,10 +314,11 @@
                 :key="item.id"
                 v-b-tooltip.hover.top="item.name"
                 class="deck-thumb-wrap position-relative"
-                :class="
-                  editingDeckCardId === item.id ? 'deck-thumb-active' : ''
-                "
-                @click="$emit('edit-deck-card', item)"
+                :class="{
+                  'deck-thumb-active': editingDeckCardId === item.id,
+                  'deck-thumb-export-selected': isExportSelected(item.id),
+                }"
+                @click="handleDeckCardClick(item)"
               >
                 <img
                   v-if="getDeckCardImageSrc(item)"
@@ -308,6 +342,7 @@
                   ?
                 </div>
                 <button
+                  v-if="!deckExportMode"
                   class="deck-thumb-remove"
                   title="Remover"
                   @click.stop="$emit('remove-deck-card', item.id)"
@@ -348,7 +383,21 @@ export default {
     deckDirtyYgo: { type: Boolean, required: true },
     downloading: { type: Boolean, required: true },
     isCurrentCardInDeck: { type: Boolean, default: false },
+    deckExportMode: { type: Boolean, default: false },
+    selectedExportCardIds: { type: Array, default: () => [] },
     getDeckCardImageSrc: { type: Function, required: true },
+  },
+  methods: {
+    isExportSelected(id) {
+      return this.selectedExportCardIds.includes(id)
+    },
+    handleDeckCardClick(item) {
+      if (this.deckExportMode) {
+        this.$emit('toggle-export-card', item)
+        return
+      }
+      this.$emit('edit-deck-card', item)
+    },
   },
 }
 </script>
@@ -356,5 +405,10 @@ export default {
 <style scoped>
 .decks-toolbar .btn-outline-success {
   display: none !important;
+}
+.deck-thumb-export-selected {
+  outline: 3px solid #dc3545;
+  border-radius: 4px;
+  box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.2);
 }
 </style>

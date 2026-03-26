@@ -85,6 +85,9 @@ function registerIpcHandlers() {
   ipcMain.handle('ygoDb:saveCards', (_e, cards, databaseVersion) => database.saveCards(cards, databaseVersion))
   ipcMain.handle('ygoDb:saveCardsEN', (_e, enCards) => database.saveCardsEN(enCards))
   ipcMain.handle('ygoDb:mergeCardsPT', (_e, ptCards) => database.mergeCardsPT(ptCards))
+  ipcMain.handle('ygoDb:backfillCardEnglishNames', (_e, enCards) =>
+    database.backfillCardEnglishNames(enCards)
+  )
   ipcMain.handle('ygoDb:updateCardBase', (_e, cardId, payload) =>
     database.updateCardBase(cardId, payload)
   )

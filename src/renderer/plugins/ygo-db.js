@@ -1,5 +1,8 @@
 import Vue from 'vue'
 
-const ygoDb = window.ygoDb || null
-
-Vue.prototype.$ygoDb = ygoDb
+Object.defineProperty(Vue.prototype, '$ygoDb', {
+  configurable: true,
+  get() {
+    return window.ygoDb || null
+  },
+})
