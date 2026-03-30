@@ -56,7 +56,7 @@
                   browse="✚"
                   accept="image/*"
                   :drop-placeholder="ui[uiLang].drag_and_drop"
-                  @input="$emit('update:cardImg', $event)"
+                  @input="onCardArtFileChange"
                 ></b-form-file>
               </template>
               <template v-else>
@@ -87,6 +87,51 @@
               </template>
             </b-col>
           </b-row>
+          <div v-if="cardArtVariants.length > 1" class="art-variants-panel mb-3">
+            <label class="d-block mb-2">{{
+              ui[uiLang].art_variant_select || 'Artes do card'
+            }}</label>
+            <div class="art-variants-list">
+              <button
+                v-for="(variant, index) in cardArtVariants"
+                :key="variant.id"
+                type="button"
+                class="art-variant-tile"
+                :class="{
+                  active: String(selectedCardArtVariantId) === String(variant.id),
+                }"
+                :title="variant.label || `Arte ${index + 1}`"
+                @click="$emit('select-card-art-variant', String(variant.id))"
+              >
+                <span
+                  class="art-variant-remove"
+                  title="Apagar esta arte"
+                  @click.stop="$emit('delete-card-art-variant', String(variant.id))"
+                >
+                  ×
+                </span>
+                <div class="art-variant-thumb">
+                  <img
+                    v-if="variant.previewUrl"
+                    :src="variant.previewUrl"
+                    :alt="variant.label || `Arte ${index + 1}`"
+                  />
+                  <span v-else class="art-variant-fallback">
+                    {{ index + 1 }}
+                  </span>
+                </div>
+                <span class="art-variant-label">
+                  {{ variant.label || `Arte ${index + 1}` }}
+                </span>
+              </button>
+            </div>
+            <small class="text-muted d-block mt-2">
+              {{
+                ui[uiLang].art_variant_hint ||
+                'Clique na arte que deve ficar ativa para este card.'
+              }}
+            </small>
+          </div>
           <b-row class="my-3">
             <b-col cols="6" lg="3" class="px-2">
               <label>{{ ui[uiLang].card_type }}</label>
@@ -387,6 +432,8 @@ export default {
     apiCardError: { type: String, default: '' },
     cardTitle: { type: String, required: true },
     cardImg: { type: [File, Object, String], default: null },
+    cardArtVariants: { type: Array, default: () => [] },
+    selectedCardArtVariantId: { type: [String, Number, null], default: null },
     fullart: { type: Boolean, default: false },
     hasCardFullArt: { type: Boolean, default: false },
     cardType: { type: String, required: true },
@@ -435,6 +482,9 @@ export default {
     },
   },
   methods: {
+    onCardArtFileChange(file) {
+      if (file) this.$emit('upload-card-image', file)
+    },
     onFullArtFileChange(e) {
       const file = e.target.files && e.target.files[0]
       if (file) this.$emit('upload-fullart', file)
@@ -460,6 +510,99 @@ export default {
 .fullart-and-upload-row .card-art-upload-col {
   flex: 1 1 80%;
   max-width: 80%;
+}
+.art-variants-panel {
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+}
+.art-variants-list {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+.art-variant-tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-width: 90px;
+  padding: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.2);
+  color: #fff;
+  transition: border-color 0.2s ease, transform 0.2s ease, background 0.2s ease;
+}
+.art-variant-tile:hover {
+  border-color: rgba(255, 255, 255, 0.28);
+  transform: translateY(-1px);
+}
+.art-variant-tile.active {
+  border-color: #3db8ff;
+  background: rgba(61, 184, 255, 0.14);
+  box-shadow: 0 0 0 1px rgba(61, 184, 255, 0.25);
+}
+.art-variant-thumb {
+  width: 72px;
+  height: 72px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.06);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.art-variant-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.art-variant-remove {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  background: rgba(180, 32, 32, 0.92);
+  color: #fff;
+  font-size: 14px;
+  line-height: 20px;
+  text-align: center;
+  font-weight: 700;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+}
+.art-variant-remove:hover {
+  background: rgba(220, 48, 48, 0.98);
+}
+.art-variant-fallback {
+  font-size: 18px;
+  font-weight: 700;
+  opacity: 0.8;
+}
+.art-variant-label {
+  max-width: 100%;
+  font-size: 11px;
+  line-height: 1.2;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+@media (max-width: 991.98px) {
+  .fullart-and-upload-row .fullart-toggle-col,
+  .fullart-and-upload-row .card-art-upload-col {
+    flex: 0 0 100%;
+    max-width: 100%;
+  }
+  .fullart-and-upload-row .card-art-upload-col {
+    margin-top: 12px;
+  }
 }
 </style>
 

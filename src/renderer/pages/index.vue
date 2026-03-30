@@ -672,6 +672,11 @@
                       @update:cardTitle="(v) => (cardTitle = v)"
                       :cardImg="cardImg"
                       @update:cardImg="(v) => (cardImg = v)"
+                      :cardArtVariants="currentCardArtVariants"
+                      :selectedCardArtVariantId="selectedCardArtVariantId"
+                      @upload-card-image="onUploadCardImage"
+                      @select-card-art-variant="onSelectCardArtVariant"
+                      @delete-card-art-variant="onDeleteCardArtVariant"
                       :fullart="fullart"
                       @update:fullart="(v) => (fullart = v)"
                       :hasCardFullArt="hasCardFullArtCache"
@@ -1813,18 +1818,22 @@
             }}</b-form-radio>
           </b-form-radio-group>
         </b-form-group>
+        <div class="small text-muted mb-3">
+          <div>Cada PDF suporta {{ silhouetteCardsPerPageCurrent }} cards.</div>
+          <div v-if="silhouetteDeckCardCount > 0">
+            Seu deck atual ocupa {{ silhouetteEstimatedPages }} PDF(s).
+            <span v-if="silhouetteRemainingSlots > 0">
+              Faltam {{ silhouetteRemainingSlots }} card(s) para completar o
+              último PDF.
+            </span>
+            <span v-else> O último PDF já está completo. </span>
+          </div>
+        </div>
         <b-form-group>
           <b-form-checkbox v-model="silhouetteCardsTouch">
             {{
               ui[uiLang].silhouette_cards_touch ||
               'Cards se tocam (reduz falha de impressão)'
-            }}
-          </b-form-checkbox>
-        </b-form-group>
-        <b-form-group>
-          <b-form-checkbox v-model="silhouetteIncludeImages">
-            {{
-              ui[uiLang].silhouette_include_images || 'PDF com imagem dos cards'
             }}
           </b-form-checkbox>
         </b-form-group>
@@ -2003,6 +2012,17 @@
           }}</b-form-radio>
         </b-form-radio-group>
       </b-form-group>
+      <div class="small text-muted mb-3">
+        <div>Cada PDF suporta {{ silhouetteCardsPerPageCurrent }} cards.</div>
+        <div v-if="silhouetteDeckCardCount > 0">
+          Seu deck atual ocupa {{ silhouetteEstimatedPages }} PDF(s).
+          <span v-if="silhouetteRemainingSlots > 0">
+            Faltam {{ silhouetteRemainingSlots }} card(s) para completar o
+            último PDF.
+          </span>
+          <span v-else> O último PDF já está completo. </span>
+        </div>
+      </div>
       <b-form-group>
         <b-form-checkbox v-model="silhouetteCardsTouch">
           {{
@@ -2266,6 +2286,10 @@ export default {
       cardKey: '',
       apiCardCache: {},
       apiCardImageUrls: {},
+      currentCardArtVariants: [],
+      currentCardArtVariantsCardKey: '',
+      selectedCardArtVariantId: null,
+      cardArtVariantUrls: {},
       cardPreviewUrls: {},
       apiCardFullArtUrls: {},
       apiCardImagePromises: Object.create(null),
@@ -2757,12 +2781,35 @@ export default {
         !this.cardKey ||
         !this.selectedDeckCards.length
       )
-        return null
+      return null
       if (this.editingDeckCardId) return this.editingDeckCardId
       const first = this.selectedDeckCards.find(
         (c) => String(c.cardKey) === String(this.cardKey)
       )
       return first ? first.id : null
+    },
+    silhouetteCardsPerPageCurrent() {
+      return this.getSilhouetteCardsPerPage(
+        this.silhouetteCardSize,
+        this.silhouettePaperSize
+      )
+    },
+    silhouetteDeckCardCount() {
+      return Array.isArray(this.selectedDeckCards)
+        ? this.selectedDeckCards.length
+        : 0
+    },
+    silhouetteEstimatedPages() {
+      const perPage = Number(this.silhouetteCardsPerPageCurrent) || 1
+      const total = Number(this.silhouetteDeckCardCount) || 0
+      return total > 0 ? Math.ceil(total / perPage) : 0
+    },
+    silhouetteRemainingSlots() {
+      const perPage = Number(this.silhouetteCardsPerPageCurrent) || 1
+      const total = Number(this.silhouetteDeckCardCount) || 0
+      if (total <= 0) return 0
+      const remainder = total % perPage
+      return remainder === 0 ? 0 : perPage - remainder
     },
     isCurrentCardDeckCover() {
       const deck = this.selectedDeck
@@ -3066,6 +3113,9 @@ export default {
     window.removeEventListener('scroll', this.onScroll)
     window.removeEventListener('resize', this.updateMhPreviewScale)
     if (this._drawCardRaf) cancelAnimationFrame(this._drawCardRaf)
+    Object.values(this.cardArtVariantUrls || {}).forEach((url) =>
+      this.revokeBlobUrl(url)
+    )
   },
   methods: {
     ...mapMutations([
@@ -3414,6 +3464,66 @@ export default {
       })
     },
 
+    async createArtVariantBlobFromUrl(url, mimeType = 'image/webp') {
+      if (!url) return null
+      try {
+        const img = await this.loadCanvasImage(url)
+        const width = img?.naturalWidth || img?.width || 0
+        const height = img?.naturalHeight || img?.height || 0
+        if (!width || !height) return null
+        const canvas = document.createElement('canvas')
+        canvas.width = width
+        canvas.height = height
+        const ctx = canvas.getContext('2d')
+        if (!ctx) return null
+        ctx.drawImage(img, 0, 0, width, height)
+        return new Promise((resolve) => {
+          if (typeof canvas.toBlob === 'function') {
+            canvas.toBlob(
+              (blob) => resolve(blob || null),
+              mimeType,
+              mimeType === 'image/png' ? undefined : 0.95
+            )
+            return
+          }
+          try {
+            const dataUrl = canvas.toDataURL(
+              mimeType,
+              mimeType === 'image/png' ? undefined : 0.95
+            )
+            const [, base64 = ''] = dataUrl.split(',')
+            const binary = atob(base64)
+            const bytes = new Uint8Array(binary.length)
+            for (let i = 0; i < binary.length; i++)
+              bytes[i] = binary.charCodeAt(i)
+            resolve(new Blob([bytes], { type: mimeType }))
+          } catch (_) {
+            resolve(null)
+          }
+        })
+      } catch (_) {
+        return null
+      }
+    },
+
+    resolveOriginalCardArtSourceUrl(cardId) {
+      const key = String(cardId || '')
+      if (!key) return null
+      const bundledCanvasUrl = this.getBundledCanvasArtUrl(key, 'webp')
+      if (bundledCanvasUrl) return bundledCanvasUrl
+      const cachedImageUrl = this.apiCardImageUrls[key]
+      if (cachedImageUrl && !cachedImageUrl.startsWith('blob:')) {
+        return cachedImageUrl
+      }
+      const card = this.localCards.find((c) => String(c.id) === key) || null
+      const img = card?.card_images?.[0]
+      if (img?.image_url_cropped) return img.image_url_cropped
+      if (img?.image_url && img.image_url !== img.image_url_small)
+        return img.image_url
+      if (img?.image_url_small) return img.image_url_small
+      return this.getBundledThumbArtUrl(key, 'webp')
+    },
+
     async captureCurrentDeckCardThumbnailDataUrl() {
       const sourceCanvas = this.$refs.yugiohcard
       if (!sourceCanvas) return ''
@@ -3434,6 +3544,24 @@ export default {
       } catch (_) {
         return ''
       }
+    },
+
+    async persistCurrentCardPreviewImage() {
+      if (!this.$ygoDb || !this.cardKey) return
+      const key = String(this.cardKey)
+      await this.$nextTick()
+      await new Promise((resolve) => requestAnimationFrame(resolve))
+      const previewBlob = await this.captureCurrentCardPreviewBlob()
+      if (!previewBlob) return
+      this.revokeBlobUrl(this.cardPreviewUrls[key])
+      await this.$ygoDb.saveCardPreviewImage(key, previewBlob)
+      const previewUrl = URL.createObjectURL(previewBlob)
+      this.$set(this.cardPreviewUrls, key, previewUrl)
+      this.selectedDeckCards
+        .filter((item) => String(item.cardKey) === key)
+        .forEach((item) => {
+          this.$set(this.deckCardImageUrls, String(item.id), previewUrl)
+        })
     },
 
     replaceCardInCollections(updatedCard) {
@@ -3464,6 +3592,224 @@ export default {
         try {
           URL.revokeObjectURL(url)
         } catch (_) {}
+      }
+    },
+
+    async ensureCardArtVariantUrl(variant) {
+      const variantId =
+        typeof variant === 'string' ? variant : String(variant?.id || '')
+      if (!variantId || !this.$ygoDb) return null
+      if (this.cardArtVariantUrls[variantId]) {
+        return this.cardArtVariantUrls[variantId]
+      }
+      const blob = await this.$ygoDb.getCardArtVariantImage(variantId)
+      if (!blob) return null
+      const url = URL.createObjectURL(blob)
+      this.$set(this.cardArtVariantUrls, variantId, url)
+      return url
+    },
+
+    async refreshCurrentCardArtVariants(
+      cardId,
+      { selectedVariantId = null, redraw = false } = {}
+    ) {
+      const key = String(cardId || '')
+      if (!this.$ygoDb || !key) {
+        this.currentCardArtVariants = []
+        this.currentCardArtVariantsCardKey = ''
+        this.selectedCardArtVariantId = null
+        return []
+      }
+      const variants = await this.$ygoDb.listCardArtVariants(key, 'normal')
+      if (String(this.cardKey || '') !== key) {
+        return variants
+      }
+      const normalizedVariants = Array.isArray(variants) ? variants : []
+      const variantsWithPreview = await Promise.all(
+        normalizedVariants.map(async (variant) => {
+          const previewUrl = await this.ensureCardArtVariantUrl(variant)
+          return {
+            ...variant,
+            previewUrl: previewUrl || null,
+          }
+        })
+      )
+      if (String(this.cardKey || '') !== key) {
+        return variantsWithPreview
+      }
+      this.currentCardArtVariants = variantsWithPreview
+      this.currentCardArtVariantsCardKey = key
+      const selected =
+        this.currentCardArtVariants.find(
+          (variant) => String(variant.id) === String(selectedVariantId || '')
+        ) ||
+        this.currentCardArtVariants.find((variant) => variant.is_default) ||
+        this.currentCardArtVariants[0] ||
+        null
+      this.selectedCardArtVariantId = selected ? String(selected.id) : null
+      if (selected) {
+        const url = await this.ensureCardArtVariantUrl(selected)
+        if (url) {
+          this.$set(this.apiCardImageUrls, key, url)
+          if (redraw) {
+            this.cardPhotoLoading = false
+            this.$nextTick(() => this.drawCard(url))
+          }
+        }
+      } else {
+        this.$delete(this.apiCardImageUrls, key)
+        if (redraw) this.$nextTick(() => this.drawCard())
+      }
+      return this.currentCardArtVariants
+    },
+
+    async onUploadCardImage(file) {
+      if (!file) return
+      if (!(file instanceof Blob)) return
+      if (!this.cardKey || !this.currentBaseCard || !this.$ygoDb) {
+        this.cardImg = file
+        this.$nextTick(() => this.drawCard())
+        return
+      }
+      const key = String(this.cardKey)
+      const existingVariants = Array.isArray(this.currentCardArtVariants)
+        ? this.currentCardArtVariants
+        : []
+      const originalArtSourceUrl = this.resolveOriginalCardArtSourceUrl(key)
+      let chosenVariantId =
+        this.selectedCardArtVariantId ||
+        existingVariants.find((variant) => variant.is_default)?.id ||
+        existingVariants[0]?.id ||
+        null
+
+      if (existingVariants.length > 0) {
+        const addAlternative = window.confirm(
+          'Este card ja possui uma arte salva.\n\nOK: adicionar como arte alternativa.\nCancelar: substituir a arte selecionada atual.'
+        )
+        if (addAlternative) {
+          chosenVariantId = await this.$ygoDb.saveCardArtVariant(
+            key,
+            'normal',
+            file,
+            {
+              label: `Arte ${existingVariants.length + 1}`,
+              mimeType: file.type || 'image/webp',
+              setAsDefault: true,
+            }
+          )
+        } else if (chosenVariantId) {
+          this.revokeBlobUrl(this.cardArtVariantUrls[String(chosenVariantId)])
+          this.$delete(this.cardArtVariantUrls, String(chosenVariantId))
+          await this.$ygoDb.updateCardArtVariant(chosenVariantId, file, {
+            mimeType: file.type || 'image/webp',
+          })
+          await this.$ygoDb.setDefaultCardArtVariant(
+            key,
+            'normal',
+            chosenVariantId
+          )
+        } else {
+          chosenVariantId = await this.$ygoDb.saveCardArtVariant(
+            key,
+            'normal',
+            file,
+            {
+              label: 'Arte principal',
+              mimeType: file.type || 'image/webp',
+              setAsDefault: true,
+            }
+          )
+        }
+      } else {
+        const shouldPreserveOriginalAsAlternative = originalArtSourceUrl
+          ? window.confirm(
+              'Este card ja possui a arte original.\n\nOK: manter a arte original e adicionar sua imagem como arte alternativa.\nCancelar: usar sua imagem como unica arte salva.'
+            )
+          : false
+
+        if (shouldPreserveOriginalAsAlternative && originalArtSourceUrl) {
+          const originalBlob = await this.createArtVariantBlobFromUrl(
+            originalArtSourceUrl,
+            'image/webp'
+          )
+          if (originalBlob) {
+            await this.$ygoDb.saveCardArtVariant(key, 'normal', originalBlob, {
+              label: 'Arte original',
+              mimeType: 'image/webp',
+              setAsDefault: false,
+            })
+          }
+          chosenVariantId = await this.$ygoDb.saveCardArtVariant(
+            key,
+            'normal',
+            file,
+            {
+              label: 'Arte 2',
+              mimeType: file.type || 'image/webp',
+              setAsDefault: true,
+            }
+          )
+        } else {
+          chosenVariantId = await this.$ygoDb.saveCardArtVariant(
+            key,
+            'normal',
+            file,
+            {
+              label: 'Arte principal',
+              mimeType: file.type || 'image/webp',
+              setAsDefault: true,
+            }
+          )
+        }
+      }
+
+      if (originalArtSourceUrl && !this.apiCardImageUrls[key]) {
+        this.$set(this.apiCardImageUrls, key, originalArtSourceUrl)
+      }
+
+      this.cardImg = null
+      await this.refreshCurrentCardArtVariants(key, {
+        selectedVariantId: chosenVariantId,
+        redraw: true,
+      })
+      await this.persistCurrentCardPreviewImage()
+      if (this.$bvToast) {
+        this.$bvToast.toast('Arte do card atualizada com sucesso.', {
+          variant: 'success',
+        })
+      }
+    },
+
+    async onSelectCardArtVariant(variantId) {
+      const key = String(this.cardKey || '')
+      const normalizedVariantId = String(variantId || '')
+      if (!key || !normalizedVariantId || !this.$ygoDb) return
+      await this.$ygoDb.setDefaultCardArtVariant(key, 'normal', normalizedVariantId)
+      await this.refreshCurrentCardArtVariants(key, {
+        selectedVariantId: normalizedVariantId,
+        redraw: true,
+      })
+      await this.persistCurrentCardPreviewImage()
+    },
+
+    async onDeleteCardArtVariant(variantId) {
+      const key = String(this.cardKey || '')
+      const normalizedVariantId = String(variantId || '')
+      if (!key || !normalizedVariantId || !this.$ygoDb) return
+      if ((this.currentCardArtVariants || []).length <= 1) return
+      const confirmed = window.confirm(
+        'Deseja apagar esta arte alternativa?'
+      )
+      if (!confirmed) return
+      this.revokeBlobUrl(this.cardArtVariantUrls[normalizedVariantId])
+      this.$delete(this.cardArtVariantUrls, normalizedVariantId)
+      await this.$ygoDb.deleteCardArtVariant(key, 'normal', normalizedVariantId)
+      await this.refreshCurrentCardArtVariants(key, { redraw: true })
+      await this.persistCurrentCardPreviewImage()
+      if (this.$bvToast) {
+        this.$bvToast.toast('Arte removida com sucesso.', {
+          variant: 'warning',
+        })
       }
     },
 
@@ -3795,6 +4141,7 @@ export default {
       this.snapshotAtLoad = this.captureCurrentCardSnapshot()
       this.cardKey = item.cardKey
       this.cardLang = item.cardLang || 'pt'
+      await this.refreshCurrentCardArtVariants(item.cardKey)
       const imgUrl = await this.getExportImageUrlForBatch(item.cardKey)
       this.cardPhotoLoading = !!imgUrl
       if (imgUrl) {
@@ -3813,7 +4160,6 @@ export default {
           this.drawCard()
         })
       }
-      this.$nextTick(() => this.setYgoEditorState('deck-readonly'))
     },
 
     unlockDeckEdit() {
@@ -4748,6 +5094,9 @@ export default {
       this.cardKey = ''
       this.cardTitle = data.title
       this.cardImg = null
+      this.currentCardArtVariants = []
+      this.currentCardArtVariantsCardKey = ''
+      this.selectedCardArtVariantId = null
       this.fullart = false
       this.hasCardFullArtCache = false
       this.cardType = 'Monster'
@@ -5513,6 +5862,7 @@ export default {
         this.viewingBaseCard = !!this.localCardsMap[this.cardKey]
         this.snapshotAtLoad = this.captureCurrentCardSnapshot()
         this.setYgoEditorState('base-readonly', { editingDeckCardId: null })
+        await this.refreshCurrentCardArtVariants(this.cardKey)
         const card = this.localCards.find(
           (c) => String(c.id) === String(this.cardKey)
         )
@@ -6012,7 +6362,7 @@ export default {
       this.doApplyCardFromSearch(card)
     },
 
-    doApplyCardFromSearch(card) {
+    async doApplyCardFromSearch(card) {
       this.searchByName = ''
       this.searchByArchetype = ''
       this.saveSearchState()
@@ -6026,6 +6376,7 @@ export default {
       this.cardKey = key
       this.cardLang = card.lang || 'pt'
       this.load_ygopro_data(key)
+      await this.refreshCurrentCardArtVariants(key)
       this.cardPhotoLoading = !!imgUrl
       if (imgUrl) {
         this.$nextTick(() => this.fireLoadingDialog())
@@ -7330,7 +7681,7 @@ export default {
               cardSize: this.silhouetteCardSize,
               paperSize: this.silhouettePaperSize,
               cardsTouch: this.silhouetteCardsTouch,
-              includeImages: this.silhouetteIncludeImages,
+              includeImages: true,
             })
             const pageNumber = Math.floor(i / cardsPerPage) + 1
             zip.file(
@@ -7363,7 +7714,7 @@ export default {
             cardSize: this.silhouetteCardSize,
             paperSize: this.silhouettePaperSize,
             cardsTouch: this.silhouetteCardsTouch,
-            includeImages: this.silhouetteIncludeImages,
+            includeImages: true,
           })
         const baseName = this.sanitizeFilename(this.selectedDeck.name)
         const zip = new JSZip()
@@ -7398,8 +7749,9 @@ export default {
     },
 
     async getExportImageUrlForBatch(cardKey) {
-      const bundledUrl = this.getBundledCanvasArtUrl(cardKey, 'webp')
-      if (bundledUrl) return bundledUrl
+      if (this.apiCardImageUrls[cardKey]) {
+        return this.apiCardImageUrls[cardKey]
+      }
       const card = this.localCards.find((c) => String(c.id) === cardKey)
       const img = card?.card_images?.[0]
       const localCardUrl = img ? this.getCanvasImageUrl(img, cardKey) : null
@@ -7417,6 +7769,8 @@ export default {
           this.revokeBlobUrl(blobUrl)
         }
       }
+      const bundledUrl = this.getBundledCanvasArtUrl(cardKey, 'webp')
+      if (bundledUrl) return bundledUrl
       return localCardUrl
     },
 
@@ -7427,6 +7781,9 @@ export default {
       const card = this.localCards.find((c) => String(c.id) === key)
       this.cardLang = (card && card.lang) || 'pt'
       this.loadFromSnapshot(data)
+      if (this.currentCardArtVariantsCardKey !== String(key)) {
+        this.refreshCurrentCardArtVariants(key, { redraw: true })
+      }
       this.refreshHasCardFullArt()
       return true
     },

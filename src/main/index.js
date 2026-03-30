@@ -107,6 +107,37 @@ function registerIpcHandlers() {
     database.saveCardImage(id, buf)
   })
   ipcMain.handle('ygoDb:hasCardImage', (_e, id) => database.hasCardImage(id))
+  ipcMain.handle('ygoDb:listCardArtVariants', (_e, cardId, style) =>
+    database.listCardArtVariants(cardId, style)
+  )
+  ipcMain.handle('ygoDb:getCardArtVariantImage', (_e, variantId) => {
+    const buf = database.getCardArtVariantImage(variantId)
+    return buf ? buf.toString('base64') : null
+  })
+  ipcMain.handle(
+    'ygoDb:saveCardArtVariant',
+    (_e, cardId, style, base64, options = {}) => {
+      const buf = Buffer.from(base64, 'base64')
+      return database.saveCardArtVariant(cardId, style, buf, options)
+    }
+  )
+  ipcMain.handle(
+    'ygoDb:updateCardArtVariant',
+    (_e, variantId, base64, options = {}) => {
+      const buf = Buffer.from(base64, 'base64')
+      return database.updateCardArtVariant(variantId, buf, options)
+    }
+  )
+  ipcMain.handle(
+    'ygoDb:setDefaultCardArtVariant',
+    (_e, cardId, style, variantId) =>
+      database.setDefaultCardArtVariant(cardId, style, variantId)
+  )
+  ipcMain.handle(
+    'ygoDb:deleteCardArtVariant',
+    (_e, cardId, style, variantId) =>
+      database.deleteCardArtVariant(cardId, style, variantId)
+  )
   ipcMain.handle('ygoDb:getCardPreviewImage', (_e, id) => {
     const buf = database.getCardPreviewImage(id)
     return buf ? buf.toString('base64') : null

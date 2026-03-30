@@ -35,6 +35,38 @@ contextBridge.exposeInMainWorld('ygoDb', {
     return ipcRenderer.invoke('ygoDb:saveCardImage', id, base64)
   },
   hasCardImage: (id) => ipcRenderer.invoke('ygoDb:hasCardImage', id),
+  listCardArtVariants: (cardId, style = 'normal') =>
+    ipcRenderer.invoke('ygoDb:listCardArtVariants', cardId, style),
+  getCardArtVariantImage: async (variantId) => {
+    const base64 = await ipcRenderer.invoke('ygoDb:getCardArtVariantImage', variantId)
+    if (!base64) return null
+    const binary = atob(base64)
+    const bytes = new Uint8Array(binary.length)
+    for (let i = 0; i < bytes.length; i++) bytes[i] = binary.charCodeAt(i)
+    return new Blob([bytes], { type: 'image/webp' })
+  },
+  saveCardArtVariant: async (cardId, style, blob, options = {}) => {
+    if (!(blob instanceof Blob)) return null
+    const arrayBuf = await blob.arrayBuffer()
+    const bytes = new Uint8Array(arrayBuf)
+    let binary = ''
+    for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i])
+    const base64 = btoa(binary)
+    return ipcRenderer.invoke('ygoDb:saveCardArtVariant', cardId, style, base64, options)
+  },
+  updateCardArtVariant: async (variantId, blob, options = {}) => {
+    if (!(blob instanceof Blob)) return null
+    const arrayBuf = await blob.arrayBuffer()
+    const bytes = new Uint8Array(arrayBuf)
+    let binary = ''
+    for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i])
+    const base64 = btoa(binary)
+    return ipcRenderer.invoke('ygoDb:updateCardArtVariant', variantId, base64, options)
+  },
+  setDefaultCardArtVariant: (cardId, style, variantId) =>
+    ipcRenderer.invoke('ygoDb:setDefaultCardArtVariant', cardId, style, variantId),
+  deleteCardArtVariant: (cardId, style, variantId) =>
+    ipcRenderer.invoke('ygoDb:deleteCardArtVariant', cardId, style, variantId),
   getCardPreviewImage: async (id) => {
     const base64 = await ipcRenderer.invoke('ygoDb:getCardPreviewImage', id)
     if (!base64) return null
