@@ -195,11 +195,19 @@
                 size="sm"
                 variant="outline-danger"
                 :disabled="!selectedExportCardIds.length"
-                title="Escolher deck de destino"
+                :title="
+                  cardSelectionMode === 'download'
+                    ? 'Usar cards selecionados no download'
+                    : 'Escolher deck de destino'
+                "
                 @click="$emit('finish-export-cards')"
               >
                 <fa :icon="['fas', 'check']" class="mr-1" />
-                Pronto
+                {{
+                  cardSelectionMode === 'download'
+                    ? 'Usar selecao'
+                    : 'Pronto'
+                }}
               </b-button>
               <b-button
                 v-if="deckExportMode"
@@ -252,6 +260,30 @@
             </div>
           </div>
         </div>
+        <div class="deck-stats-summary mb-3">
+          <div
+            v-if="deckExportMode"
+            class="deck-selection-summary text-light small w-100"
+          >
+            {{
+              cardSelectionMode === 'download'
+                ? `Selecionados para imprimir/baixar: ${selectedExportCardIds.length}`
+                : `Selecionados para exportar: ${selectedExportCardIds.length}`
+            }}
+          </div>
+          <div class="deck-stat-pill deck-stat-pill-monster">
+            {{ mainDeckMonsterCount }}
+          </div>
+          <div class="deck-stat-pill deck-stat-pill-spell">
+            {{ mainDeckSpellCount }}
+          </div>
+          <div class="deck-stat-pill deck-stat-pill-trap">
+            {{ mainDeckTrapCount }}
+          </div>
+          <div class="deck-stat-pill deck-stat-pill-extra">
+            {{ extraDeckCards.length }}
+          </div>
+        </div>
         <div
           v-if="selectedDeckCards.length > 0"
           class="deck-sections-scroll overflow-y-auto flex-grow-1 min-h-0"
@@ -259,6 +291,12 @@
           <div class="deck-section mb-3">
             <div class="deck-section-label">
               Main Deck ({{ mainDeckCards.length }})
+              <span v-if="mainDeckPages > 0" class="deck-section-meta">
+                {{ mainDeckPages }} pagina(s)
+                <span v-if="mainDeckRemainingSlots > 0">
+                  • faltam {{ mainDeckRemainingSlots }} para completar a ultima
+                </span>
+              </span>
             </div>
             <div class="deck-grid deck-cards-scroll">
               <div
@@ -379,11 +417,17 @@ export default {
     selectedDeckCards: { type: Array, required: true },
     mainDeckCards: { type: Array, required: true },
     extraDeckCards: { type: Array, required: true },
+    mainDeckMonsterCount: { type: Number, required: true },
+    mainDeckSpellCount: { type: Number, required: true },
+    mainDeckTrapCount: { type: Number, required: true },
+    mainDeckPages: { type: Number, required: true },
+    mainDeckRemainingSlots: { type: Number, required: true },
     editingDeckCardId: { type: [String, Number], default: null },
     deckDirtyYgo: { type: Boolean, required: true },
     downloading: { type: Boolean, required: true },
     isCurrentCardInDeck: { type: Boolean, default: false },
     deckExportMode: { type: Boolean, default: false },
+    cardSelectionMode: { type: String, default: null },
     selectedExportCardIds: { type: Array, default: () => [] },
     getDeckCardImageSrc: { type: Function, required: true },
   },
@@ -406,9 +450,90 @@ export default {
 .decks-toolbar .btn-outline-success {
   display: none !important;
 }
+.deck-stats-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.deck-selection-summary {
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+.deck-stat-pill {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.2;
+  min-width: 42px;
+  text-align: center;
+}
+.deck-stat-pill-monster {
+  background: #ba842b;
+  border-color: #ba842b;
+}
+.deck-stat-pill-spell {
+  background: #028d80;
+  border-color: #028d80;
+}
+.deck-stat-pill-trap {
+  background: #d95aa2;
+  border-color: #d95aa2;
+}
+.deck-stat-pill-extra {
+  background: #783b89;
+  border-color: #783b89;
+}
+.deck-section-meta {
+  display: inline-block;
+  margin-left: 8px;
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 0.68rem;
+  font-weight: 500;
+  letter-spacing: normal;
+  text-transform: none;
+}
 .deck-thumb-export-selected {
   outline: 3px solid #dc3545;
   border-radius: 4px;
   box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.2);
+  overflow: hidden;
+}
+
+.deck-thumb-export-selected::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: 4px;
+  background: radial-gradient(
+    circle at center,
+    rgba(255, 255, 255, 0.78) 0%,
+    rgba(255, 255, 255, 0.46) 28%,
+    rgba(255, 255, 255, 0.18) 58%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  mix-blend-mode: screen;
+  opacity: 0.38;
+  animation: deck-thumb-selection-light 1s ease-in-out infinite;
+}
+
+@keyframes deck-thumb-selection-light {
+  0% {
+    opacity: 0.28;
+  }
+
+  50% {
+    opacity: 0.95;
+  }
+
+  100% {
+    opacity: 0.28;
+  }
 }
 </style>

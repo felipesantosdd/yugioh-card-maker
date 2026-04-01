@@ -455,6 +455,51 @@ function updateCardBase(cardId, payload) {
   return true
 }
 
+function createCardBase(payload) {
+  const d = open()
+  const dataObject =
+    payload && payload.data != null ? { ...payload.data } : {}
+  const nameValue =
+    payload && Object.prototype.hasOwnProperty.call(payload, 'name')
+      ? payload.name || ''
+      : dataObject.name || ''
+  const nameEnValue =
+    payload && Object.prototype.hasOwnProperty.call(payload, 'name_en')
+      ? payload.name_en || ''
+      : dataObject.name_en || nameValue
+  const descValue =
+    payload && Object.prototype.hasOwnProperty.call(payload, 'desc')
+      ? payload.desc || ''
+      : dataObject.desc || ''
+
+  dataObject.name = nameValue
+  dataObject.name_en = nameEnValue
+  dataObject.desc = descValue
+  if (!dataObject.lang) {
+    dataObject.lang = (payload && payload.lang) || 'pt'
+  }
+
+  const insert = d.prepare(`
+    INSERT INTO cards (name, name_en, desc, data)
+    VALUES (?, ?, ?, ?)
+  `)
+  const result = insert.run(
+    nameValue,
+    nameEnValue,
+    descValue,
+    JSON.stringify(dataObject)
+  )
+  const cardId = Number(result.lastInsertRowid)
+
+  dataObject.id = cardId
+  d.prepare('UPDATE cards SET data = ? WHERE id = ?').run(
+    JSON.stringify(dataObject),
+    cardId
+  )
+
+  return cardId
+}
+
 function shouldSync(lastSync) {
   if (lastSync == null) return true
   return Date.now() - lastSync >= MS_PER_DAY
@@ -1001,6 +1046,7 @@ module.exports = {
   saveCardsEN,
   mergeCardsPT,
   backfillCardEnglishNames,
+  createCardBase,
   updateCardBase,
   shouldSync,
   getSyncMeta,

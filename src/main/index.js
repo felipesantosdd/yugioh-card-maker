@@ -88,6 +88,9 @@ function registerIpcHandlers() {
   ipcMain.handle('ygoDb:backfillCardEnglishNames', (_e, enCards) =>
     database.backfillCardEnglishNames(enCards)
   )
+  ipcMain.handle('ygoDb:createCardBase', (_e, payload) =>
+    database.createCardBase(payload)
+  )
   ipcMain.handle('ygoDb:updateCardBase', (_e, cardId, payload) =>
     database.updateCardBase(cardId, payload)
   )

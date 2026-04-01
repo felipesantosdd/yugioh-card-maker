@@ -33,6 +33,16 @@
               ></b-form-input>
             </b-col>
           </b-row>
+          <b-row v-if="!hasSavedBaseCard" class="mb-3">
+            <b-col cols="12" class="px-2">
+              <label>Nome em ingles</label>
+              <b-form-input
+                :value="cardTitleEn"
+                placeholder="English card name"
+                @input="$emit('update:cardTitleEn', $event)"
+              ></b-form-input>
+            </b-col>
+          </b-row>
           <b-row class="my-3 fullart-and-upload-row">
             <b-col class="px-2 fullart-toggle-col">
               <label class="d-block">{{ ui[uiLang].art_style || 'Estilo da arte' }}</label>
@@ -390,7 +400,7 @@
             v-if="!isFieldsLocked && !deckEditLock"
             class="my-2 ml-2"
             variant="success"
-            :disabled="!hasUnsavedLayoutChanges"
+            :disabled="!canSaveCurrentCard"
             @click="$emit('save-deck-card-changes')"
           >
             {{ ui[uiLang].save_changes }}
@@ -431,6 +441,7 @@ export default {
     apiCardLoading: { type: Boolean, required: true },
     apiCardError: { type: String, default: '' },
     cardTitle: { type: String, required: true },
+    cardTitleEn: { type: String, required: true },
     cardImg: { type: [File, Object, String], default: null },
     cardArtVariants: { type: Array, default: () => [] },
     selectedCardArtVariantId: { type: [String, Number, null], default: null },
@@ -466,6 +477,7 @@ export default {
     infoPosition: { type: [String, Number], required: true },
     cardInfo: { type: String, required: true },
     hasUnsavedLayoutChanges: { type: Boolean, required: true },
+    canSaveCurrentCard: { type: Boolean, required: true },
   },
   computed: {
     artStyleOpts() {
@@ -479,6 +491,9 @@ export default {
       return this.cardBLUE != null && this.cardBLUE !== ''
         ? this.cardBLUE
         : this.cardRED
+    },
+    hasSavedBaseCard() {
+      return !!(this.currentBaseCard && this.cardKey)
     },
   },
   methods: {

@@ -132,9 +132,7 @@
                         <b-button
                           size="md"
                           variant="outline-light"
-                          :disabled="
-                            !selectedDeckId || currentCardQuantityInDeck === 0
-                          "
+                          :disabled="!cardKey && !editingDeckCardId"
                           title="Remover uma cópia do deck"
                           @click="removeOneFromDeck"
                         >
@@ -147,14 +145,14 @@
                             !selectedDeckId || currentCardQuantityInDeck === 0
                           "
                           :title="
-                            deckEditLock
+                            deckEditLock || isFieldsLocked
                               ? 'Habilitar edição deste card'
                               : 'Editando'
                           "
-                          @click="unlockDeckEdit"
+                          @click="unlockCurrentEdit"
                         >
                           {{
-                            deckEditLock
+                            deckEditLock || isFieldsLocked
                               ? ui[uiLang].edit || 'Editar'
                               : 'Editando'
                           }}
@@ -250,10 +248,16 @@
                   :selected-deck-cards="selectedDeckCards"
                   :main-deck-cards="mainDeckCards"
                   :extra-deck-cards="extraDeckCards"
+                  :main-deck-monster-count="mainDeckMonsterCount"
+                  :main-deck-spell-count="mainDeckSpellCount"
+                  :main-deck-trap-count="mainDeckTrapCount"
+                  :main-deck-pages="mainDeckEstimatedPages"
+                  :main-deck-remaining-slots="mainDeckRemainingSlots"
                   :editing-deck-card-id="editingDeckCardId"
                   :deck-dirty-ygo="deckDirtyYgo"
                   :downloading="ygoDeckDownloading"
                   :deck-export-mode="ygoDeckExportMode"
+                  :card-selection-mode="ygoCardSelectionMode"
                   :selected-export-card-ids="ygoExportSelectedCardIds"
                   :get-deck-card-image-src="getDeckCardImageSrc"
                   @import-deck="openImportDeckModal"
@@ -269,7 +273,7 @@
                   @open-hand-test="openYgoHandTestModal"
                   @start-export-cards="startYgoDeckExportMode"
                   @finish-export-cards="finishYgoDeckExportSelection"
-                  @cancel-export-cards="cancelYgoDeckExportMode"
+                  @cancel-export-cards="cancelYgoExportMode"
                   @save-deck-state="saveDeckStateYgo"
                   @discard-deck-state="discardDeckStateYgo"
                   @open-download-modal="openYgoDownloadModal"
@@ -670,6 +674,8 @@
                       :apiCardError="apiCardError"
                       :cardTitle="cardTitle"
                       @update:cardTitle="(v) => (cardTitle = v)"
+                      :cardTitleEn="cardTitleEn"
+                      @update:cardTitleEn="(v) => (cardTitleEn = v)"
                       :cardImg="cardImg"
                       @update:cardImg="(v) => (cardImg = v)"
                       :cardArtVariants="currentCardArtVariants"
@@ -738,6 +744,7 @@
                       @update:infoPosition="(v) => (infoPosition = v)"
                       @update:cardInfo="(v) => (cardInfo = v)"
                       :hasUnsavedLayoutChanges="hasUnsavedLayoutChanges"
+                      :canSaveCurrentCard="canSaveCurrentYgoCard"
                       @unlock-edit="unlockCurrentEdit"
                       @download-img="download_img"
                       @save-deck-card-changes="saveCurrentCardChanges"
@@ -1788,6 +1795,51 @@
           }}</b-form-radio>
         </b-form-radio-group>
       </b-form-group>
+      <b-form-group label="Quais cards deseja baixar?" class="mt-3">
+        <b-form-radio-group
+          v-model="ygoDownloadScope"
+          name="ygo-download-scope"
+        >
+          <b-form-radio value="all">Todos os cards do deck</b-form-radio>
+          <b-form-radio value="selected"
+            >Apenas cards selecionados</b-form-radio
+          >
+        </b-form-radio-group>
+        <div
+          v-if="ygoDownloadScope === 'selected'"
+          class="small text-muted mt-2"
+        >
+          <div v-if="ygoExportSelectedCardIds.length">
+            {{ ygoExportSelectedCardIds.length }}
+            {{
+              ygoExportSelectedCardIds.length === 1
+                ? 'card selecionado para download.'
+                : 'cards selecionados para download.'
+            }}
+          </div>
+          <div v-else>
+            Nenhum card selecionado ainda. Clique em selecionar para marcar os
+            cards na lista do deck.
+          </div>
+        </div>
+      </b-form-group>
+      <div
+        v-if="ygoDownloadScope === 'selected'"
+        class="d-flex justify-content-end mb-3"
+      >
+        <b-button
+          variant="outline-primary"
+          size="sm"
+          @click="prepareSelectedYgoDownload"
+        >
+          <fa :icon="['fas', 'tasks']" class="mr-1" />
+          {{
+            ygoExportSelectedCardIds.length
+              ? 'Ajustar selecao'
+              : 'Selecionar cards'
+          }}
+        </b-button>
+      </div>
       <template
         v-if="ygoDownloadFormat === 'silhouette' && hasSilhouetteSupport"
       >
@@ -1821,7 +1873,12 @@
         <div class="small text-muted mb-3">
           <div>Cada PDF suporta {{ silhouetteCardsPerPageCurrent }} cards.</div>
           <div v-if="silhouetteDeckCardCount > 0">
-            Seu deck atual ocupa {{ silhouetteEstimatedPages }} PDF(s).
+            {{
+              ygoDownloadScope === 'selected'
+                ? 'Sua selecao atual ocupa'
+                : 'Seu deck atual ocupa'
+            }}
+            {{ silhouetteEstimatedPages }} PDF(s).
             <span v-if="silhouetteRemainingSlots > 0">
               Faltam {{ silhouetteRemainingSlots }} card(s) para completar o
               último PDF.
@@ -1857,7 +1914,10 @@
         </b-button>
         <b-button
           variant="success"
-          :disabled="ygoDeckDownloading"
+          :disabled="
+            ygoDeckDownloading ||
+            (ygoDownloadScope === 'selected' && !ygoExportSelectedCardIds.length)
+          "
           @click="confirmYgoDownload"
         >
           <fa v-if="ygoDeckDownloading" icon="spinner" spin class="mr-1" />
@@ -2300,6 +2360,7 @@ export default {
       fullArtPresenceCache: Object.create(null),
       fullArtPresencePromises: Object.create(null),
       cardTitle: '',
+      cardTitleEn: '',
       cardImg: null,
       fullart: false,
       cardType: 'Monster',
@@ -2377,8 +2438,10 @@ export default {
       showYgoExportDeckModal: false,
       ygoHandTestCards: [],
       ygoDeckExportMode: false,
+      ygoCardSelectionMode: null,
       ygoExportSelectedCardIds: [],
       ygoDownloadFormat: 'png',
+      ygoDownloadScope: 'all',
       silhouettePaperSize: 'a4',
       silhouetteCardSize: 'japanese',
       silhouetteCardsTouch: true,
@@ -2703,11 +2766,54 @@ export default {
         return (a.name || '').localeCompare(b.name || '', 'pt')
       })
     },
+    mainDeckMonsterCount() {
+      return (this.mainDeckCards || []).filter((item) => {
+        const t = Array.isArray(item?.snapshot?.type)
+          ? item.snapshot.type[0]
+          : String(item?.snapshot?.type || '')
+        return t === 'Monster'
+      }).length
+    },
+    mainDeckSpellCount() {
+      return (this.mainDeckCards || []).filter((item) => {
+        const t = Array.isArray(item?.snapshot?.type)
+          ? item.snapshot.type[0]
+          : String(item?.snapshot?.type || '')
+        return t === 'Spell'
+      }).length
+    },
+    mainDeckTrapCount() {
+      return (this.mainDeckCards || []).filter((item) => {
+        const t = Array.isArray(item?.snapshot?.type)
+          ? item.snapshot.type[0]
+          : String(item?.snapshot?.type || '')
+        return t === 'Trap'
+      }).length
+    },
     /** Extra Deck: Fusion, Synchro, Xyz, Link (já em div separada); ordenado por nível e nome */
     extraDeckCards() {
-      return this.sortedSelectedDeckCards.filter((item) =>
-        this.isExtraDeckItem(item)
-      )
+      const extraTypeOrder = (item) => {
+        const subtype = Array.isArray(item?.snapshot?.type)
+          ? item.snapshot.type[1]
+          : String(item?.snapshot?.type || '')
+        if (subtype === 'Fusion') return 0
+        if (subtype === 'Synchro') return 1
+        if (subtype === 'Xyz') return 2
+        if (subtype === 'Link') return 3
+        if (subtype === 'Token') return 99
+        return 50
+      }
+      return this.sortedSelectedDeckCards
+        .filter((item) => this.isExtraDeckItem(item))
+        .sort((a, b) => {
+          const typeA = extraTypeOrder(a)
+          const typeB = extraTypeOrder(b)
+          if (typeA !== typeB) return typeA - typeB
+          const levelA = parseInt(a.snapshot?.level, 10) || 0
+          const levelB = parseInt(b.snapshot?.level, 10) || 0
+          if (levelA !== levelB) return levelA - levelB
+          return (a.name || '').localeCompare(b.name || '', 'pt')
+        })
     },
     /** Cards do deck MH ordenados por título (alfabético) */
     sortedMhSelectedDeckCards() {
@@ -2765,6 +2871,13 @@ export default {
       const current = this.getCurrentCardSnapshot()
       return JSON.stringify(this.snapshotAtLoad) !== JSON.stringify(current)
     },
+    canSaveCurrentYgoCard() {
+      if (this.isFieldsLocked || this.deckEditLock) return false
+      if (!this.cardKey) {
+        return !!String(this.cardTitle || '').trim()
+      }
+      return this.hasUnsavedLayoutChanges
+    },
     isCurrentCardInDeck() {
       if (!this.cardKey || !this.selectedDeckId) return false
       return this.selectedDeckCards.some(
@@ -2794,9 +2907,19 @@ export default {
         this.silhouettePaperSize
       )
     },
+    ygoDownloadSelectedCards() {
+      const source = Array.isArray(this.sortedSelectedDeckCards)
+        ? this.sortedSelectedDeckCards
+        : []
+      if (this.ygoDownloadScope !== 'selected') return source
+      const selectedIds = new Set(
+        (this.ygoExportSelectedCardIds || []).map((id) => String(id))
+      )
+      return source.filter((item) => selectedIds.has(String(item.id)))
+    },
     silhouetteDeckCardCount() {
-      return Array.isArray(this.selectedDeckCards)
-        ? this.selectedDeckCards.length
+      return Array.isArray(this.ygoDownloadSelectedCards)
+        ? this.ygoDownloadSelectedCards.length
         : 0
     },
     silhouetteEstimatedPages() {
@@ -2807,6 +2930,18 @@ export default {
     silhouetteRemainingSlots() {
       const perPage = Number(this.silhouetteCardsPerPageCurrent) || 1
       const total = Number(this.silhouetteDeckCardCount) || 0
+      if (total <= 0) return 0
+      const remainder = total % perPage
+      return remainder === 0 ? 0 : perPage - remainder
+    },
+    mainDeckEstimatedPages() {
+      const perPage = Number(this.silhouetteCardsPerPageCurrent) || 1
+      const total = Number((this.mainDeckCards || []).length) || 0
+      return total > 0 ? Math.ceil(total / perPage) : 0
+    },
+    mainDeckRemainingSlots() {
+      const perPage = Number(this.silhouetteCardsPerPageCurrent) || 1
+      const total = Number((this.mainDeckCards || []).length) || 0
       if (total <= 0) return 0
       const remainder = total % perPage
       return remainder === 0 ? 0 : perPage - remainder
@@ -3190,7 +3325,7 @@ export default {
     },
 
     isExtraDeckItem(item) {
-      const extraTypes = ['Fusion', 'Xyz', 'Synchro', 'Link']
+      const extraTypes = ['Fusion', 'Xyz', 'Synchro', 'Link', 'Token']
       const typeParts = Array.isArray(item?.snapshot?.type)
         ? item.snapshot.type
         : String(item?.snapshot?.type || '')
@@ -3399,6 +3534,7 @@ export default {
       const nextCard = JSON.parse(JSON.stringify(baseCard || {}))
       const { frameType, type, typeline } = this.buildCardTypeMetadata(snapshot)
       const unifiedName = String(snapshot?.title || '').trim()
+      const unifiedEnglishName = String(this.cardTitleEn || '').trim()
       const unifiedDesc = this.composeCurrentCardDescription(snapshot)
       const scaleValue = Number(snapshot?.blue ?? snapshot?.red ?? 0) || 0
       const linkmarkers = []
@@ -3411,6 +3547,7 @@ export default {
       }
 
       nextCard.name = unifiedName || nextCard.name || ''
+      nextCard.name_en = unifiedEnglishName || nextCard.name_en || nextCard.name || ''
       nextCard.desc = unifiedDesc || nextCard.desc || ''
       nextCard.lang = 'pt'
       nextCard.frameType = frameType
@@ -4137,6 +4274,7 @@ export default {
       const resolvedSnapshot = baseCard
         ? this.map_ygoprodeck_to_internal(baseCard)
         : this.mergeDeckSnapshotWithBase(item.cardKey, item.snapshot || {})
+      this.cardTitleEn = (baseCard && baseCard.name_en) || ''
       this.loadFromSnapshot(resolvedSnapshot)
       this.snapshotAtLoad = this.captureCurrentCardSnapshot()
       this.cardKey = item.cardKey
@@ -4347,6 +4485,9 @@ export default {
     drawCardProcess() {
       const canvas = this.$refs.yugiohcard
       const ctx = canvas.getContext('2d')
+      if (this.cardKey != null && typeof this.cardKey !== 'string') {
+        this.cardKey = String(this.cardKey)
+      }
       canvas.width = 1000
       canvas.height = 1450
 
@@ -5082,7 +5223,7 @@ export default {
 
     doLoadDefaultData() {
       this.initialSnapshotWhenNotFromCollection = null
-      this.setYgoEditorState('base-readonly', { editingDeckCardId: null })
+      this.setYgoEditorState('base-edit', { editingDeckCardId: null })
       this.snapshotAtLoad = null
       this.viewingBaseCard = false
       this.relatedCards = []
@@ -5093,6 +5234,7 @@ export default {
       this.cardLoadYgoProEnabled = true
       this.cardKey = ''
       this.cardTitle = data.title
+      this.cardTitleEn = ''
       this.cardImg = null
       this.currentCardArtVariants = []
       this.currentCardArtVariantsCardKey = ''
@@ -6499,18 +6641,30 @@ export default {
     },
 
     async saveBaseCardChanges() {
-      if (!this.$ygoDb || !this.cardKey || !this.currentBaseCard) return
       const snapshot = this.getCurrentCardSnapshot()
-      const key = String(this.cardKey)
-      const updatedCard = this.buildStoredCardFromSnapshot(
-        this.currentBaseCard,
-        snapshot
-      )
-      await this.$ygoDb.updateCardBase(key, {
-        name: updatedCard.name || '',
-        desc: updatedCard.desc || '',
-        data: updatedCard,
-      })
+      const isNewCard = !this.cardKey || !this.currentBaseCard
+      let key = String(this.cardKey || '')
+      let updatedCard = this.buildStoredCardFromSnapshot(this.currentBaseCard, snapshot)
+
+      if (isNewCard) {
+        key = String(
+          await this.$ygoDb.createCardBase({
+            name: updatedCard.name || '',
+            name_en: updatedCard.name_en || '',
+            desc: updatedCard.desc || '',
+            data: updatedCard,
+            lang: 'pt',
+          })
+        )
+        this.cardKey = key
+      } else {
+        await this.$ygoDb.updateCardBase(key, {
+          name: updatedCard.name || '',
+          name_en: updatedCard.name_en || '',
+          desc: updatedCard.desc || '',
+          data: updatedCard,
+        })
+      }
 
       const previewBlob = await this.captureCurrentCardPreviewBlob()
       if (previewBlob) {
@@ -6526,6 +6680,7 @@ export default {
       this.localCards = cards || []
       const refreshedCard =
         this.localCards.find((card) => String(card.id) === key) || updatedCard
+      this.cardTitleEn = refreshedCard.name_en || this.cardTitleEn || ''
       this.replaceCardInCollections(refreshedCard)
       this.$set(
         this.apiCardCache,
@@ -6703,6 +6858,7 @@ export default {
 
     startYgoDeckExportMode() {
       if (!this.selectedDeckCards.length) return
+      this.ygoCardSelectionMode = 'export'
       this.ygoDeckExportMode = true
       this.ygoExportSelectedCardIds = []
     },
@@ -6721,6 +6877,11 @@ export default {
 
     finishYgoDeckExportSelection() {
       if (!this.ygoDeckExportMode || !this.ygoExportSelectedCardIds.length) return
+      if (this.ygoCardSelectionMode === 'download') {
+        this.ygoDeckExportMode = false
+        this.openYgoDownloadModal({ preserveScope: true })
+        return
+      }
       this.showYgoExportDeckModal = true
     },
 
@@ -6730,6 +6891,7 @@ export default {
 
     cancelYgoExportMode() {
       this.ygoDeckExportMode = false
+      this.ygoCardSelectionMode = null
       this.ygoExportSelectedCardIds = []
       this.showYgoExportDeckModal = false
     },
@@ -7102,10 +7264,33 @@ export default {
       this.showSilhouetteModal = true
     },
 
-    openYgoDownloadModal() {
+    openYgoDownloadModal(options = {}) {
+      const preserveScope = options && options.preserveScope === true
       this.ygoDownloadFormat = 'png'
       this.silhouettePdfMode = 'combined'
+      if (!preserveScope) {
+        this.ygoDownloadScope = 'all'
+      }
       this.showYgoDownloadModal = true
+    },
+
+    prepareSelectedYgoDownload() {
+      if (!this.selectedDeckCards.length) return
+      this.showYgoDownloadModal = false
+      this.ygoDownloadScope = 'selected'
+      this.ygoCardSelectionMode = 'download'
+      this.ygoDeckExportMode = true
+      if (this.$bvToast) {
+        this.$bvToast.toast(
+          'Selecione os cards desejados no deck e clique em "Usar selecao".',
+          { variant: 'info' }
+        )
+      }
+    },
+
+    resetYgoDownloadSelection() {
+      this.cancelYgoExportMode()
+      this.ygoDownloadScope = 'all'
     },
 
     openYgoHandTestModal() {
@@ -7165,12 +7350,20 @@ export default {
     },
 
     async confirmYgoDownload() {
-      if (this.ygoDownloadFormat === 'png') {
-        await this.batchDownloadDeck()
-      } else {
-        await this.downloadSilhouetteDeck()
+      if (this.ygoDownloadScope === 'selected' && !this.ygoExportSelectedCardIds.length) {
+        this.prepareSelectedYgoDownload()
+        return
       }
-      this.showYgoDownloadModal = false
+      try {
+        if (this.ygoDownloadFormat === 'png') {
+          await this.batchDownloadDeck()
+        } else {
+          await this.downloadSilhouetteDeck()
+        }
+      } finally {
+        this.resetYgoDownloadSelection()
+        this.showYgoDownloadModal = false
+      }
     },
 
     async openMhDownloadModal(deck) {
@@ -7554,8 +7747,25 @@ export default {
           .trim() || 'card'
       )
     },
+
+    getYgoCardsForDownload() {
+      const cards =
+        this.ygoDownloadScope === 'selected'
+          ? this.ygoDownloadSelectedCards
+          : this.sortedSelectedDeckCards
+      return Array.isArray(cards) ? cards : []
+    },
+
+    getYgoDownloadBaseName() {
+      const baseName = this.sanitizeFilename(this.selectedDeck?.name || 'deck')
+      return this.ygoDownloadScope === 'selected'
+        ? `${baseName}-selecionados`
+        : baseName
+    },
+
     async batchDownloadDeck() {
-      if (!this.selectedDeckCards.length || !this.selectedDeck) return
+      const ordered = this.getYgoCardsForDownload()
+      if (!ordered.length || !this.selectedDeck) return
       this.batchDownloading = true
       const saveState = {
         snapshot: this.getCurrentCardSnapshot(),
@@ -7565,7 +7775,6 @@ export default {
       this._exportingCard = true
       const zip = new JSZip()
       try {
-        const ordered = this.sortedSelectedDeckCards
         for (let i = 0; i < ordered.length; i++) {
           const entry = ordered[i]
           const imgUrl = await this.getExportImageUrlForBatch(entry.cardKey)
@@ -7604,7 +7813,7 @@ export default {
         const zipUrl = URL.createObjectURL(zipBlob)
         const a = document.createElement('a')
         a.href = zipUrl
-        a.download = `${this.sanitizeFilename(this.selectedDeck.name)}.zip`
+        a.download = `${this.getYgoDownloadBaseName()}.zip`
         a.click()
         URL.revokeObjectURL(zipUrl)
       } finally {
@@ -7618,8 +7827,9 @@ export default {
     },
 
     async downloadSilhouetteDeck() {
+      const ordered = this.getYgoCardsForDownload()
       if (
-        !this.selectedDeckCards.length ||
+        !ordered.length ||
         !this.selectedDeck ||
         !window.silhouette
       )
@@ -7634,7 +7844,6 @@ export default {
       this._exportingCard = true
       try {
         const images = []
-        const ordered = this.sortedSelectedDeckCards
         for (let i = 0; i < ordered.length; i++) {
           const entry = ordered[i]
           const imgUrl = await this.getExportImageUrlForBatch(entry.cardKey)
@@ -7667,7 +7876,7 @@ export default {
           await new Promise((resolve) => setTimeout(resolve, 100))
         }
         if (this.silhouettePdfMode === 'separate') {
-          const baseName = this.sanitizeFilename(this.selectedDeck.name)
+          const baseName = this.getYgoDownloadBaseName()
           const zip = new JSZip()
           const cardsPerPage = this.getSilhouetteCardsPerPage(
             this.silhouetteCardSize,
@@ -7716,7 +7925,7 @@ export default {
             cardsTouch: this.silhouetteCardsTouch,
             includeImages: true,
           })
-        const baseName = this.sanitizeFilename(this.selectedDeck.name)
+        const baseName = this.getYgoDownloadBaseName()
         const zip = new JSZip()
         // PDF pronto para impressão dentro do ZIP
         zip.file(`${baseName}.pdf`, pdfBase64, { base64: true })
@@ -7780,6 +7989,7 @@ export default {
       if (!data) return false
       const card = this.localCards.find((c) => String(c.id) === key)
       this.cardLang = (card && card.lang) || 'pt'
+      this.cardTitleEn = (card && card.name_en) || ''
       this.loadFromSnapshot(data)
       if (this.currentCardArtVariantsCardKey !== String(key)) {
         this.refreshCurrentCardArtVariants(key, { redraw: true })
@@ -7794,6 +8004,10 @@ export default {
       this.cardRare = data.rare
       this.titleColor = data.color
       this.cardTitle = data.title
+      this.cardTitleEn =
+        (this.currentBaseCard && this.currentBaseCard.name_en) ||
+        this.cardTitleEn ||
+        ''
       this.cardImg = null
       this.cardType = typeArr[0] ?? 'Monster'
       this.cardSubtype = typeArr[1] ?? 'Normal'

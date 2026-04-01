@@ -13,6 +13,7 @@ const CARD_DISTANCE_MM = 1.25
 const REG_PADDING_MM = 1.5
 const REGISTRATION_THREE = '3'
 const REGISTRATION_FOUR = '4'
+const IMAGE_X_COMPENSATION_MM = -0.5
 
 function loadLayoutConfig() {
   const p = path.join(__dirname, '../../static/silhouette-layouts.json')
@@ -237,10 +238,188 @@ function drawRegistrationMarks(doc, pageWidthMm, pageHeightMm, opts) {
   drawL(pageWidthMm - inset, pageHeightMm - inset, -1, -1)
 }
 
-async function resizeCardImage(inputBuffer, widthMm, heightMm, ppi) {
-  const wPx = Math.round((widthMm / 25.4) * ppi)
-  const hPx = Math.round((heightMm / 25.4) * ppi)
-  return sharp(inputBuffer).resize(wPx, hPx, { fit: 'fill' }).png().toBuffer()
+async function renderCardImageForPdf(
+  inputBuffer,
+  cardWidthMm,
+  cardHeightMm,
+  ppi,
+  bleedMm = 0
+) {
+  const innerWidthPx = Math.max(1, Math.round((cardWidthMm / 25.4) * ppi))
+  const innerHeightPx = Math.max(1, Math.round((cardHeightMm / 25.4) * ppi))
+  const finalWidthPx = Math.max(
+    innerWidthPx,
+    Math.round(((cardWidthMm + bleedMm) / 25.4) * ppi)
+  )
+  const finalHeightPx = Math.max(
+    innerHeightPx,
+    Math.round(((cardHeightMm + bleedMm) / 25.4) * ppi)
+  )
+
+  const resized = sharp(inputBuffer)
+    .resize(innerWidthPx, innerHeightPx, { fit: 'fill' })
+    .png()
+
+  if (
+    bleedMm <= 0 ||
+    finalWidthPx === innerWidthPx ||
+    finalHeightPx === innerHeightPx
+  ) {
+    return resized.toBuffer()
+  }
+
+  const innerBuffer = await resized.toBuffer()
+  const leftBleedPx = Math.floor((finalWidthPx - innerWidthPx) / 2)
+  const rightBleedPx = finalWidthPx - innerWidthPx - leftBleedPx
+  const topBleedPx = Math.floor((finalHeightPx - innerHeightPx) / 2)
+  const bottomBleedPx = finalHeightPx - innerHeightPx - topBleedPx
+
+  const composites = [
+    { input: innerBuffer, left: leftBleedPx, top: topBleedPx },
+  ]
+
+  const baseSharp = sharp(innerBuffer)
+
+  if (leftBleedPx > 0) {
+    composites.push({
+      input: await baseSharp
+        .clone()
+        .extract({ left: 0, top: 0, width: 1, height: innerHeightPx })
+        .resize(leftBleedPx, innerHeightPx, { fit: 'fill' })
+        .png()
+        .toBuffer(),
+      left: 0,
+      top: topBleedPx,
+    })
+  }
+
+  if (rightBleedPx > 0) {
+    composites.push({
+      input: await baseSharp
+        .clone()
+        .extract({
+          left: Math.max(0, innerWidthPx - 1),
+          top: 0,
+          width: 1,
+          height: innerHeightPx,
+        })
+        .resize(rightBleedPx, innerHeightPx, { fit: 'fill' })
+        .png()
+        .toBuffer(),
+      left: leftBleedPx + innerWidthPx,
+      top: topBleedPx,
+    })
+  }
+
+  if (topBleedPx > 0) {
+    composites.push({
+      input: await baseSharp
+        .clone()
+        .extract({ left: 0, top: 0, width: innerWidthPx, height: 1 })
+        .resize(innerWidthPx, topBleedPx, { fit: 'fill' })
+        .png()
+        .toBuffer(),
+      left: leftBleedPx,
+      top: 0,
+    })
+  }
+
+  if (bottomBleedPx > 0) {
+    composites.push({
+      input: await baseSharp
+        .clone()
+        .extract({
+          left: 0,
+          top: Math.max(0, innerHeightPx - 1),
+          width: innerWidthPx,
+          height: 1,
+        })
+        .resize(innerWidthPx, bottomBleedPx, { fit: 'fill' })
+        .png()
+        .toBuffer(),
+      left: leftBleedPx,
+      top: topBleedPx + innerHeightPx,
+    })
+  }
+
+  if (leftBleedPx > 0 && topBleedPx > 0) {
+    composites.push({
+      input: await baseSharp
+        .clone()
+        .extract({ left: 0, top: 0, width: 1, height: 1 })
+        .resize(leftBleedPx, topBleedPx, { fit: 'fill' })
+        .png()
+        .toBuffer(),
+      left: 0,
+      top: 0,
+    })
+  }
+
+  if (rightBleedPx > 0 && topBleedPx > 0) {
+    composites.push({
+      input: await baseSharp
+        .clone()
+        .extract({
+          left: Math.max(0, innerWidthPx - 1),
+          top: 0,
+          width: 1,
+          height: 1,
+        })
+        .resize(rightBleedPx, topBleedPx, { fit: 'fill' })
+        .png()
+        .toBuffer(),
+      left: leftBleedPx + innerWidthPx,
+      top: 0,
+    })
+  }
+
+  if (leftBleedPx > 0 && bottomBleedPx > 0) {
+    composites.push({
+      input: await baseSharp
+        .clone()
+        .extract({
+          left: 0,
+          top: Math.max(0, innerHeightPx - 1),
+          width: 1,
+          height: 1,
+        })
+        .resize(leftBleedPx, bottomBleedPx, { fit: 'fill' })
+        .png()
+        .toBuffer(),
+      left: 0,
+      top: topBleedPx + innerHeightPx,
+    })
+  }
+
+  if (rightBleedPx > 0 && bottomBleedPx > 0) {
+    composites.push({
+      input: await baseSharp
+        .clone()
+        .extract({
+          left: Math.max(0, innerWidthPx - 1),
+          top: Math.max(0, innerHeightPx - 1),
+          width: 1,
+          height: 1,
+        })
+        .resize(rightBleedPx, bottomBleedPx, { fit: 'fill' })
+        .png()
+        .toBuffer(),
+      left: leftBleedPx + innerWidthPx,
+      top: topBleedPx + innerHeightPx,
+    })
+  }
+
+  return sharp({
+    create: {
+      width: finalWidthPx,
+      height: finalHeightPx,
+      channels: 4,
+      background: { r: 255, g: 255, b: 255, alpha: 1 },
+    },
+  })
+    .composite(composites)
+    .png()
+    .toBuffer()
 }
 
 /** Nome do arquivo template para Silhouette Studio (corte). */
@@ -286,6 +465,10 @@ async function generateSilhouettePdf(
   const drawWidthMm = layout.cardWidthMm + bleedMm
   const drawHeightMm = layout.cardHeightMm + bleedMm
   const offsetMm = cardsTouch ? bleedMm / 2 : 0
+  const xCompensationMm =
+    typeof options.xCompensationMm === 'number'
+      ? options.xCompensationMm
+      : IMAGE_X_COMPENSATION_MM
 
   const layoutDef = config.layouts[paperSizeKey][cardSizeKey]
   const templateFileName = getTemplateFileName(
@@ -322,16 +505,17 @@ async function generateSilhouettePdf(
     for (let r = 0; r < layout.rows && imageIndex < images.length; r++) {
       for (let c = 0; c < layout.cols && imageIndex < images.length; c++) {
         const item = images[imageIndex]
-        const x = layout.xPosMm[c] - offsetMm
+        const x = layout.xPosMm[c] - offsetMm + xCompensationMm
         const y = layout.yPosMm[r] - offsetMm
         if (includeImages) {
           const base64 = item.base64 || item
           const buffer = Buffer.from(base64, 'base64')
-          const resized = await resizeCardImage(
+          const resized = await renderCardImageForPdf(
             buffer,
-            drawWidthMm,
-            drawHeightMm,
-            ppi
+            layout.cardWidthMm,
+            layout.cardHeightMm,
+            ppi,
+            bleedMm
           )
           const dataUrl = `data:image/png;base64,${resized.toString('base64')}`
           doc.addImage(dataUrl, 'PNG', x, y, drawWidthMm, drawHeightMm)
@@ -371,16 +555,17 @@ async function generateSilhouettePdf(
           const backBase64 = backsForPage[slot]
 
           // Posição física na página (sem rotação de imagem)
-          const x = layout.xPosMm[c] - offsetMm
+          const x = layout.xPosMm[c] - offsetMm + xCompensationMm
           const y = layout.yPosMm[r] - offsetMm
 
           if (includeImages && backBase64) {
             const buffer = Buffer.from(backBase64, 'base64')
-            const resized = await resizeCardImage(
+            const resized = await renderCardImageForPdf(
               buffer,
-              drawWidthMm,
-              drawHeightMm,
-              ppi
+              layout.cardWidthMm,
+              layout.cardHeightMm,
+              ppi,
+              bleedMm
             )
             const dataUrl = `data:image/png;base64,${resized.toString(
               'base64'
